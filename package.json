@@ -1,0 +1,23 @@
+{
+  "name": "bizconnect",
+  "version": "1.0.0",
+  "description": "비즈커넥트 - 모바일 연동 하이브리드 CRM",
+  "scripts": {
+    "dev": "cd web && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "dev:mobile": "cd mobile && npm run android",
+    "build": "cd web && npm run build",
+    "build:web": "cd web && npm run build",
+    "setup:supabase": "node scripts/run-migration.js",
+    "setup:supabase:psql": "node scripts/run-migration-psql.js",
+    "setup:supabase:cli": "powershell -ExecutionPolicy Bypass -File scripts/setup-supabase-cli.ps1",
+    "setup:supabase:npx": "powershell -ExecutionPolicy Bypass -File scripts/run-migration-npx.ps1",
+    "setup:supabase:quick": "powershell -ExecutionPolicy Bypass -File scripts/quick-migration.ps1",
+    "supabase:login": "npx supabase login",
+    "supabase:link": "npx supabase link --project-ref hdeebyhwoogxawjkwufx"
+  },
+  "keywords": ["crm", "sms", "mobile", "supabase"],
+  "author": "",
+  "license": "ISC"
+}
+
