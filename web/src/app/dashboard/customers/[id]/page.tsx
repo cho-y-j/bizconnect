@@ -344,7 +344,7 @@ export default function CustomerDetailPage() {
                             {formatDateTime(log.sent_at)}
                           </div>
                           <div className="text-sm text-gray-900 whitespace-pre-wrap">
-                            {log.message_content || log.message || '메시지 없음'}
+                            {log.message || '메시지 없음'}
                           </div>
                           {log.image_url && (
                             <div className="mt-2">
