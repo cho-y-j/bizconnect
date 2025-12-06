@@ -13,6 +13,7 @@ interface Task {
   customer_phone: string
   message_content: string
   status: string
+  scheduled_at?: string | null
   created_at: string
 }
 
