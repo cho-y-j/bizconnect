@@ -6,9 +6,17 @@ import type { Customer } from '@/lib/types/customer'
 import type { CustomerGroup } from '@/lib/types/customer'
 
 export interface VariableContext {
-  customer?: Customer & {
+  customer?: (Customer & {
     group?: CustomerGroup
     tags?: Array<{ tag_name: string }>
+  }) | {
+    name?: string
+    phone?: string
+    industry_type?: string
+    group?: CustomerGroup
+    tags?: Array<{ tag_name: string }>
+    birthday?: string
+    anniversary?: string
   }
   date?: Date
 }
