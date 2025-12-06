@@ -361,6 +361,64 @@ export default function SendSMSPage() {
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    try {
+      setUploadingImage(true)
+      setError('')
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('로그인이 필요합니다.')
+        return
+      }
+
+      // 세션 토큰 가져오기
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('세션이 만료되었습니다.')
+        return
+      }
+
+      // FormData 생성
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('name', file.name)
+      formData.append('category', 'general')
+
+      // API 호출
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || '이미지 업로드 실패')
+        return
+      }
+
+      if (result.success && result.image) {
+        // 업로드된 이미지 선택
+        setSelectedImage({
+          url: result.image.image_url,
+          name: result.image.name,
+        })
+        // 저장된 이미지 목록 새로고침
+        await loadSavedImages()
+        setSuccess('이미지가 업로드되었습니다.')
+      }
+    } catch (error: any) {
+      console.error('Image upload error:', error)
+      setError('이미지 업로드 중 오류가 발생했습니다: ' + error.message)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const loadUserSettings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
