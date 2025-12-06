@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import 'react-native-url-polyfill/auto'
 
 const supabaseUrl = 'https://hdeebyhwoogxawjkwufx.supabase.co'
@@ -6,9 +7,9 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        storage: null, // For MVP, no persistent auth storage or use AsyncStorage
+        storage: AsyncStorage, // AsyncStorage를 사용하여 세션 유지
         autoRefreshToken: true,
-        persistSession: false,
+        persistSession: true, // 세션 유지 활성화
         detectSessionInUrl: false,
     },
 })

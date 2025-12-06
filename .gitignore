@@ -50,3 +50,35 @@ Thumbs.db
 *.tmp
 *.temp
 
+# React Native
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/android/app/debug.keystore
+mobile/android/app/release.keystore
+mobile/android/.idea/
+mobile/android/local.properties
+mobile/android/app/release/
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+build/
+local.properties
+proguard/
+
+# iOS
+mobile/ios/build/
+mobile/ios/Pods/
+mobile/ios/*.xcworkspace
+mobile/ios/*.xcuserdata
+mobile/ios/DerivedData/
+
+# Metro
+mobile/.metro-health-check*
+

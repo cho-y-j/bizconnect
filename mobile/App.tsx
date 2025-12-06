@@ -1,189 +1,147 @@
-import React, { useEffect, useState } from 'react';
-import {
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View,
-    Button,
-    Alert,
-    PermissionsAndroid,
-    Platform,
-} from 'react-native';
-import { supabase } from './lib/supabaseClient'; // We will create this
-import SmsAndroid from 'react-native-get-sms-android';
-import CallDetectorManager from 'react-native-call-detection';
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { CallDetectionProvider } from './src/components/CallDetectionProvider';
+import LoginScreen from './src/screens/LoginScreen';
+import SignUpScreen from './src/screens/SignUpScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import ContactsUploadScreen from './src/screens/ContactsUploadScreen';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { errorHandler } from './src/lib/errorHandler';
+import { networkMonitor } from './src/lib/networkMonitor';
+import { offlineQueue } from './src/lib/offlineQueue';
+import { pushNotificationService } from './src/services/pushNotificationService';
+import { backgroundService } from './src/services/backgroundService';
+import { taskService } from './src/services/taskService';
 
-// Types
-type Task = {
-    id: string;
-    type: string;
-    message_content: string;
-    customer_phone: string;
-    status: string;
-};
+const Stack = createNativeStackNavigator();
+
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SignUp" component={SignUpScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function AppStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: '비즈커넥트',
+          headerStyle: {
+            backgroundColor: '#2563EB',
+          },
+          headerTintColor: '#fff',
+        }}
+      />
+      <Stack.Screen
+        name="ContactsUpload"
+        component={ContactsUploadScreen}
+        options={{
+          title: '주소록 업로드',
+          headerStyle: {
+            backgroundColor: '#2563EB',
+          },
+          headerTintColor: '#fff',
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // 에러 핸들러 초기화
+    errorHandler.initialize();
+
+    // 네트워크 모니터 시작
+    networkMonitor.start();
+
+    // 네트워크 상태 변경 감지
+    networkMonitor.on('change', async (isOnline: boolean) => {
+      if (isOnline) {
+        // 온라인 복구 시 동기화
+        await offlineQueue.syncWhenOnline();
+        // 백그라운드 서비스 재시작
+        if (user) {
+          await backgroundService.start();
+        }
+      } else {
+        // 오프라인 시 백그라운드 서비스 중지
+        await backgroundService.stop();
+      }
+    });
+
+    return () => {
+      networkMonitor.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      // 사용자 로그인 시 초기화
+      (async () => {
+        // 푸시 알림 초기화
+        pushNotificationService.initialize();
+
+        // TaskService 설정
+        taskService.setUserId(user.id);
+
+        // 대기 중인 작업 로드
+        await taskService.loadPendingTasks();
+
+        // 백그라운드 서비스 시작
+        if (networkMonitor.getIsOnline()) {
+          await backgroundService.start();
+        }
+      })();
+    } else {
+      // 로그아웃 시 정리
+      taskService.unsubscribe();
+      backgroundService.stop();
+    }
+  }, [user]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      {user ? <AppStack /> : <AuthStack />}
+    </NavigationContainer>
+  );
+}
 
 function App(): JSX.Element {
-    const isDarkMode = useColorScheme() === 'dark';
-    const [status, setStatus] = useState('Idle');
-    const [tasks, setTasks] = useState<Task[]>([]);
-
-    useEffect(() => {
-        requestPermissions();
-        startCallListener();
-        subscribeToTasks();
-    }, []);
-
-    const requestPermissions = async () => {
-        if (Platform.OS === 'android') {
-            try {
-                const grants = await PermissionsAndroid.requestMultiple([
-                    PermissionsAndroid.PERMISSIONS.SEND_SMS,
-                    PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
-                    PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
-                    PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-                ]);
-                console.log('Permissions:', grants);
-            } catch (err) {
-                console.warn(err);
-            }
-        }
-    };
-
-    const startCallListener = () => {
-        // Basic call detection setup
-        try {
-            new CallDetectorManager((event: string, phoneNumber: string) => {
-                console.log('Call event:', event, phoneNumber);
-                if (event === 'Disconnected') {
-                    // Handle call ended - Trigger Smart Callback
-                    handleCallEnded(phoneNumber);
-                }
-            },
-                true, // read phone number
-                () => { }, // permission denied callback
-                {
-                    title: 'Phone State Permission',
-                    message: 'This app needs access to your phone state to detect calls.',
-                });
-        } catch (e) {
-            console.error("Call detector error", e);
-        }
-    };
-
-    const handleCallEnded = (phoneNumber: string) => {
-        // Logic to check if we should send a callback
-        // For MVP, just log it
-        console.log(`Call ended with ${phoneNumber}. Checking for callback rules...`);
-        setStatus(`Call ended: ${phoneNumber}`);
-    };
-
-    const subscribeToTasks = () => {
-        // Listen for new tasks assigned to this user (simplified)
-        const channel = supabase
-            .channel('public:tasks')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'tasks' },
-                (payload) => {
-                    console.log('New task received:', payload);
-                    const newTask = payload.new as Task;
-                    if (newTask.status === 'pending' && newTask.type === 'send_sms') {
-                        processSmsTask(newTask);
-                    }
-                }
-            )
-            .subscribe();
-
-        setStatus('Listening for tasks...');
-    };
-
-    const processSmsTask = (task: Task) => {
-        // Throttling logic would go here (Queue system)
-        // For MVP, send immediately
-        sendSms(task.customer_phone, task.message_content, task.id);
-    };
-
-    const sendSms = (phoneNumber: string, message: string, taskId: string) => {
-        SmsAndroid.autoSend(
-            phoneNumber,
-            message,
-            (fail) => {
-                console.error('Failed to send SMS:', fail);
-                updateTaskStatus(taskId, 'failed');
-            },
-            (success) => {
-                console.log('SMS sent successfully:', success);
-                updateTaskStatus(taskId, 'completed');
-            }
-        );
-    };
-
-    const updateTaskStatus = async (taskId: string, status: string) => {
-        await supabase.from('tasks').update({ status }).eq('id', taskId);
-    };
-
-    return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-            <ScrollView contentContainerStyle={styles.scrollView}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>BizConnect Mobile</Text>
-                    <Text style={styles.subtitle}>Status: {status}</Text>
-                </View>
-
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Today's Stats</Text>
-                    <Text>Sent: 0</Text>
-                    <Text>Failed: 0</Text>
-                </View>
-
-                <Button title="Test Permission" onPress={requestPermissions} />
-            </ScrollView>
-        </SafeAreaView>
-    );
+  return (
+    <AuthProvider>
+      <CallDetectionProvider>
+        <RootNavigator />
+      </CallDetectionProvider>
+    </AuthProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F3F4F6',
-    },
-    scrollView: {
-        padding: 20,
-    },
-    header: {
-        marginBottom: 20,
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1F2937',
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#4B5563',
-        marginTop: 5,
-    },
-    card: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 10,
-        marginBottom: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    }
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+  },
 });
 
 export default App;
