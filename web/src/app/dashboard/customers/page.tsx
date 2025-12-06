@@ -45,15 +45,23 @@ export default function CustomersPage() {
       if (!user) return
 
       // 고객의 모든 태그 조회
+      // 먼저 고객 ID 배열 가져오기
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+
+      if (!customers || customers.length === 0) {
+        setAvailableTags([])
+        return
+      }
+
+      const customerIds = customers.map(c => c.id)
+
       const { data: tags } = await supabase
         .from('customer_tags')
         .select('tag_name')
-        .in('customer_id', 
-          supabase
-            .from('customers')
-            .select('id')
-            .eq('user_id', user.id)
-        )
+        .in('customer_id', customerIds)
 
       if (tags) {
         const uniqueTags = [...new Set(tags.map(t => t.tag_name))]
