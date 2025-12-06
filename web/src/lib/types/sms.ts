@@ -12,6 +12,8 @@ export interface SMSLog {
   status: 'sent' | 'failed' | 'delivered'
   error_message: string | null
   sms_id: string | null
+  image_url?: string | null
+  image_name?: string | null
   // 조인 데이터
   customer?: {
     id: string
