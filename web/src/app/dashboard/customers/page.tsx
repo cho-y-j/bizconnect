@@ -101,17 +101,27 @@ export default function CustomersPage() {
 
       // 태그 필터
       if (selectedTags.length > 0) {
+        // 먼저 사용자의 고객 ID 배열 가져오기
+        const { data: userCustomers } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+
+        if (!userCustomers || userCustomers.length === 0) {
+          setCustomers([])
+          setTotalCount(0)
+          setLoading(false)
+          return
+        }
+
+        const userCustomerIds = userCustomers.map(c => c.id)
+
         // 태그가 있는 고객만 필터링
         const { data: customerIds } = await supabase
           .from('customer_tags')
           .select('customer_id')
           .in('tag_name', selectedTags)
-          .in('customer_id',
-            supabase
-              .from('customers')
-              .select('id')
-              .eq('user_id', user.id)
-          )
+          .in('customer_id', userCustomerIds)
 
         if (customerIds && customerIds.length > 0) {
           const ids = [...new Set(customerIds.map(c => c.customer_id))]
