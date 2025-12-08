@@ -13,9 +13,11 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 interface CallbackSettings {
   auto_callback_enabled: boolean;
@@ -28,6 +30,7 @@ interface CallbackSettings {
   callback_on_busy_message: string;
   // 기본 명함
   business_card_enabled: boolean;
+  business_card_image_url: string | null;
 }
 
 interface CategorySettings {
@@ -57,11 +60,13 @@ export default function CallbackSettingsScreen({ navigation }: any) {
     callback_on_busy_enabled: true,
     callback_on_busy_message: DEFAULT_MESSAGES.busy,
     business_card_enabled: false,
+    business_card_image_url: null,
   });
   const [categorySettings, setCategorySettings] = useState<CategorySettings>({});
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -106,7 +111,8 @@ export default function CallbackSettingsScreen({ navigation }: any) {
           callback_on_missed_message,
           callback_on_busy_enabled,
           callback_on_busy_message,
-          business_card_enabled
+          business_card_enabled,
+          business_card_image_url
         `)
         .eq('user_id', user.id)
         .single();
@@ -127,6 +133,7 @@ export default function CallbackSettingsScreen({ navigation }: any) {
           callback_on_busy_enabled: userSettings.callback_on_busy_enabled ?? true,
           callback_on_busy_message: userSettings.callback_on_busy_message || DEFAULT_MESSAGES.busy,
           business_card_enabled: userSettings.business_card_enabled ?? false,
+          business_card_image_url: userSettings.business_card_image_url || null,
         });
       }
     } catch (error) {
@@ -209,6 +216,7 @@ export default function CallbackSettingsScreen({ navigation }: any) {
           callback_on_busy_enabled: settings.callback_on_busy_enabled,
           callback_on_busy_message: settings.callback_on_busy_message,
           business_card_enabled: settings.business_card_enabled,
+          business_card_image_url: settings.business_card_image_url,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id',
@@ -228,6 +236,90 @@ export default function CallbackSettingsScreen({ navigation }: any) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // 이미지 선택 및 업로드
+  const pickAndUploadImage = async () => {
+    if (!user) return;
+
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      });
+
+      if (result.didCancel || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.uri) return;
+
+      setUploadingImage(true);
+
+      // 파일 이름 생성
+      const fileName = `business_card_${user.id}_${Date.now()}.jpg`;
+      const filePath = `business-cards/${fileName}`;
+
+      // 파일을 blob으로 변환
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+
+      // Supabase Storage에 업로드
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+        return;
+      }
+
+      // Public URL 가져오기
+      const { data: urlData } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        setSettings((prev) => ({
+          ...prev,
+          business_card_image_url: urlData.publicUrl,
+        }));
+        Alert.alert('성공', '명함 이미지가 업로드되었습니다.');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // 이미지 삭제
+  const removeImage = () => {
+    Alert.alert(
+      '이미지 삭제',
+      '명함 이미지를 삭제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            setSettings((prev) => ({
+              ...prev,
+              business_card_image_url: null,
+            }));
+          },
+        },
+      ]
+    );
   };
 
   const toggleCategoryEnabled = (groupId: string) => {
@@ -439,10 +531,47 @@ export default function CallbackSettingsScreen({ navigation }: any) {
                   />
                 </View>
                 {settings.business_card_enabled && (
-                  <View style={styles.imageUploadHint}>
-                    <Text style={styles.hintText}>
-                      명함 이미지는 웹 대시보드에서 업로드할 수 있습니다.
-                    </Text>
+                  <View style={styles.imageUploadSection}>
+                    {settings.business_card_image_url ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image
+                          source={{ uri: settings.business_card_image_url }}
+                          style={styles.imagePreview}
+                          resizeMode="contain"
+                        />
+                        <View style={styles.imageButtons}>
+                          <TouchableOpacity
+                            style={styles.changeImageButton}
+                            onPress={pickAndUploadImage}
+                            disabled={uploadingImage}
+                          >
+                            <Text style={styles.changeImageButtonText}>변경</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.removeImageButton}
+                            onPress={removeImage}
+                            disabled={uploadingImage}
+                          >
+                            <Text style={styles.removeImageButtonText}>삭제</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.uploadButton}
+                        onPress={pickAndUploadImage}
+                        disabled={uploadingImage}
+                      >
+                        {uploadingImage ? (
+                          <ActivityIndicator color="#8B5CF6" />
+                        ) : (
+                          <>
+                            <Text style={styles.uploadButtonIcon}>+</Text>
+                            <Text style={styles.uploadButtonText}>명함 이미지 업로드</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </View>
@@ -664,6 +793,65 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 13,
     color: '#4F46E5',
+  },
+  imageUploadSection: {
+    marginTop: 12,
+  },
+  imagePreviewContainer: {
+    alignItems: 'center',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  imageButtons: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 12,
+  },
+  changeImageButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  changeImageButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  removeImageButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  removeImageButtonText: {
+    color: '#EF4444',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  uploadButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  uploadButtonIcon: {
+    fontSize: 32,
+    color: '#8B5CF6',
+    marginBottom: 8,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   categoryCard: {
     backgroundColor: '#F9FAFB',

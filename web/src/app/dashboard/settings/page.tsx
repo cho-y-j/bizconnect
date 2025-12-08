@@ -161,17 +161,40 @@ export default function SettingsPage() {
         return
       }
 
+      // DB에 존재하는 컬럼만 저장
+      const saveData = {
+        user_id: user.id,
+        // 기본 설정
+        industry_type: settings.industry_type,
+        limit_mode: settings.limit_mode,
+        throttle_interval: settings.throttle_interval,
+        auto_callback_enabled: settings.auto_callback_enabled,
+        callback_template_new: settings.callback_template_new,
+        callback_template_existing: settings.callback_template_existing,
+        // 콜백 옵션
+        callback_on_end_enabled: callbackOptions.callback_on_end_enabled,
+        callback_on_end_message: callbackOptions.callback_on_end_message,
+        callback_on_missed_enabled: callbackOptions.callback_on_missed_enabled,
+        callback_on_missed_message: callbackOptions.callback_on_missed_message,
+        callback_on_busy_enabled: callbackOptions.callback_on_busy_enabled,
+        callback_on_busy_message: callbackOptions.callback_on_busy_message,
+        // 명함
+        business_card_enabled: businessCard.business_card_enabled,
+        business_card_image_url: businessCard.business_card_image_url || null,
+        // 알림
+        push_notifications_enabled: notifications.push_notifications_enabled,
+        birthday_notifications_enabled: notifications.birthday_notifications_enabled,
+        anniversary_notifications_enabled: notifications.anniversary_notifications_enabled,
+        task_notifications_enabled: notifications.task_notifications_enabled,
+        notification_time: notifications.notification_time + ':00',
+        birthday_reminder_days: notifications.birthday_reminder_days,
+        anniversary_reminder_days: notifications.anniversary_reminder_days,
+        updated_at: new Date().toISOString(),
+      }
+
       const { error } = await supabase
         .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          ...settings,
-          ...callbackOptions,
-          ...businessCard,
-          ...notifications,
-          notification_time: notifications.notification_time + ':00', // HH:MM:SS 형식
-          updated_at: new Date().toISOString(),
-        })
+        .upsert(saveData, { onConflict: 'user_id' })
 
       if (error) {
         setError('설정 저장 중 오류가 발생했습니다: ' + error.message)
