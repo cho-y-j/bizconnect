@@ -25,6 +25,16 @@ export default function SettingsPage() {
     callback_template_existing: '',
   })
 
+  // 콜백 옵션 설정 (3가지 옵션)
+  const [callbackOptions, setCallbackOptions] = useState({
+    callback_on_end_enabled: true,
+    callback_on_end_message: '안녕하세요, 방금 통화 감사합니다. 궁금하신 점 있으시면 편하게 연락주세요.',
+    callback_on_missed_enabled: true,
+    callback_on_missed_message: '안녕하세요, 전화를 받지 못해 죄송합니다. 확인 후 다시 연락드리겠습니다.',
+    callback_on_busy_enabled: true,
+    callback_on_busy_message: '안녕하세요, 통화중이라 받지 못했습니다. 잠시 후 연락드리겠습니다.',
+  })
+
   // 알림 설정
   const [notifications, setNotifications] = useState({
     push_notifications_enabled: true,
@@ -91,6 +101,15 @@ export default function SettingsPage() {
           callback_template_existing: data.callback_template_existing || '',
         })
 
+        setCallbackOptions({
+          callback_on_end_enabled: data.callback_on_end_enabled ?? true,
+          callback_on_end_message: data.callback_on_end_message || '안녕하세요, 방금 통화 감사합니다. 궁금하신 점 있으시면 편하게 연락주세요.',
+          callback_on_missed_enabled: data.callback_on_missed_enabled ?? true,
+          callback_on_missed_message: data.callback_on_missed_message || '안녕하세요, 전화를 받지 못해 죄송합니다. 확인 후 다시 연락드리겠습니다.',
+          callback_on_busy_enabled: data.callback_on_busy_enabled ?? true,
+          callback_on_busy_message: data.callback_on_busy_message || '안녕하세요, 통화중이라 받지 못했습니다. 잠시 후 연락드리겠습니다.',
+        })
+
         setNotifications({
           push_notifications_enabled: data.push_notifications_enabled ?? true,
           birthday_notifications_enabled: data.birthday_notifications_enabled ?? true,
@@ -147,6 +166,7 @@ export default function SettingsPage() {
         .upsert({
           user_id: user.id,
           ...settings,
+          ...callbackOptions,
           ...businessCard,
           ...notifications,
           notification_time: notifications.notification_time + ':00', // HH:MM:SS 형식
@@ -621,7 +641,7 @@ export default function SettingsPage() {
             📞 콜백 서비스 설정
           </h2>
           <p className="text-sm text-gray-600 mb-6">
-            통화 종료 후 자동으로 고객에게 문자를 발송하는 기능입니다. 신규 고객과 기존 고객에 따라 다른 메시지를 보낼 수 있습니다.
+            통화 종료 후 자동으로 고객에게 문자를 발송하는 기능입니다. 상황별로 다른 메시지를 보낼 수 있습니다.
           </p>
 
           <div className="space-y-6">
@@ -642,89 +662,155 @@ export default function SettingsPage() {
               활성화하면 통화 종료 후 자동으로 설정된 템플릿으로 문자를 발송합니다.
             </p>
 
-            {/* 신규 고객 콜백 템플릿 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                신규 고객 콜백 템플릿
-              </label>
-              <textarea
-                rows={4}
-                value={settings.callback_template_new}
-                onChange={(e) => setSettings(prev => ({ ...prev, callback_template_new: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="안녕하세요 {고객명}님! 방금 전 통화 감사드립니다. 저는 {회사명}의 {직책} {이름}입니다. 앞으로도 좋은 관계 유지하겠습니다!"
-              />
-              <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1">사용 가능한 변수:</p>
-                <div className="flex flex-wrap gap-1">
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{고객명}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{이름}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{회사명}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{직책}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{날짜}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{시간}'}</span>
-                </div>
-              </div>
-              {settings.callback_template_new && (
-                <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <p className="text-xs font-medium text-gray-700 mb-1">미리보기:</p>
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                    {settings.callback_template_new
-                      .replace(/{고객명}/g, '홍길동')
-                      .replace(/{이름}/g, businessCard.full_name || '홍길동')
-                      .replace(/{회사명}/g, businessCard.company_name || '비즈커넥트')
-                      .replace(/{직책}/g, businessCard.position || '대표')
-                      .replace(/{날짜}/g, new Date().toLocaleDateString('ko-KR'))
-                      .replace(/{시간}/g, new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }))}
-                  </p>
-                </div>
-              )}
-            </div>
+            {settings.auto_callback_enabled && (
+              <>
+                {/* 3가지 콜백 옵션 */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-semibold text-gray-800">상황별 콜백 메시지 설정</h3>
 
-            {/* 기존 고객 콜백 템플릿 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                기존 고객 콜백 템플릿
-              </label>
-              <textarea
-                rows={4}
-                value={settings.callback_template_existing}
-                onChange={(e) => setSettings(prev => ({ ...prev, callback_template_existing: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="안녕하세요 {고객명}님! 방금 전 통화 감사드립니다. 말씀하신 내용 잘 확인했습니다. 곧 연락드리겠습니다!"
-              />
-              <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1">사용 가능한 변수:</p>
-                <div className="flex flex-wrap gap-1">
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{고객명}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{이름}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{회사명}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{직책}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{날짜}'}</span>
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{시간}'}</span>
+                  {/* 통화 종료 옵션 */}
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                          통화종료
+                        </span>
+                        <span className="text-sm text-gray-600">정상적으로 통화가 끝났을 때</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={callbackOptions.callback_on_end_enabled}
+                          onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_end_enabled: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                    </div>
+                    {callbackOptions.callback_on_end_enabled && (
+                      <textarea
+                        rows={3}
+                        value={callbackOptions.callback_on_end_message}
+                        onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_end_message: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                        placeholder="통화 종료 후 발송할 메시지"
+                      />
+                    )}
+                  </div>
+
+                  {/* 부재중 옵션 */}
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                          부재중
+                        </span>
+                        <span className="text-sm text-gray-600">전화를 받지 못했을 때</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={callbackOptions.callback_on_missed_enabled}
+                          onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_missed_enabled: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                      </label>
+                    </div>
+                    {callbackOptions.callback_on_missed_enabled && (
+                      <textarea
+                        rows={3}
+                        value={callbackOptions.callback_on_missed_message}
+                        onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_missed_message: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm"
+                        placeholder="부재중 후 발송할 메시지"
+                      />
+                    )}
+                  </div>
+
+                  {/* 통화중 옵션 */}
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                          통화중
+                        </span>
+                        <span className="text-sm text-gray-600">다른 통화 중이라 받지 못했을 때</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={callbackOptions.callback_on_busy_enabled}
+                          onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_busy_enabled: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                      </label>
+                    </div>
+                    {callbackOptions.callback_on_busy_enabled && (
+                      <textarea
+                        rows={3}
+                        value={callbackOptions.callback_on_busy_message}
+                        onChange={(e) => setCallbackOptions(prev => ({ ...prev, callback_on_busy_message: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                        placeholder="통화중일 때 발송할 메시지"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-              {settings.callback_template_existing && (
-                <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <p className="text-xs font-medium text-gray-700 mb-1">미리보기:</p>
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                    {settings.callback_template_existing
-                      .replace(/{고객명}/g, '홍길동')
-                      .replace(/{이름}/g, businessCard.full_name || '홍길동')
-                      .replace(/{회사명}/g, businessCard.company_name || '비즈커넥트')
-                      .replace(/{직책}/g, businessCard.position || '대표')
-                      .replace(/{날짜}/g, new Date().toLocaleDateString('ko-KR'))
-                      .replace(/{시간}/g, new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }))}
+
+                {/* 신규/기존 고객 템플릿 (기존 기능) */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-md font-semibold text-gray-800 mb-4">고객 유형별 템플릿 (고급)</h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    신규 고객과 기존 고객에 따라 다른 메시지를 보낼 수 있습니다. 위의 상황별 메시지보다 우선 적용됩니다.
                   </p>
+
+                  {/* 신규 고객 콜백 템플릿 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      신규 고객 콜백 템플릿
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={settings.callback_template_new}
+                      onChange={(e) => setSettings(prev => ({ ...prev, callback_template_new: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="안녕하세요 {고객명}님! 방금 전 통화 감사드립니다. 저는 {회사명}의 {직책} {이름}입니다."
+                    />
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">사용 가능한 변수:</p>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{고객명}'}</span>
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{이름}'}</span>
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{회사명}'}</span>
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">{'{직책}'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 기존 고객 콜백 템플릿 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      기존 고객 콜백 템플릿
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={settings.callback_template_existing}
+                      onChange={(e) => setSettings(prev => ({ ...prev, callback_template_existing: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="안녕하세요 {고객명}님! 방금 전 통화 감사드립니다."
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
             {/* 안내 */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
                 💡 <strong>안내:</strong> 콜백 서비스는 모바일 앱에서 통화 종료를 감지한 후 자동으로 발송됩니다.
-                템플릿에 변수를 사용하면 고객별로 맞춤형 메시지를 보낼 수 있습니다.
+                상황별 메시지는 통화 상태(종료/부재중/통화중)에 따라 자동으로 선택됩니다.
               </p>
             </div>
           </div>
