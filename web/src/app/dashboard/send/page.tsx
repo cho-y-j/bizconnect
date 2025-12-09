@@ -850,7 +850,7 @@ export default function SendSMSPage() {
           const scheduledDate = new Date(scheduledAt)
           setSuccess(`${tasksToCreate.length}개의 발송 작업이 예약되었습니다. (${scheduledDate.toLocaleString('ko-KR')}에 발송 예정)`)
         } else {
-          setSuccess(`${tasksToCreate.length}개의 발송 작업이 생성되었습니다. 모바일 앱에서 처리됩니다.`)
+          setSuccess(`${tasksToCreate.length}개의 문자를 발송했습니다. 모바일 앱에서 즉시 처리됩니다.`)
         }
         
         // 폼 초기화
@@ -1595,7 +1595,7 @@ export default function SendSMSPage() {
                 disabled={loading}
                 className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? '작업 생성 중...' : '발송 작업 생성'}
+                {loading ? '발송 중...' : '문자 발송'}
               </button>
               <Link
                 href="/dashboard"
@@ -1608,8 +1608,8 @@ export default function SendSMSPage() {
             {/* 안내 */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                💡 <strong>안내:</strong> 웹에서 발송 작업을 생성하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
-                발송된 문자는 "발송 기록"에서 확인할 수 있습니다.
+                💡 <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
+                발송된 문자는 "발송 기록"에서 확인할 수 있습니다. 모바일 앱이 실행 중이어야 합니다.
               </p>
             </div>
           </form>

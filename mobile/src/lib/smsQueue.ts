@@ -66,32 +66,41 @@ class SmsQueue {
    * 큐 처리 시작
    */
   startProcessing(): void {
-    if (this.isProcessing || this.processTimer) {
-      console.log('Queue already processing, skipping start');
+    // 이미 처리 중이면 무시 (하지만 큐에 작업이 있으면 계속 처리)
+    if (this.isProcessing && this.processing) {
+      console.log('Queue already processing a task, will continue after completion');
       return;
     }
 
     if (this.queue.length === 0) {
       console.log('Queue is empty, nothing to process');
+      this.isProcessing = false;
       return;
     }
 
-    console.log('Starting queue processing, queue length:', this.queue.length);
+    console.log('🚀 Starting queue processing, queue length:', this.queue.length);
     this.isProcessing = true;
-    this.processNext();
+    // 즉시 처리 시작 (비동기이므로 await 없이 호출)
+    this.processNext().catch((error) => {
+      console.error('Error in processNext:', error);
+      this.isProcessing = false;
+    });
   }
 
   /**
    * 다음 작업 처리
    */
   private async processNext(): Promise<void> {
+    // 이미 처리 중인 작업이 있으면 대기
     if (this.processing) {
-      // 이미 처리 중인 작업이 있으면 대기
+      console.log('⏳ Task already processing, waiting for completion...');
       if (this.processTimer) {
         clearTimeout(this.processTimer);
       }
       this.processTimer = setTimeout(() => {
-        this.processNext();
+        this.processNext().catch((error) => {
+          console.error('Error in delayed processNext:', error);
+        });
       }, this.throttleInterval);
       return;
     }
@@ -99,6 +108,7 @@ class SmsQueue {
     const nextItem = this.getNext();
     if (!nextItem) {
       // 큐가 비어있으면 처리 중지
+      console.log('✅ Queue is empty, stopping processing');
       this.isProcessing = false;
       if (this.processTimer) {
         clearTimeout(this.processTimer);
@@ -111,7 +121,7 @@ class SmsQueue {
     this.processing = nextItem;
     await this.saveProcessing();
 
-    console.log('Processing task:', nextItem.task.id, 'type:', nextItem.task.type);
+    console.log('📤 Processing task:', nextItem.task.id, 'type:', nextItem.task.type, 'phone:', nextItem.task.customer_phone);
 
     // 작업 처리 (외부에서 처리 함수를 주입받음)
     if (this.onProcess) {

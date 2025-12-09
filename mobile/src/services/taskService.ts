@@ -88,20 +88,20 @@ class TaskService {
           filter: `user_id=eq.${this.userId}`,
         },
         async (payload) => {
-          console.log('New task received:', payload);
+          console.log('🔔 New task received from Supabase:', payload.new);
           const newTask = payload.new as Task;
 
           // 필수 필드 검증
           if (!newTask.user_id) {
-            console.error('Task missing user_id:', newTask);
+            console.error('❌ Task missing user_id:', newTask);
             return;
           }
           if (!newTask.customer_phone) {
-            console.error('Task missing customer_phone:', newTask);
+            console.error('❌ Task missing customer_phone:', newTask);
             return;
           }
           if (!newTask.message_content) {
-            console.error('Task missing message_content:', newTask);
+            console.error('❌ Task missing message_content:', newTask);
             return;
           }
 
@@ -113,13 +113,13 @@ class TaskService {
               : null;
 
             if (!scheduledAt || scheduledAt <= now) {
-              console.log('Adding task to queue:', newTask.id, newTask.type);
+              console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
               await this.addTaskToQueue(newTask);
             } else {
-              console.log('Task scheduled for later:', newTask.id, scheduledAt);
+              console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
             }
           } else {
-            console.log('Task not pending, skipping:', newTask.id, newTask.status);
+            console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
           }
         }
       )
