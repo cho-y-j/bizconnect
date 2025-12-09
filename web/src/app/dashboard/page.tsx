@@ -120,12 +120,18 @@ export default function DashboardPage() {
       // 오늘 발송된 문자 수 (sent + failed 포함, pending 제외)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const { count: sentCount } = await supabase
+      const { count: sentCount, error: sentCountError } = await supabase
         .from('sms_logs')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .in('status', ['sent', 'failed', 'delivered']) // pending 제외
         .gte('sent_at', today.toISOString())
+      
+      if (sentCountError) {
+        console.error('❌ Error loading today sent count:', sentCountError)
+      } else {
+        console.log('📊 Today sent count:', sentCount)
+      }
 
       // 그룹 수
       const { count: groupCount } = await supabase

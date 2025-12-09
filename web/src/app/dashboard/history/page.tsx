@@ -102,10 +102,19 @@ export default function HistoryPage() {
       const { data: logsData, error, count } = await query
 
       if (error) {
-        console.error('Error loading logs:', error)
+        console.error('❌ Error loading logs:', error)
+        console.error('❌ Error code:', error.code)
+        console.error('❌ Error message:', error.message)
         setLogs([])
         setTotalCount(0)
         return
+      }
+
+      console.log('📊 Loaded logs:', logsData?.length || 0, 'logs')
+      console.log('📊 Total count:', count)
+      if (logsData && logsData.length > 0) {
+        console.log('📊 First log status:', logsData[0].status)
+        console.log('📊 All statuses:', logsData.map(l => l.status))
       }
 
       // 고객 정보 매칭 (phone_number로)
@@ -175,11 +184,13 @@ export default function HistoryPage() {
 
   const getStatusBadge = (status: string) => {
     const styles = {
+      pending: 'bg-yellow-100 text-yellow-800',
       sent: 'bg-blue-100 text-blue-800',
       delivered: 'bg-green-100 text-green-800',
       failed: 'bg-red-100 text-red-800',
     }
     const labels = {
+      pending: '대기 중',
       sent: '발송됨',
       delivered: '전달됨',
       failed: '실패',
@@ -246,6 +257,7 @@ export default function HistoryPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">전체</option>
+                <option value="pending">대기 중</option>
                 <option value="sent">발송됨</option>
                 <option value="delivered">전달됨</option>
                 <option value="failed">실패</option>
