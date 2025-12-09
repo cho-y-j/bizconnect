@@ -223,6 +223,13 @@ export async function sendSms(
             clearTimeout(timeoutId);
             console.error('❌ Failed to send SMS:', fail);
             const error = fail?.message || fail?.toString() || 'SMS 발송 실패';
+            
+            // 실패해도 sms_logs에 기록 저장
+            console.log('💾 Saving failed SMS log...');
+            saveSmsLog(task, normalizedPhone, 'failed').catch((logError) => {
+              console.error('❌ Failed to save failed SMS log:', logError);
+            });
+            
             updateTaskStatus(task.id, 'failed', error);
             onFailure?.(error);
             resolve(false);
@@ -242,10 +249,20 @@ export async function sendSms(
             });
 
             try {
-              // 발송 기록 저장
-              console.log('💾 Step 1: Saving SMS log...');
-              await saveSmsLog(task, normalizedPhone, 'sent');
-              console.log('✅ Step 1: SMS log saved');
+              // 발송 기록 저장 (가장 중요!)
+              console.log('💾 Step 1: Saving SMS log to sms_logs table...');
+              console.log('💾 Log data:', {
+                user_id: task.user_id,
+                task_id: task.id,
+                phone: normalizedPhone,
+                status: 'sent'
+              });
+              
+              const saveResult = await saveSmsLog(task, normalizedPhone, 'sent');
+              if (!saveResult) {
+                console.error('❌ CRITICAL: SMS log save returned false!');
+              }
+              console.log('✅ Step 1: SMS log saved result:', saveResult);
 
               // 일일 한도 카운트 증가
               console.log('💾 Step 2: Incrementing daily limit...');
@@ -333,16 +350,18 @@ async function saveSmsLog(
   task: Task,
   phoneNumber: string,
   status: 'sent' | 'failed'
-): Promise<void> {
+): Promise<boolean> {
   try {
+    console.log('💾 ===== SAVING SMS LOG START =====');
     console.log('💾 Saving SMS log to database:', {
       task_id: task.id,
       phone: phoneNumber,
       status,
-      user_id: task.user_id
+      user_id: task.user_id,
+      message_length: task.message_content?.length || 0
     });
 
-    const logData = {
+    const logData: any = {
       user_id: task.user_id,
       task_id: task.id,
       phone_number: phoneNumber,
@@ -353,19 +372,40 @@ async function saveSmsLog(
       is_mms: task.is_mms || false,
     };
 
+    // 실패인 경우 error_message 추가
+    if (status === 'failed') {
+      logData.error_message = 'SMS 발송 실패';
+    }
+
+    console.log('💾 Inserting into sms_logs table...');
+    console.log('💾 Log data:', JSON.stringify(logData, null, 2));
+
     const { data, error } = await supabase.from('sms_logs').insert(logData).select();
 
     if (error) {
+      console.error('❌ ===== SMS LOG SAVE FAILED =====');
       console.error('❌ Error saving SMS log:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      throw error; // 에러를 다시 throw하여 호출자가 알 수 있도록
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ This is why 발송 기록 is empty!');
+      console.error('❌ ===== SMS LOG SAVE FAILED =====');
+      return false;
     } else {
+      console.log('✅ ===== SMS LOG SAVED SUCCESSFULLY =====');
       console.log('✅ SMS log saved successfully:', data);
+      console.log('✅ Log ID:', data?.[0]?.id);
+      console.log('✅ ===== SMS LOG SAVED SUCCESSFULLY =====');
+      return true;
     }
   } catch (error: any) {
+    console.error('❌ ===== EXCEPTION IN saveSmsLog =====');
     console.error('❌ Error in saveSmsLog:', error);
-    console.error('Error stack:', error?.stack);
-    // 에러를 다시 throw하지 않음 - 발송은 성공했을 수 있으므로
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
+    console.error('❌ This is why 발송 기록 is empty!');
+    console.error('❌ ===== EXCEPTION IN saveSmsLog =====');
+    return false;
   }
 }
 
