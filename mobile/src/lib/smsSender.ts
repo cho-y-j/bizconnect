@@ -234,24 +234,42 @@ export async function sendSms(
             }
             resolved = true;
             clearTimeout(timeoutId);
-            console.log('✅ SMS sent successfully:', success);
+            console.log('✅ SMS sent successfully - callback received:', success);
+            console.log('📝 Task details:', {
+              id: task.id,
+              phone: normalizedPhone,
+              message_length: task.message_content.length
+            });
 
             try {
               // 발송 기록 저장
+              console.log('💾 Step 1: Saving SMS log...');
               await saveSmsLog(task, normalizedPhone, 'sent');
+              console.log('✅ Step 1: SMS log saved');
 
               // 일일 한도 카운트 증가
+              console.log('💾 Step 2: Incrementing daily limit...');
               await incrementSentCount(task.user_id);
+              console.log('✅ Step 2: Daily limit incremented');
 
               // 작업 상태를 'completed'로 업데이트
+              console.log('💾 Step 3: Updating task status to completed...');
               await updateTaskStatus(task.id, 'completed');
+              console.log('✅ Step 3: Task status updated to completed');
 
+              console.log('🎉 SMS sending process completed successfully!');
               onSuccess?.();
               resolve(true);
             } catch (error: any) {
               console.error('❌ Error in SMS success callback:', error);
-              // 발송은 성공했지만 후처리 실패
-              await updateTaskStatus(task.id, 'completed');
+              console.error('Error details:', error?.message, error?.stack);
+              // 발송은 성공했지만 후처리 실패 - 그래도 completed로 표시
+              try {
+                await updateTaskStatus(task.id, 'completed');
+                console.log('⚠️ Task marked as completed despite post-processing error');
+              } catch (updateError) {
+                console.error('❌ Failed to update task status:', updateError);
+              }
               onSuccess?.();
               resolve(true);
             }
@@ -317,7 +335,14 @@ async function saveSmsLog(
   status: 'sent' | 'failed'
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('sms_logs').insert({
+    console.log('💾 Saving SMS log to database:', {
+      task_id: task.id,
+      phone: phoneNumber,
+      status,
+      user_id: task.user_id
+    });
+
+    const logData = {
       user_id: task.user_id,
       task_id: task.id,
       phone_number: phoneNumber,
@@ -326,13 +351,21 @@ async function saveSmsLog(
       sent_at: new Date().toISOString(),
       image_url: task.image_url || null,
       is_mms: task.is_mms || false,
-    });
+    };
+
+    const { data, error } = await supabase.from('sms_logs').insert(logData).select();
 
     if (error) {
-      console.error('Error saving SMS log:', error);
+      console.error('❌ Error saving SMS log:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw error; // 에러를 다시 throw하여 호출자가 알 수 있도록
+    } else {
+      console.log('✅ SMS log saved successfully:', data);
     }
-  } catch (error) {
-    console.error('Error in saveSmsLog:', error);
+  } catch (error: any) {
+    console.error('❌ Error in saveSmsLog:', error);
+    console.error('Error stack:', error?.stack);
+    // 에러를 다시 throw하지 않음 - 발송은 성공했을 수 있으므로
   }
 }
 

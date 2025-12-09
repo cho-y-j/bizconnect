@@ -162,13 +162,18 @@ class TaskService {
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        console.log('📡 Subscription status changed:', status);
         if (status === 'SUBSCRIBED') {
           console.log('✅ Successfully subscribed to tasks for user:', this.userId);
+          console.log('📡 Listening for new tasks with filter: user_id=eq.' + this.userId);
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Channel error in task subscription');
+          console.error('❌ This means the app cannot receive new tasks from web!');
         } else if (status === 'TIMED_OUT') {
           console.error('❌ Subscription timed out');
+          console.error('❌ This means the app cannot receive new tasks from web!');
+        } else {
+          console.log('📡 Subscription status:', status);
         }
       });
 
