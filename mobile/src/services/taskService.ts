@@ -15,9 +15,14 @@ class TaskService {
    * 사용자 ID 설정
    */
   setUserId(userId: string): void {
-    this.userId = userId;
-    this.setupQueue();
-    this.subscribeToTasks();
+    try {
+      this.userId = userId;
+      this.setupQueue();
+      this.subscribeToTasks();
+    } catch (error) {
+      console.error('Error in setUserId:', error);
+      // 에러가 발생해도 앱이 크래시되지 않도록 처리
+    }
   }
 
   /**
@@ -60,18 +65,24 @@ class TaskService {
   private subscribeToTasks(): void {
     if (!this.userId) return;
 
-    // 기존 구독 해제
-    if (this.subscription) {
-      supabase.removeChannel(this.subscription);
-    }
+    try {
+      // 기존 구독 해제
+      if (this.subscription) {
+        try {
+          supabase.removeChannel(this.subscription);
+        } catch (error) {
+          console.error('Error removing existing subscription:', error);
+        }
+        this.subscription = null;
+      }
 
-    // 새 구독 생성
-    const channel = supabase
-      .channel('tasks-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
+      // 새 구독 생성
+      const channel = supabase
+        .channel('tasks-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
           schema: 'public',
           table: 'tasks',
           filter: `user_id=eq.${this.userId}`,
@@ -79,6 +90,20 @@ class TaskService {
         async (payload) => {
           console.log('New task received:', payload);
           const newTask = payload.new as Task;
+
+          // 필수 필드 검증
+          if (!newTask.user_id) {
+            console.error('Task missing user_id:', newTask);
+            return;
+          }
+          if (!newTask.customer_phone) {
+            console.error('Task missing customer_phone:', newTask);
+            return;
+          }
+          if (!newTask.message_content) {
+            console.error('Task missing message_content:', newTask);
+            return;
+          }
 
           // pending 상태이고 예약이 아니거나 예약 시간이 된 작업만 처리
           if (newTask.status === 'pending') {
@@ -88,8 +113,13 @@ class TaskService {
               : null;
 
             if (!scheduledAt || scheduledAt <= now) {
+              console.log('Adding task to queue:', newTask.id, newTask.type);
               await this.addTaskToQueue(newTask);
+            } else {
+              console.log('Task scheduled for later:', newTask.id, scheduledAt);
             }
+          } else {
+            console.log('Task not pending, skipping:', newTask.id, newTask.status);
           }
         }
       )
@@ -123,16 +153,54 @@ class TaskService {
       )
       .subscribe((status) => {
         console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to tasks for user:', this.userId);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error in task subscription');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Subscription timed out');
+        }
       });
 
     this.subscription = channel;
+    } catch (error) {
+      console.error('Error in subscribeToTasks:', error);
+    }
   }
 
   /**
    * 작업을 큐에 추가
    */
   async addTaskToQueue(task: Task): Promise<void> {
-    if (!this.userId) return;
+    if (!this.userId) {
+      console.error('Cannot add task to queue: userId not set');
+      return;
+    }
+
+    // 작업 유효성 검증
+    if (!task.customer_phone) {
+      console.error('Task missing customer_phone:', task.id);
+      await supabase
+        .from('tasks')
+        .update({ 
+          status: 'failed', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', task.id);
+      return;
+    }
+
+    if (!task.message_content) {
+      console.error('Task missing message_content:', task.id);
+      await supabase
+        .from('tasks')
+        .update({ 
+          status: 'failed', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', task.id);
+      return;
+    }
 
     // 한도 체크
     const { canSend } = await checkDailyLimit(this.userId);
@@ -146,14 +214,22 @@ class TaskService {
       return;
     }
 
+    console.log('Adding task to SMS queue:', task.id, 'priority:', task.priority || 0);
+
     // 큐에 추가
     await smsQueue.add(task, task.priority || 0);
 
     // tasks 테이블 상태를 'queued'로 업데이트
-    await supabase
+    const { error } = await supabase
       .from('tasks')
       .update({ status: 'queued', updated_at: new Date().toISOString() })
       .eq('id', task.id);
+
+    if (error) {
+      console.error('Error updating task status to queued:', error);
+    } else {
+      console.log('Task status updated to queued:', task.id);
+    }
   }
 
   /**
