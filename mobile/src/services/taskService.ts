@@ -255,10 +255,13 @@ class TaskService {
         return;
       }
 
-      if (tasks) {
+      if (tasks && tasks.length > 0) {
+        console.log(`Loading ${tasks.length} pending tasks into queue`);
         for (const task of tasks) {
           await this.addTaskToQueue(task);
         }
+        // 큐 강제 시작
+        smsQueue.startProcessing();
       }
     } catch (error) {
       console.error('Error in loadPendingTasks:', error);
