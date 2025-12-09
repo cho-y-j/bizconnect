@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { taskService } from '../services/taskService';
@@ -13,6 +14,7 @@ import { checkDailyLimit } from '../lib/dailyLimit';
 import { getTodayEvents, TodayEvent } from '../services/customerService';
 import { getTodayStats, TodayStats } from '../services/statsService';
 import { networkMonitor } from '../lib/networkMonitor';
+import { ensurePermissions } from '../lib/permissionManager';
 
 export default function HomeScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
@@ -37,26 +39,96 @@ export default function HomeScreen({ navigation }: any) {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      // 데이터 로드 (taskService는 App.tsx에서 이미 설정됨)
-      loadData();
-      loadPendingTasks();
+    if (!user) return;
 
-      // 네트워크 상태 확인
-      setIsOnline(networkMonitor.getIsOnline());
-      networkMonitor.on('change', setIsOnline);
+    let interval: NodeJS.Timeout | null = null;
+    let isMounted = true;
 
-      // 큐 상태 주기적 업데이트
-      const interval = setInterval(() => {
-        setQueueStatus(taskService.getQueueStatus());
-      }, 1000);
+    const initializeScreen = async () => {
+      try {
+        // 권한 확인 및 요청 (앱 시작 시) - 에러가 있어도 계속 진행
+        try {
+          await ensurePermissions();
+        } catch (error) {
+          console.error('Error ensuring permissions:', error);
+        }
 
-      return () => {
+        // 네트워크 모니터 시작 (한 번만)
+        try {
+          if (!networkMonitor.getIsOnline()) {
+            networkMonitor.start();
+          }
+          setIsOnline(networkMonitor.getIsOnline());
+          networkMonitor.on('change', setIsOnline);
+        } catch (error) {
+          console.error('Error setting up network monitor:', error);
+        }
+
+        // taskService가 초기화될 때까지 잠시 대기
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // 데이터 로드 - 에러가 있어도 계속 진행
+        if (isMounted) {
+          loadData().catch((error) => {
+            console.error('Error loading data:', error);
+          });
+        }
+
+        if (isMounted) {
+          // 즉시 대기 중인 작업 로드
+          loadPendingTasks().catch((error) => {
+            console.error('Error loading pending tasks:', error);
+          });
+
+          // 주기적으로 대기 중인 작업 확인 (10초마다)
+          // 실시간 구독이 실패해도 폴링으로 작업을 받을 수 있음
+          const pollingInterval = setInterval(() => {
+            if (isMounted && user) {
+              taskService.loadPendingTasks().catch((error) => {
+                console.error('Error in polling pending tasks:', error);
+              });
+            }
+          }, 10000); // 10초마다
+
+          // cleanup
+          return () => {
+            clearInterval(pollingInterval);
+          };
+        }
+
+        // 큐 상태 주기적 업데이트
+        if (isMounted) {
+          interval = setInterval(() => {
+            if (!isMounted) return;
+            try {
+              const status = taskService.getQueueStatus();
+              if (isMounted) {
+                setQueueStatus(status);
+              }
+            } catch (error) {
+              console.error('Error getting queue status:', error);
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error in HomeScreen initialization:', error);
+      }
+    };
+
+    initializeScreen();
+
+    return () => {
+      isMounted = false;
+      if (interval) {
         clearInterval(interval);
+      }
+      try {
         taskService.unsubscribe();
         networkMonitor.removeListener('change', setIsOnline);
-      };
-    }
+      } catch (error) {
+        console.error('Error cleaning up:', error);
+      }
+    };
   }, [user]);
 
   const loadData = async () => {
@@ -226,6 +298,20 @@ export default function HomeScreen({ navigation }: any) {
             onPress={() => navigation.navigate('ContactsUpload')}
           >
             <Text style={styles.actionButtonText}>📇 주소록 업로드</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.callbackButton}
+            onPress={() => navigation.navigate('CallbackSettings')}
+          >
+            <Text style={styles.callbackButtonText}>📞 콜백 설정</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.webSettingsButton}
+            onPress={() => Linking.openURL('https://bizconnect-web.vercel.app')}
+          >
+            <Text style={styles.webSettingsButtonText}>⚙️ 웹에서 상세 설정</Text>
           </TouchableOpacity>
         </View>
 
@@ -400,8 +486,32 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
+    marginBottom: 12,
   },
   actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  callbackButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  callbackButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  webSettingsButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+  },
+  webSettingsButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

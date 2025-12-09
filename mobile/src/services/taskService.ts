@@ -248,14 +248,18 @@ class TaskService {
   }
 
   /**
-   * 대기 중인 작업 로드 (앱 시작 시)
+   * 대기 중인 작업 로드 (앱 시작 시 및 주기적 확인)
    */
   async loadPendingTasks(): Promise<void> {
-    if (!this.userId) return;
+    if (!this.userId) {
+      console.log('⚠️ Cannot load pending tasks: userId not set');
+      return;
+    }
 
     try {
       const now = new Date().toISOString();
 
+      console.log('🔍 Checking for pending tasks...');
       const { data: tasks, error } = await supabase
         .from('tasks')
         .select('*')
@@ -266,21 +270,44 @@ class TaskService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error loading pending tasks:', error);
+        console.error('❌ Error loading pending tasks:', error);
         return;
       }
 
       if (tasks && tasks.length > 0) {
-        console.log(`Loading ${tasks.length} pending tasks into queue`);
+        console.log(`✅ Found ${tasks.length} pending tasks, adding to queue`);
         for (const task of tasks) {
+          console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}`);
           await this.addTaskToQueue(task);
         }
         // 큐 강제 시작
+        console.log('🚀 Starting queue processing for loaded tasks');
         smsQueue.startProcessing();
+      } else {
+        console.log('ℹ️ No pending tasks found');
       }
     } catch (error) {
-      console.error('Error in loadPendingTasks:', error);
+      console.error('❌ Error in loadPendingTasks:', error);
     }
+  }
+
+  /**
+   * 주기적으로 대기 중인 작업 확인 (폴링)
+   */
+  startPolling(intervalSeconds: number = 10): void {
+    if (!this.userId) return;
+
+    console.log(`🔄 Starting task polling every ${intervalSeconds} seconds`);
+    
+    // 즉시 한 번 실행
+    this.loadPendingTasks();
+
+    // 주기적으로 실행
+    setInterval(() => {
+      if (this.userId) {
+        this.loadPendingTasks();
+      }
+    }, intervalSeconds * 1000);
   }
 
   /**
