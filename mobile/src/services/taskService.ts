@@ -16,11 +16,18 @@ class TaskService {
    */
   setUserId(userId: string): void {
     try {
+      console.log('🔧 ===== TASK SERVICE INITIALIZATION =====');
+      console.log('🔧 Setting userId:', userId);
       this.userId = userId;
+      console.log('🔧 Setting up queue...');
       this.setupQueue();
+      console.log('🔧 Subscribing to tasks...');
       this.subscribeToTasks();
+      console.log('🔧 ===== TASK SERVICE INITIALIZED =====');
     } catch (error) {
-      console.error('Error in setUserId:', error);
+      console.error('❌ Error in setUserId:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
       // 에러가 발생해도 앱이 크래시되지 않도록 처리
     }
   }
@@ -162,19 +169,32 @@ class TaskService {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Subscription status changed:', status);
+        console.log('📡 ===== SUBSCRIPTION STATUS CHANGED =====');
+        console.log('📡 Status:', status);
+        console.log('📡 User ID:', this.userId);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to tasks for user:', this.userId);
-          console.log('📡 Listening for new tasks with filter: user_id=eq.' + this.userId);
+          console.log('✅ ===== SUCCESSFULLY SUBSCRIBED =====');
+          console.log('✅ User ID:', this.userId);
+          console.log('✅ Filter: user_id=eq.' + this.userId);
+          console.log('✅ Now listening for new tasks from web...');
+          // 구독 성공 후 즉시 대기 중인 작업 확인
+          this.loadPendingTasks().catch((error) => {
+            console.error('❌ Error loading pending tasks after subscription:', error);
+          });
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Channel error in task subscription');
-          console.error('❌ This means the app cannot receive new tasks from web!');
+          console.error('❌ ===== CHANNEL ERROR =====');
+          console.error('❌ This means the app CANNOT receive new tasks from web!');
+          console.error('❌ Check Supabase Realtime settings and RLS policies!');
+          console.error('❌ Falling back to polling every 10 seconds...');
         } else if (status === 'TIMED_OUT') {
-          console.error('❌ Subscription timed out');
-          console.error('❌ This means the app cannot receive new tasks from web!');
+          console.error('❌ ===== SUBSCRIPTION TIMED OUT =====');
+          console.error('❌ This means the app CANNOT receive new tasks from web!');
+          console.error('❌ Check network connection and Supabase Realtime settings!');
+          console.error('❌ Falling back to polling every 10 seconds...');
         } else {
           console.log('📡 Subscription status:', status);
         }
+        console.log('📡 ===== SUBSCRIPTION STATUS CHANGED =====');
       });
 
     this.subscription = channel;
@@ -251,15 +271,19 @@ class TaskService {
    * 대기 중인 작업 로드 (앱 시작 시 및 주기적 확인)
    */
   async loadPendingTasks(): Promise<void> {
+    console.log('🔍 ===== LOADING PENDING TASKS =====');
     if (!this.userId) {
       console.log('⚠️ Cannot load pending tasks: userId not set');
+      console.log('⚠️ Make sure taskService.setUserId() was called!');
       return;
     }
 
     try {
       const now = new Date().toISOString();
+      console.log('🔍 User ID:', this.userId);
+      console.log('🔍 Current time:', now);
+      console.log('🔍 Querying tasks table...');
 
-      console.log('🔍 Checking for pending tasks...');
       const { data: tasks, error } = await supabase
         .from('tasks')
         .select('*')
@@ -270,24 +294,40 @@ class TaskService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error loading pending tasks:', error);
+        console.error('❌ ===== ERROR LOADING PENDING TASKS =====');
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        console.error('❌ This might be an RLS policy issue!');
+        console.error('❌ ===== ERROR LOADING PENDING TASKS =====');
         return;
       }
 
+      console.log('🔍 Query result:', tasks?.length || 0, 'tasks found');
+
       if (tasks && tasks.length > 0) {
-        console.log(`✅ Found ${tasks.length} pending tasks, adding to queue`);
+        console.log(`✅ ===== FOUND ${tasks.length} PENDING TASKS =====`);
         for (const task of tasks) {
-          console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}`);
+          console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}, status: ${task.status}`);
+        }
+        console.log('✅ Adding tasks to queue...');
+        for (const task of tasks) {
           await this.addTaskToQueue(task);
         }
         // 큐 강제 시작
         console.log('🚀 Starting queue processing for loaded tasks');
         smsQueue.startProcessing();
+        console.log('✅ ===== PENDING TASKS LOADED =====');
       } else {
-        console.log('ℹ️ No pending tasks found');
+        console.log('ℹ️ No pending tasks found for user:', this.userId);
+        console.log('ℹ️ This is normal if no tasks were created from web');
       }
-    } catch (error) {
-      console.error('❌ Error in loadPendingTasks:', error);
+    } catch (error: any) {
+      console.error('❌ ===== EXCEPTION IN loadPendingTasks =====');
+      console.error('❌ Error:', error);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error stack:', error?.stack);
+      console.error('❌ ===== EXCEPTION IN loadPendingTasks =====');
     }
   }
 
