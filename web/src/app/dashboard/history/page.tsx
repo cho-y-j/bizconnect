@@ -63,7 +63,7 @@ export default function HistoryPage() {
         .eq('user_id', user.id)
         .order('sent_at', { ascending: false })
 
-      // 상태 필터
+      // 상태 필터 (pending도 포함)
       if (selectedStatus !== 'all') {
         query = query.eq('status', selectedStatus)
       }

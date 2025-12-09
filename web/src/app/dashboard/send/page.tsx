@@ -839,13 +839,44 @@ export default function SendSMSPage() {
       }
 
       // tasks 테이블에 작업 생성
-      const { error: insertError } = await supabase
+      const { data: insertedTasks, error: insertError } = await supabase
         .from('tasks')
         .insert(tasksToCreate)
+        .select()
 
       if (insertError) {
         setError('작업 생성 중 오류가 발생했습니다: ' + insertError.message)
-      } else {
+      } else if (insertedTasks && insertedTasks.length > 0) {
+        // 작업 생성 성공 시 즉시 sms_logs에 'pending' 상태로 기록 생성
+        // 실패해도 기록이 남도록 하기 위함
+        try {
+          const logsToCreate = insertedTasks.map(task => ({
+            user_id: task.user_id,
+            task_id: task.id,
+            phone_number: task.customer_phone,
+            message: task.message_content,
+            status: 'pending', // pending → sent/failed로 업데이트됨
+            sent_at: new Date().toISOString(),
+            image_url: task.image_url || null,
+            is_mms: task.is_mms || false,
+          }))
+
+          const { data: insertedLogs, error: logError } = await supabase
+            .from('sms_logs')
+            .insert(logsToCreate)
+            .select()
+
+          if (logError) {
+            console.error('❌ Failed to create SMS logs:', logError)
+            console.error('❌ Error details:', JSON.stringify(logError, null, 2))
+            // 로그 생성 실패해도 작업은 생성되었으므로 계속 진행
+          } else {
+            console.log('✅ SMS logs created:', insertedLogs?.length || 0)
+          }
+        } catch (logErr: any) {
+          console.error('❌ Exception creating SMS logs:', logErr)
+          // 로그 생성 실패해도 작업은 생성되었으므로 계속 진행
+        }
         if (scheduledAt) {
           const scheduledDate = new Date(scheduledAt)
           setSuccess(`${tasksToCreate.length}개의 발송 작업이 예약되었습니다. (${scheduledDate.toLocaleString('ko-KR')}에 발송 예정)`)

@@ -117,14 +117,14 @@ export default function DashboardPage() {
         .eq('status', 'pending')
         .not('scheduled_at', 'is', null)
 
-      // 오늘 발송된 문자 수
+      // 오늘 발송된 문자 수 (sent + failed 포함, pending 제외)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const { count: sentCount } = await supabase
         .from('sms_logs')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('status', 'sent')
+        .in('status', ['sent', 'failed', 'delivered']) // pending 제외
         .gte('sent_at', today.toISOString())
 
       // 그룹 수

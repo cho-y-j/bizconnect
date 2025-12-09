@@ -361,15 +361,16 @@ async function saveSmsLog(
       message_length: task.message_content?.length || 0
     });
 
+    // 먼저 task_id로 기존 로그가 있는지 확인 (웹에서 pending으로 생성했을 수 있음)
+    const { data: existingLog, error: checkError } = await supabase
+      .from('sms_logs')
+      .select('id')
+      .eq('task_id', task.id)
+      .single();
+
     const logData: any = {
-      user_id: task.user_id,
-      task_id: task.id,
-      phone_number: phoneNumber,
-      message: task.message_content,
       status,
       sent_at: new Date().toISOString(),
-      image_url: task.image_url || null,
-      is_mms: task.is_mms || false,
     };
 
     // 실패인 경우 error_message 추가
@@ -377,10 +378,30 @@ async function saveSmsLog(
       logData.error_message = 'SMS 발송 실패';
     }
 
-    console.log('💾 Inserting into sms_logs table...');
-    console.log('💾 Log data:', JSON.stringify(logData, null, 2));
+    let result;
+    if (existingLog && !checkError) {
+      // 기존 로그가 있으면 업데이트
+      console.log('💾 Updating existing SMS log (task_id:', task.id, ')');
+      result = await supabase
+        .from('sms_logs')
+        .update(logData)
+        .eq('task_id', task.id)
+        .select();
+    } else {
+      // 기존 로그가 없으면 새로 생성
+      console.log('💾 Creating new SMS log...');
+      logData.user_id = task.user_id;
+      logData.task_id = task.id;
+      logData.phone_number = phoneNumber;
+      logData.message = task.message_content;
+      logData.image_url = task.image_url || null;
+      logData.is_mms = task.is_mms || false;
+      
+      console.log('💾 Log data:', JSON.stringify(logData, null, 2));
+      result = await supabase.from('sms_logs').insert(logData).select();
+    }
 
-    const { data, error } = await supabase.from('sms_logs').insert(logData).select();
+    const { data, error } = result;
 
     if (error) {
       console.error('❌ ===== SMS LOG SAVE FAILED =====');
@@ -395,6 +416,7 @@ async function saveSmsLog(
       console.log('✅ ===== SMS LOG SAVED SUCCESSFULLY =====');
       console.log('✅ SMS log saved successfully:', data);
       console.log('✅ Log ID:', data?.[0]?.id);
+      console.log('✅ Status:', data?.[0]?.status);
       console.log('✅ ===== SMS LOG SAVED SUCCESSFULLY =====');
       return true;
     }
