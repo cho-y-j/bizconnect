@@ -90,6 +90,60 @@ function checkMessageLength(message: string): {
 }
 
 /**
+ * MMS 발송 (명함 이미지 첨부)
+ * TODO: React Native에서 MMS 직접 발송 구현 필요
+ * 현재는 SMS로 대체하여 발송 (이미지는 제외)
+ */
+async function sendMms(
+  task: Task,
+  onSuccess?: () => void,
+  onFailure?: (error: string) => void
+): Promise<boolean> {
+  try {
+    // 권한 확인
+    const hasPermission = await checkSmsPermission();
+    if (!hasPermission) {
+      const granted = await requestSmsPermission();
+      if (!granted) {
+        const error = 'MMS 발송 권한이 필요합니다.';
+        await updateTaskStatus(task.id, 'failed', error);
+        onFailure?.(error);
+        return false;
+      }
+    }
+
+    // 전화번호 유효성 검사
+    const normalizedPhone = normalizePhoneNumber(task.customer_phone);
+    if (!validatePhoneNumber(normalizedPhone)) {
+      const error = '유효하지 않은 전화번호입니다.';
+      await updateTaskStatus(task.id, 'failed', error);
+      onFailure?.(error);
+      return false;
+    }
+
+    // 작업 상태를 'processing'으로 업데이트
+    await updateTaskStatus(task.id, 'processing');
+
+    // TODO: 실제 MMS 발송 구현
+    // 현재는 이미지 없이 SMS로 발송
+    // React Native에서 MMS를 직접 보내려면:
+    // 1. Android Intent 사용
+    // 2. 또는 네이티브 모듈 구현 필요
+    
+    console.warn('MMS 발송은 아직 구현되지 않았습니다. SMS로 대체하여 발송합니다.');
+    
+    // 임시로 SMS로 발송 (이미지 제외)
+    return sendSms(task, onSuccess, onFailure);
+  } catch (error: any) {
+    console.error('Error in sendMms:', error);
+    const errorMessage = error?.message || 'MMS 발송 중 오류가 발생했습니다.';
+    await updateTaskStatus(task.id, 'failed', errorMessage);
+    onFailure?.(errorMessage);
+    return false;
+  }
+}
+
+/**
  * SMS 발송
  */
 export async function sendSms(
@@ -98,6 +152,11 @@ export async function sendSms(
   onFailure?: (error: string) => void
 ): Promise<boolean> {
   try {
+    // MMS인 경우 별도 처리
+    if (task.is_mms) {
+      return sendMms(task, onSuccess, onFailure);
+    }
+
     // 권한 확인
     const hasPermission = await checkSmsPermission();
     if (!hasPermission) {
@@ -131,34 +190,83 @@ export async function sendSms(
     // 작업 상태를 'processing'으로 업데이트
     await updateTaskStatus(task.id, 'processing');
 
-    // SMS 발송
+    console.log('📱 Calling SmsAndroid.autoSend:', normalizedPhone, task.message_content.substring(0, 20) + '...');
+
+    // SMS 발송 (타임아웃 추가)
     return new Promise((resolve) => {
-      SmsAndroid.autoSend(
-        normalizedPhone,
-        task.message_content,
-        (fail: any) => {
-          console.error('Failed to send SMS:', fail);
-          const error = fail?.message || 'SMS 발송 실패';
+      let resolved = false;
+      const TIMEOUT = 30000; // 30초 타임아웃
+
+      // 타임아웃 설정
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.error('❌ SMS send timeout after 30 seconds');
+          const error = 'SMS 발송 타임아웃 (30초 초과)';
           updateTaskStatus(task.id, 'failed', error);
           onFailure?.(error);
           resolve(false);
-        },
-        async (success: any) => {
-          console.log('SMS sent successfully:', success);
-
-          // 발송 기록 저장
-          await saveSmsLog(task, normalizedPhone, 'sent');
-
-          // 일일 한도 카운트 증가
-          await incrementSentCount(task.user_id);
-
-          // 작업 상태를 'completed'로 업데이트
-          await updateTaskStatus(task.id, 'completed');
-
-          onSuccess?.();
-          resolve(true);
         }
-      );
+      }, TIMEOUT);
+
+      try {
+        console.log('📱 SmsAndroid.autoSend called, waiting for callback...');
+        SmsAndroid.autoSend(
+          normalizedPhone,
+          task.message_content,
+          (fail: any) => {
+            if (resolved) {
+              console.warn('⚠️ SMS fail callback called after timeout');
+              return;
+            }
+            resolved = true;
+            clearTimeout(timeoutId);
+            console.error('❌ Failed to send SMS:', fail);
+            const error = fail?.message || fail?.toString() || 'SMS 발송 실패';
+            updateTaskStatus(task.id, 'failed', error);
+            onFailure?.(error);
+            resolve(false);
+          },
+          async (success: any) => {
+            if (resolved) {
+              console.warn('⚠️ SMS success callback called after timeout');
+              return;
+            }
+            resolved = true;
+            clearTimeout(timeoutId);
+            console.log('✅ SMS sent successfully:', success);
+
+            try {
+              // 발송 기록 저장
+              await saveSmsLog(task, normalizedPhone, 'sent');
+
+              // 일일 한도 카운트 증가
+              await incrementSentCount(task.user_id);
+
+              // 작업 상태를 'completed'로 업데이트
+              await updateTaskStatus(task.id, 'completed');
+
+              onSuccess?.();
+              resolve(true);
+            } catch (error: any) {
+              console.error('❌ Error in SMS success callback:', error);
+              // 발송은 성공했지만 후처리 실패
+              await updateTaskStatus(task.id, 'completed');
+              onSuccess?.();
+              resolve(true);
+            }
+          }
+        );
+      } catch (error: any) {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
+        console.error('❌ Error calling SmsAndroid.autoSend:', error);
+        const errorMessage = error?.message || 'SMS 발송 함수 호출 실패';
+        updateTaskStatus(task.id, 'failed', errorMessage);
+        onFailure?.(errorMessage);
+        resolve(false);
+      }
     });
   } catch (error: any) {
     console.error('Error in sendSms:', error);
@@ -216,6 +324,8 @@ async function saveSmsLog(
       message: task.message_content,
       status,
       sent_at: new Date().toISOString(),
+      image_url: task.image_url || null,
+      is_mms: task.is_mms || false,
     });
 
     if (error) {
@@ -225,6 +335,128 @@ async function saveSmsLog(
     console.error('Error in saveSmsLog:', error);
   }
 }
+
+/**
+ * 직접 SMS 발송 (테스트용 - Task 없이 바로 발송)
+ */
+export async function sendSmsDirectly(
+  phoneNumber: string,
+  message: string
+): Promise<boolean> {
+  try {
+    console.log('=== sendSmsDirectly START ===');
+
+    // 권한 확인
+    const hasPermission = await checkSmsPermission();
+    console.log('SMS Permission:', hasPermission);
+
+    if (!hasPermission) {
+      const granted = await requestSmsPermission();
+      console.log('Permission granted:', granted);
+      if (!granted) {
+        throw new Error('SMS 발송 권한이 없습니다.');
+      }
+    }
+
+    // 전화번호 정규화
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    console.log('Normalized phone:', normalizedPhone);
+
+    // SMS 발송
+    return new Promise((resolve, reject) => {
+      console.log('Calling SmsAndroid.autoSend...');
+      SmsAndroid.autoSend(
+        normalizedPhone,
+        message,
+        (fail: any) => {
+          console.error('=== SMS FAILED ===', fail);
+          reject(new Error(fail?.message || 'SMS 발송 실패'));
+        },
+        (success: any) => {
+          console.log('=== SMS SUCCESS ===', success);
+          resolve(true);
+        }
+      );
+    });
+  } catch (error: any) {
+    console.error('=== sendSmsDirectly ERROR ===', error);
+    throw error;
+  }
+}
+
+/**
+ * MMS 발송 (이미지 첨부)
+ * 이미지 URL을 다운로드하여 MMS로 발송
+ */
+export async function sendMmsDirectly(
+  phoneNumber: string,
+  message: string,
+  imageUrl: string
+): Promise<boolean> {
+  try {
+    console.log('=== sendMmsDirectly START ===');
+    console.log('Phone:', phoneNumber);
+    console.log('Message:', message);
+    console.log('Image URL:', imageUrl);
+
+    // 권한 확인
+    const hasPermission = await checkSmsPermission();
+    console.log('SMS Permission:', hasPermission);
+
+    if (!hasPermission) {
+      const granted = await requestSmsPermission();
+      console.log('Permission granted:', granted);
+      if (!granted) {
+        throw new Error('MMS 발송 권한이 없습니다.');
+      }
+    }
+
+    // 전화번호 정규화
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    console.log('Normalized phone:', normalizedPhone);
+
+    // MMS 발송 (네이티브 모듈 호출)
+    return new Promise((resolve, reject) => {
+      console.log('Calling SmsAndroid.sendMms...');
+
+      // sendMms 메서드가 있는지 확인
+      if (typeof SmsAndroid.sendMms === 'function') {
+        SmsAndroid.sendMms(
+          normalizedPhone,
+          message,
+          imageUrl,
+          (fail: any) => {
+            console.error('=== MMS FAILED ===', fail);
+            reject(new Error(fail?.message || 'MMS 발송 실패'));
+          },
+          (success: any) => {
+            console.log('=== MMS SUCCESS ===', success);
+            resolve(true);
+          }
+        );
+      } else {
+        // sendMms가 없으면 SMS로 대체
+        console.warn('sendMms not available, falling back to SMS');
+        SmsAndroid.autoSend(
+          normalizedPhone,
+          message + '\n\n[명함 이미지: ' + imageUrl + ']',
+          (fail: any) => {
+            console.error('=== SMS FALLBACK FAILED ===', fail);
+            reject(new Error(fail?.message || 'SMS 발송 실패'));
+          },
+          (success: any) => {
+            console.log('=== SMS FALLBACK SUCCESS ===', success);
+            resolve(true);
+          }
+        );
+      }
+    });
+  } catch (error: any) {
+    console.error('=== sendMmsDirectly ERROR ===', error);
+    throw error;
+  }
+}
+
 
 
 
