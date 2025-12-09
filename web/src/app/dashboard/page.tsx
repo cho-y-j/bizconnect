@@ -109,12 +109,13 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
 
-      // 대기 중인 작업 수
+      // 대기 중인 작업 수 (예약 발송만 - pending 상태이면서 scheduled_at이 있는 것)
       const { count: taskCount } = await supabase
         .from('tasks')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .in('status', ['pending', 'queued'])
+        .eq('status', 'pending')
+        .not('scheduled_at', 'is', null)
 
       // 오늘 발송된 문자 수
       const today = new Date()
@@ -273,7 +274,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">대기 중인 작업</p>
+                <p className="text-sm text-gray-600 mb-1">예약 발송</p>
                 <p className="text-3xl font-bold text-yellow-600">{stats.pendingTasks}</p>
               </div>
               <div className="text-4xl">⏳</div>

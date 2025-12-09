@@ -31,25 +31,35 @@ class TaskService {
   private setupQueue(): void {
     // 큐 처리 함수 설정
     smsQueue.onProcess = async (task: Task) => {
+      console.log('📨 setupQueue.onProcess called for task:', task.id);
+      
       // 한도 체크
       if (this.userId) {
         const limitExceeded = await isLimitExceeded(this.userId);
         if (limitExceeded) {
+          console.error('❌ Daily limit exceeded for user:', this.userId);
           throw new Error('일일 한도가 초과되었습니다.');
         }
+        console.log('✅ Daily limit check passed');
       }
 
       // SMS 발송
-      await sendSms(
+      console.log('📤 Calling sendSms for task:', task.id);
+      const result = await sendSms(
         task,
         () => {
-          console.log('SMS sent successfully:', task.id);
+          console.log('✅ SMS sent successfully callback:', task.id);
         },
         (error) => {
-          console.error('SMS send failed:', error);
+          console.error('❌ SMS send failed callback:', error);
           throw new Error(error);
         }
       );
+      
+      console.log('📨 sendSms result:', result);
+      if (!result) {
+        throw new Error('SMS 발송 실패');
+      }
     };
 
     // 실패 처리 함수 설정

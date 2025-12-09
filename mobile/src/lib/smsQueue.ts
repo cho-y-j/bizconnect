@@ -126,19 +126,30 @@ class SmsQueue {
     // 작업 처리 (외부에서 처리 함수를 주입받음)
     if (this.onProcess) {
       try {
+        console.log('🚀 Calling onProcess handler for task:', nextItem.task.id);
         await this.onProcess(nextItem.task);
         // 성공 시 큐에서 제거
         await this.remove(nextItem.task.id);
-        console.log('Task processed successfully:', nextItem.task.id);
+        console.log('✅ Task processed successfully:', nextItem.task.id);
       } catch (error: any) {
-        console.error('Task processing failed:', nextItem.task.id, error);
+        console.error('❌ Task processing failed:', nextItem.task.id, error);
+        console.error('Error details:', error.message, error.stack);
         // 실패 시 재시도 로직
         await this.handleFailure(nextItem);
       }
     } else {
-      console.error('onProcess handler not set!');
-      // 처리 함수가 없으면 큐에서 제거
+      console.error('❌ onProcess handler not set! Cannot process task:', nextItem.task.id);
+      // 처리 함수가 없으면 큐에서 제거하고 실패 상태로 업데이트
       await this.remove(nextItem.task.id);
+      // Supabase에 실패 상태 업데이트
+      const { supabase } = require('../../lib/supabaseClient');
+      await supabase
+        .from('tasks')
+        .update({ 
+          status: 'failed', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', nextItem.task.id);
     }
 
     // 스로틀링: 첫 번째 작업은 즉시, 이후 작업은 5초 대기
