@@ -839,12 +839,16 @@ export default function SendSMSPage() {
       }
 
       // tasks 테이블에 작업 생성
+      console.log('📝 Creating tasks in database...', tasksToCreate.length, 'tasks')
       const { data: insertedTasks, error: insertError } = await supabase
         .from('tasks')
         .insert(tasksToCreate)
         .select()
 
       if (insertError) {
+        console.error('❌ Failed to create tasks:', insertError)
+        console.error('❌ Error code:', insertError.code)
+        console.error('❌ Error message:', insertError.message)
         setError('작업 생성 중 오류가 발생했습니다: ' + insertError.message)
       } else if (insertedTasks && insertedTasks.length > 0) {
         // 작업 생성 성공 시 즉시 sms_logs에 'pending' 상태로 기록 생성
@@ -869,9 +873,15 @@ export default function SendSMSPage() {
           if (logError) {
             console.error('❌ Failed to create SMS logs:', logError)
             console.error('❌ Error details:', JSON.stringify(logError, null, 2))
+            console.error('❌ Error code:', logError.code)
+            console.error('❌ Error message:', logError.message)
+            console.error('❌ This means 발송 기록 will be empty!')
+            // 사용자에게도 알림
+            setError(`작업은 생성되었지만 발송 기록 생성 실패: ${logError.message}. Supabase SQL을 실행했는지 확인하세요.`)
             // 로그 생성 실패해도 작업은 생성되었으므로 계속 진행
           } else {
             console.log('✅ SMS logs created:', insertedLogs?.length || 0)
+            console.log('✅ Log IDs:', insertedLogs?.map(log => log.id))
           }
         } catch (logErr: any) {
           console.error('❌ Exception creating SMS logs:', logErr)
