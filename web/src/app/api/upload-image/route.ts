@@ -120,7 +120,6 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error('❌ Storage upload error:', {
         message: uploadError.message,
-        statusCode: uploadError.statusCode,
         error: uploadError,
         fileName,
         userId: user.id,
@@ -130,8 +129,6 @@ export async function POST(request: NextRequest) {
       let errorMessage = '이미지 업로드 실패'
       if (uploadError.message) {
         errorMessage += ': ' + uploadError.message
-      } else if (uploadError.statusCode) {
-        errorMessage += ` (상태 코드: ${uploadError.statusCode})`
       }
       
       return NextResponse.json(
