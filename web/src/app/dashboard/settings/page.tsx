@@ -245,11 +245,34 @@ export default function SettingsPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || '이미지 업로드 실패')
+        let errorMessage = '이미지 업로드 실패'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상태 텍스트 사용
+          errorMessage = `이미지 업로드 실패 (상태 코드: ${response.status})`
+        }
+        console.error('❌ Image upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorMessage,
+        })
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
+      
+      if (!data.success || !data.image) {
+        console.error('❌ Invalid response from upload API:', data)
+        throw new Error('서버 응답이 올바르지 않습니다.')
+      }
+
+      console.log('✅ Image upload successful:', {
+        imageId: data.image.id,
+        imageUrl: data.image.image_url,
+        type,
+      })
       
       if (type === 'card') {
         setBusinessCard(prev => ({ ...prev, business_card_image_url: data.image.image_url }))
@@ -258,9 +281,15 @@ export default function SettingsPage() {
       }
 
       setSuccess('이미지가 업로드되었습니다.')
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
-      console.error('Image upload error:', err)
+      console.error('❌ Image upload error:', {
+        message: err.message,
+        stack: err.stack,
+        type,
+      })
       setError(err.message || '이미지 업로드 중 오류가 발생했습니다.')
+      setTimeout(() => setError(''), 5000)
     } finally {
       if (type === 'card') {
         setUploadingCard(false)
