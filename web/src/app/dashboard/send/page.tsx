@@ -443,6 +443,13 @@ export default function SendSMSPage() {
           name: result.image.name,
           previewUrl: previewUrl // 발송용 Open Graph URL
         })
+        // 메시지에 Open Graph URL 자동 추가
+        if (previewUrl) {
+          const currentMessage = message.trim()
+          // 이미 링크가 있으면 제거 후 새로 추가
+          const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
+          setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+        }
         // 저장된 이미지 목록 새로고침
         await loadSavedImages()
         setSuccess('이미지가 업로드되었습니다.')
@@ -1530,6 +1537,13 @@ export default function SendSMSPage() {
                         previewUrl: previewUrl // 발송용 Open Graph URL
                       })
                       setAttachBusinessCard(true)
+                      // 메시지에 Open Graph URL 자동 추가
+                      if (previewUrl) {
+                        const currentMessage = message.trim()
+                        // 이미 링크가 있으면 제거 후 새로 추가
+                        const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
+                        setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+                      }
                     } else {
                       // 명함 이미지가 없으면 업로드 화면 표시
                       setShowBusinessCardUpload(true)
@@ -1570,6 +1584,12 @@ export default function SendSMSPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      // 메시지에서 Open Graph URL 제거
+                      if (selectedImage?.previewUrl) {
+                        const currentMessage = message.trim()
+                        const messageWithoutLink = currentMessage.replace(selectedImage.previewUrl, '').trim()
+                        setMessage(messageWithoutLink)
+                      }
                       setSelectedImage(null)
                       setAttachBusinessCard(false)
                     }}
@@ -1668,6 +1688,14 @@ export default function SendSMSPage() {
                                 setAttachBusinessCard(true)
                                 setShowBusinessCardUpload(false)
                                 
+                                // 메시지에 Open Graph URL 자동 추가
+                                if (previewUrl) {
+                                  const currentMessage = message.trim()
+                                  // 이미 링크가 있으면 제거 후 새로 추가
+                                  const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
+                                  setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+                                }
+                                
                                 // userSettings 새로고침
                                 await loadUserSettings()
                                 setSuccess('명함 이미지가 업로드되었습니다.')
@@ -1723,6 +1751,11 @@ export default function SendSMSPage() {
                                 name: img.name,
                                 previewUrl: previewUrl // 발송용 Open Graph URL
                               })
+                              // 메시지에 Open Graph URL 자동 추가
+                              const currentMessage = message.trim()
+                              // 이미 링크가 있으면 제거 후 새로 추가
+                              const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
+                              setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
                               setShowImagePicker(false)
                             }}
                             className="relative aspect-square border-2 border-gray-300 rounded hover:border-blue-500 transition-colors overflow-hidden"
