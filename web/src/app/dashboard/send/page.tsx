@@ -1645,6 +1645,13 @@ export default function SendSMSPage() {
                         const file = e.target.files?.[0]
                         if (file) {
                           try {
+                            // Vercel 요청 크기 제한 (4.5MB) 체크
+                            const maxSize = 4.5 * 1024 * 1024 // 4.5MB
+                            if (file.size > maxSize) {
+                              setError('파일 크기는 4.5MB 이하여야 합니다. (Vercel 제한)')
+                              return
+                            }
+
                             setUploadingBusinessCard(true)
                             setError('')
 
