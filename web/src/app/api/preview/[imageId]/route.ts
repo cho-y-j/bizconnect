@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { notFound } from 'next/navigation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -15,9 +14,11 @@ const supabase = createClient(supabaseUrl, supabaseKey)
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { imageId: string } }
+  { params }: { params: Promise<{ imageId: string }> | { imageId: string } }
 ) {
-  const { imageId } = params
+  // Next.js 16에서 params가 Promise일 수 있음
+  const resolvedParams = params instanceof Promise ? await params : params
+  const { imageId } = resolvedParams
 
   try {
     // 이미지 정보 조회
@@ -53,9 +54,9 @@ export async function GET(
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${image.name || '이미지 미리보기'}" />
-  <meta name="twitter:description" content="비즈커넥트 - ${image.name || '이미지 미리보기'}" />
-  <meta name="twitter:image" content="${image.image_url}" />
+  <meta name="twitter:title" content="${(image.name || '이미지 미리보기').replace(/"/g, '&quot;')}" />
+  <meta name="twitter:description" content="비즈커넥트 - ${(image.name || '이미지 미리보기').replace(/"/g, '&quot;')}" />
+  <meta name="twitter:image" content="${image.image_url.replace(/"/g, '&quot;')}" />
   
   <style>
     body {
@@ -114,10 +115,10 @@ export async function GET(
 <body>
   <div class="container">
     <div class="image-container">
-      <img src="${image.image_url}" alt="${image.name || '이미지'}" />
+      <img src="${safeImageUrl}" alt="${safeTitle}" />
     </div>
     <div class="info">
-      <h1>${image.name || '이미지'}</h1>
+      <h1>${safeTitle}</h1>
       ${image.category ? `<p class="category">카테고리: ${image.category}</p>` : ''}
       ${image.created_at ? `<p class="date">업로드: ${new Date(image.created_at).toLocaleDateString('ko-KR')}</p>` : ''}
     </div>
