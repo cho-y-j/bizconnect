@@ -932,7 +932,6 @@ export default function SendSMSPage() {
             status: 'pending', // pending → sent/failed로 업데이트됨
             sent_at: new Date().toISOString(),
             image_url: task.image_url || null, // Open Graph URL 저장
-            image_name: task.image_name || null,
             is_mms: task.is_mms || false,
           }))
 
@@ -1575,12 +1574,13 @@ export default function SendSMSPage() {
                       setAttachBusinessCard(false)
                     }}
                     className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                    title="이미지 선택 취소"
                   >
                     ×
                   </button>
                   <p className="text-xs text-gray-600 mt-1">{selectedImage.name}</p>
                   {selectedImage.previewUrl && (
-                    <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨</p>
+                    <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨 (발송 시 자동 추가)</p>
                   )}
                 </div>
               )}
