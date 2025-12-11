@@ -74,12 +74,14 @@ export default function SendSMSPage() {
   const [showSummary, setShowSummary] = useState(false)
   
   // 이미지 첨부
-  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; previewUrl?: string } | null>(null)
   const [savedImages, setSavedImages] = useState<any[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingBusinessCard, setUploadingBusinessCard] = useState(false)
   const [attachBusinessCard, setAttachBusinessCard] = useState(false)
   const [userSettings, setUserSettings] = useState<any>(null)
+  const [showBusinessCardUpload, setShowBusinessCardUpload] = useState(false)
   
   // 이모티콘
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -361,6 +363,38 @@ export default function SendSMSPage() {
     }
   }
 
+  // 이미지 URL을 Open Graph URL로 변환하는 헬퍼 함수
+  const getPreviewUrl = async (imageUrl: string): Promise<string> => {
+    if (!imageUrl) return imageUrl
+    
+    // 이미 Open Graph URL인 경우 그대로 반환
+    if (imageUrl.includes('/preview/')) {
+      return imageUrl
+    }
+
+    try {
+      // user_images 테이블에서 이미지 URL로 ID 찾기
+      const { data: image, error } = await supabase
+        .from('user_images')
+        .select('id')
+        .eq('image_url', imageUrl)
+        .single()
+
+      if (error || !image) {
+        // 찾을 수 없으면 원본 URL 반환
+        console.warn('Image not found in user_images, using original URL:', imageUrl)
+        return imageUrl
+      }
+
+      // Open Graph URL 생성
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
+      return `${baseUrl}/preview/${image.id}`
+    } catch (error) {
+      console.error('Error converting to preview URL:', error)
+      return imageUrl
+    }
+  }
+
   const handleImageUpload = async (file: File) => {
     try {
       setUploadingImage(true)
@@ -402,14 +436,17 @@ export default function SendSMSPage() {
       }
 
       if (result.success && result.image) {
-        // 업로드된 이미지 선택
+        // 업로드된 이미지 선택 (Open Graph URL 저장, 미리보기는 원본 URL)
+        const previewUrl = result.image.preview_url || result.image.image_url
         setSelectedImage({
-          url: result.image.image_url,
+          url: result.image.image_url, // 미리보기용 원본 URL
           name: result.image.name,
+          previewUrl: previewUrl // 발송용 Open Graph URL
         })
         // 저장된 이미지 목록 새로고침
         await loadSavedImages()
         setSuccess('이미지가 업로드되었습니다.')
+        setShowImagePicker(false) // 업로드 완료 후 선택기 닫기
       }
     } catch (error: any) {
       console.error('Image upload error:', error)
@@ -626,6 +663,9 @@ export default function SendSMSPage() {
           return
         }
 
+        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
+        const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
+        
         tasksToCreate.push({
           user_id: user.id,
           customer_phone: normalizedPhone,
@@ -638,7 +678,7 @@ export default function SendSMSPage() {
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: selectedImage?.url || null,
+          image_url: finalImageUrl, // Open Graph URL 사용
           image_name: selectedImage?.name || null,
           is_mms: !!selectedImage,
         })
@@ -664,6 +704,9 @@ export default function SendSMSPage() {
           .in('id', customerIds)
           .eq('user_id', user.id)
 
+        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
+        const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
+        
         tasksToCreate = (customersWithDetails || []).map(customer => ({
           user_id: user.id,
           customer_id: customer.id,
@@ -675,7 +718,7 @@ export default function SendSMSPage() {
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: selectedImage?.url || null,
+          image_url: finalImageUrl, // Open Graph URL 사용
           image_name: selectedImage?.name || null,
           is_mms: !!selectedImage,
         }))
@@ -710,10 +753,19 @@ export default function SendSMSPage() {
           .eq('user_id', user.id)
           .eq('group_id', selectedGroupId)
 
-        // 명함 이미지 결정
-        const finalImage = attachBusinessCard && userSettings?.business_card_image_url
-          ? { url: userSettings.business_card_image_url, name: '명함' }
-          : selectedImage
+        // 명함 이미지 결정 (Open Graph URL로 변환)
+        let finalImage = selectedImage
+        if (attachBusinessCard && userSettings?.business_card_image_url) {
+          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+          finalImage = { 
+            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
+            name: '명함',
+            previewUrl: previewUrl // 발송용 Open Graph URL
+          }
+        }
+        
+        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
+        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
 
         tasksToCreate = (groupCustomersWithDetails || []).map(customer => ({
           user_id: user.id,
@@ -726,7 +778,7 @@ export default function SendSMSPage() {
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: finalImage?.url || null,
+          image_url: finalImageUrl, // Open Graph URL 사용
           image_name: finalImage?.name || null,
           is_mms: !!finalImage,
         }))
@@ -775,10 +827,19 @@ export default function SendSMSPage() {
           .eq('user_id', user.id)
           .in('id', tagCustomerIds)
 
-        // 명함 이미지 결정
-        const finalImage = attachBusinessCard && userSettings?.business_card_image_url
-          ? { url: userSettings.business_card_image_url, name: '명함' }
-          : selectedImage
+        // 명함 이미지 결정 (Open Graph URL로 변환)
+        let finalImage = selectedImage
+        if (attachBusinessCard && userSettings?.business_card_image_url) {
+          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+          finalImage = { 
+            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
+            name: '명함',
+            previewUrl: previewUrl // 발송용 Open Graph URL
+          }
+        }
+        
+        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
+        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
 
         tasksToCreate = (tagCustomersWithDetails || []).map(customer => ({
           user_id: user.id,
@@ -791,7 +852,7 @@ export default function SendSMSPage() {
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: finalImage?.url || null,
+          image_url: finalImageUrl, // Open Graph URL 사용
           image_name: finalImage?.name || null,
           is_mms: !!finalImage,
         }))
@@ -809,10 +870,19 @@ export default function SendSMSPage() {
           return
         }
 
-        // 명함 이미지 결정
-        const finalImage = attachBusinessCard && userSettings?.business_card_image_url
-          ? { url: userSettings.business_card_image_url, name: '명함' }
-          : selectedImage
+        // 명함 이미지 결정 (Open Graph URL로 변환)
+        let finalImage = selectedImage
+        if (attachBusinessCard && userSettings?.business_card_image_url) {
+          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+          finalImage = { 
+            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
+            name: '명함',
+            previewUrl: previewUrl // 발송용 Open Graph URL
+          }
+        }
+        
+        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
+        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
 
         // CSV 데이터로 작업 생성
         tasksToCreate = csvData.map(row => {
@@ -831,7 +901,7 @@ export default function SendSMSPage() {
             priority: 0,
             scheduled_at: scheduledAt,
             template_id: selectedTemplateId || null,
-            image_url: finalImage?.url || null,
+            image_url: finalImageUrl, // Open Graph URL 사용
             image_name: finalImage?.name || null,
             is_mms: !!finalImage,
           }
@@ -861,7 +931,8 @@ export default function SendSMSPage() {
             message: task.message_content,
             status: 'pending', // pending → sent/failed로 업데이트됨
             sent_at: new Date().toISOString(),
-            image_url: task.image_url || null,
+            image_url: task.image_url || null, // Open Graph URL 저장
+            image_name: task.image_name || null,
             is_mms: task.is_mms || false,
           }))
 
@@ -1440,13 +1511,38 @@ export default function SendSMSPage() {
 
             {/* 이미지 첨부 및 이모티콘 */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowImagePicker(!showImagePicker)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
                   📷 이미지 첨부
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (userSettings?.business_card_image_url) {
+                      // 명함 이미지가 있으면 Open Graph URL로 변환하여 선택
+                      const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+                      setSelectedImage({ 
+                        url: userSettings.business_card_image_url, // 미리보기용 원본 URL
+                        name: '명함',
+                        previewUrl: previewUrl // 발송용 Open Graph URL
+                      })
+                      setAttachBusinessCard(true)
+                    } else {
+                      // 명함 이미지가 없으면 업로드 화면 표시
+                      setShowBusinessCardUpload(true)
+                    }
+                  }}
+                  className={`px-4 py-2 border rounded-lg transition-colors flex items-center gap-2 ${
+                    attachBusinessCard || (selectedImage?.name === '명함')
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  💼 명함 첨부 {attachBusinessCard || (selectedImage?.name === '명함') ? '✓' : ''}
                 </button>
                 <button
                   type="button"
@@ -1461,18 +1557,137 @@ export default function SendSMSPage() {
               {selectedImage && (
                 <div className="relative inline-block p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <img
-                    src={selectedImage.url}
+                    src={selectedImage.url} // 항상 원본 URL 사용 (미리보기용)
                     alt={selectedImage.name}
                     className="max-w-xs max-h-48 rounded"
+                    onError={(e) => {
+                      // 에러 발생 시 savedImages에서 찾기
+                      const img = savedImages.find(i => i.name === selectedImage.name)
+                      if (img) {
+                        (e.target as HTMLImageElement).src = img.image_url
+                      }
+                    }}
                   />
                   <button
                     type="button"
-                    onClick={() => setSelectedImage(null)}
+                    onClick={() => {
+                      setSelectedImage(null)
+                      setAttachBusinessCard(false)
+                    }}
                     className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
                   >
                     ×
                   </button>
                   <p className="text-xs text-gray-600 mt-1">{selectedImage.name}</p>
+                  {selectedImage.previewUrl && (
+                    <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨</p>
+                  )}
+                </div>
+              )}
+
+              {/* 명함 이미지 업로드 */}
+              {showBusinessCardUpload && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-gray-900">명함 이미지 업로드</h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowBusinessCardUpload(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">명함 이미지 선택:</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          try {
+                            setUploadingBusinessCard(true)
+                            setError('')
+
+                            const { data: { user } } = await supabase.auth.getUser()
+                            if (!user) {
+                              setError('로그인이 필요합니다.')
+                              return
+                            }
+
+                            const { data: { session } } = await supabase.auth.getSession()
+                            if (!session) {
+                              setError('세션이 만료되었습니다.')
+                              return
+                            }
+
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            formData.append('name', '명함')
+                            formData.append('category', 'business_card')
+
+                            const response = await fetch('/api/upload-image', {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${session.access_token}`,
+                              },
+                              body: formData,
+                            })
+
+                            const result = await response.json()
+
+                            if (!response.ok) {
+                              setError(result.error || '명함 이미지 업로드 실패')
+                              return
+                            }
+
+                            if (result.success && result.image) {
+                              // user_settings에 명함 이미지 URL 저장
+                              const { error: settingsError } = await supabase
+                                .from('user_settings')
+                                .upsert({
+                                  user_id: user.id,
+                                  business_card_image_url: result.image.image_url,
+                                  updated_at: new Date().toISOString(),
+                                }, {
+                                  onConflict: 'user_id',
+                                })
+
+                              if (settingsError) {
+                                console.error('Error saving business card:', settingsError)
+                                setError('명함 이미지는 업로드되었지만 설정 저장에 실패했습니다.')
+                              } else {
+                                // 명함 이미지 선택
+                                const previewUrl = result.image.preview_url || result.image.image_url
+                                setSelectedImage({
+                                  url: result.image.image_url, // 미리보기용 원본 URL
+                                  name: '명함',
+                                  previewUrl: previewUrl // 발송용 Open Graph URL
+                                })
+                                setAttachBusinessCard(true)
+                                setShowBusinessCardUpload(false)
+                                
+                                // userSettings 새로고침
+                                await loadUserSettings()
+                                setSuccess('명함 이미지가 업로드되었습니다.')
+                              }
+                            }
+                          } catch (error: any) {
+                            console.error('Business card upload error:', error)
+                            setError('명함 이미지 업로드 중 오류가 발생했습니다: ' + error.message)
+                          } finally {
+                            setUploadingBusinessCard(false)
+                          }
+                        }
+                      }}
+                      disabled={uploadingBusinessCard}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {uploadingBusinessCard && (
+                      <p className="text-xs text-gray-500 mt-1">업로드 중...</p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1499,8 +1714,15 @@ export default function SendSMSPage() {
                           <button
                             key={img.id}
                             type="button"
-                            onClick={() => {
-                              setSelectedImage({ url: img.image_url, name: img.name })
+                            onClick={async () => {
+                              // 이미지 ID로 Open Graph URL 생성
+                              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
+                              const previewUrl = `${baseUrl}/preview/${img.id}`
+                              setSelectedImage({ 
+                                url: img.image_url, // 미리보기용 원본 URL
+                                name: img.name,
+                                previewUrl: previewUrl // 발송용 Open Graph URL
+                              })
                               setShowImagePicker(false)
                             }}
                             className="relative aspect-square border-2 border-gray-300 rounded hover:border-blue-500 transition-colors overflow-hidden"
