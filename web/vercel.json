@@ -3,12 +3,6 @@
     "web/src/app/api/upload-image/route.ts": {
       "maxDuration": 30
     }
-  },
-  "rewrites": [
-    {
-      "source": "/preview/:imageId",
-      "destination": "/preview/:imageId"
-    }
-  ]
+  }
 }
 
