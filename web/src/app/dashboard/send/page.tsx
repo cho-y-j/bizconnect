@@ -1680,12 +1680,22 @@ export default function SendSMSPage() {
                               body: formData,
                             })
 
-                            const result = await response.json()
-
                             if (!response.ok) {
-                              setError(result.error || '명함 이미지 업로드 실패')
+                              if (response.status === 413) {
+                                setError('파일 크기가 너무 큽니다. 4.5MB 이하의 파일을 업로드해주세요.')
+                              } else {
+                                let errorData
+                                try {
+                                  errorData = await response.json()
+                                } catch {
+                                  errorData = { error: `서버 오류 (${response.status})` }
+                                }
+                                setError(errorData.error || '명함 이미지 업로드 실패')
+                              }
                               return
                             }
+
+                            const result = await response.json()
 
                             if (result.success && result.image) {
                               // user_settings에 명함 이미지 URL 저장
