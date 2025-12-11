@@ -400,6 +400,14 @@ export default function SendSMSPage() {
       setUploadingImage(true)
       setError('')
 
+      // Vercel 요청 크기 제한 (4.5MB) 체크
+      const maxSize = 4.5 * 1024 * 1024 // 4.5MB
+      if (file.size > maxSize) {
+        setError('파일 크기는 4.5MB 이하여야 합니다. (Vercel 제한)')
+        setUploadingImage(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setError('로그인이 필요합니다.')
@@ -428,12 +436,22 @@ export default function SendSMSPage() {
         body: formData,
       })
 
-      const result = await response.json()
-
       if (!response.ok) {
-        setError(result.error || '이미지 업로드 실패')
+        if (response.status === 413) {
+          setError('파일 크기가 너무 큽니다. 4.5MB 이하의 파일을 업로드해주세요.')
+          return
+        }
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: `서버 오류 (${response.status})` }
+        }
+        setError(errorData.error || '이미지 업로드 실패')
         return
       }
+
+      const result = await response.json()
 
       if (result.success && result.image) {
         // 업로드된 이미지 선택 (Open Graph URL 저장, 미리보기는 원본 URL)

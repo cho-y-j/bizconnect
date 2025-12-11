@@ -219,6 +219,18 @@ export default function SettingsPage() {
     setError('')
 
     try {
+      // Vercel 요청 크기 제한 (4.5MB) 체크
+      const maxSize = 4.5 * 1024 * 1024 // 4.5MB
+      if (file.size > maxSize) {
+        setError('파일 크기는 4.5MB 이하여야 합니다. (Vercel 제한)')
+        if (type === 'card') {
+          setUploadingCard(false)
+        } else {
+          setUploadingProfile(false)
+        }
+        return
+      }
+
       const user = await getCurrentUser()
       if (!user) {
         setError('로그인이 필요합니다.')
@@ -246,12 +258,16 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         let errorMessage = '이미지 업로드 실패'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          // JSON 파싱 실패 시 상태 텍스트 사용
-          errorMessage = `이미지 업로드 실패 (상태 코드: ${response.status})`
+        if (response.status === 413) {
+          errorMessage = '파일 크기가 너무 큽니다. 4.5MB 이하의 파일을 업로드해주세요.'
+        } else {
+          try {
+            const errorData = await response.json()
+            errorMessage = errorData.error || errorMessage
+          } catch (parseError) {
+            // JSON 파싱 실패 시 상태 텍스트 사용
+            errorMessage = `이미지 업로드 실패 (상태 코드: ${response.status})`
+          }
         }
         console.error('❌ Image upload failed:', {
           status: response.status,
