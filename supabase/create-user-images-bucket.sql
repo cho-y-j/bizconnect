@@ -79,3 +79,6 @@ USING (
 -- 정책 확인
 -- SELECT * FROM pg_policies WHERE tablename = 'objects' AND schemaname = 'storage';
 
+
+
+

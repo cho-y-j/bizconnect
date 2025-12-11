@@ -12,3 +12,7 @@ ADD CONSTRAINT valid_log_status CHECK (status IN ('pending', 'sent', 'failed', '
 -- 3. 기본값을 'pending'으로 변경 (선택사항)
 -- ALTER TABLE sms_logs ALTER COLUMN status SET DEFAULT 'pending';
 
+
+
+
+
