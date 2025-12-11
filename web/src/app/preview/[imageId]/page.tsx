@@ -9,15 +9,25 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 interface PageProps {
-  params: Promise<{
+  params: {
+    imageId: string
+  } | Promise<{
     imageId: string
   }>
 }
 
+// params를 안전하게 처리하는 헬퍼 함수
+async function getImageId(params: PageProps['params']): Promise<string> {
+  if (params instanceof Promise) {
+    const resolved = await params
+    return resolved.imageId
+  }
+  return params.imageId
+}
+
 // Open Graph 메타데이터 생성
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const resolvedParams = await params
-  const { imageId } = resolvedParams
+  const imageId = await getImageId(params)
 
   try {
     // 이미지 정보 조회
@@ -72,8 +82,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ImagePreviewPage({ params }: PageProps) {
-  const resolvedParams = await params
-  const { imageId } = resolvedParams
+  const imageId = await getImageId(params)
 
   console.log('🔍 Preview page - imageId:', imageId)
 
