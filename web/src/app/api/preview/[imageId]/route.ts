@@ -35,28 +35,42 @@ export async function GET(
       )
     }
 
+    // HTML 이스케이프 헬퍼 함수
+    const escapeHtml = (str: string) => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+    }
+
+    const safeTitle = escapeHtml(image.name || '이미지 미리보기')
+    const safeImageUrl = escapeHtml(image.image_url)
+    const safeDescription = escapeHtml(`비즈커넥트 - ${image.name || '이미지 미리보기'}`)
+
     // HTML 응답 반환 (Open Graph 메타 태그 포함)
     const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${image.name || '이미지 미리보기'}</title>
-  <meta name="description" content="비즈커넥트 - ${image.name || '이미지 미리보기'}">
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDescription}">
   
   <!-- Open Graph -->
-  <meta property="og:title" content="${image.name || '이미지 미리보기'}" />
-  <meta property="og:description" content="비즈커넥트 - ${image.name || '이미지 미리보기'}" />
-  <meta property="og:image" content="${image.image_url}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDescription}" />
+  <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${(image.name || '이미지 미리보기').replace(/"/g, '&quot;')}" />
-  <meta name="twitter:description" content="비즈커넥트 - ${(image.name || '이미지 미리보기').replace(/"/g, '&quot;')}" />
-  <meta name="twitter:image" content="${image.image_url.replace(/"/g, '&quot;')}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDescription}" />
+  <meta name="twitter:image" content="${safeImageUrl}" />
   
   <style>
     body {
