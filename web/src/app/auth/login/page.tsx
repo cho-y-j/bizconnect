@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signInWithEmail, signInWithGoogle } from '@/lib/auth'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -34,8 +35,34 @@ export default function LoginPage() {
       
       setError(errorMessage)
       setLoading(false)
+    } else if (data?.session) {
+      // 로그인 성공 - 세션이 있음
+      console.log('[Login Page] Login successful, session:', data.session.user.id)
+      
+      // 세션이 저장될 때까지 잠시 대기
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // 세션 재확인
+      const { data: { session: verifySession } } = await supabase.auth.getSession()
+      console.log('[Login Page] Session verification:', {
+        original: !!data.session,
+        verified: !!verifySession,
+        userId: verifySession?.user?.id
+      })
+      
+      // 관리자 권한 확인
+      const { isAdmin } = await import('@/lib/admin')
+      const admin = await isAdmin()
+      console.log('[Login Page] Admin check:', admin)
+      
+      if (admin) {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
     } else {
-      // 로그인 성공
+      // 세션이 없는 경우 (이메일 확인 필요 등)
+      console.warn('[Login Page] Login successful but no session')
       router.push('/dashboard')
     }
   }

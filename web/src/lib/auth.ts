@@ -11,16 +11,43 @@ export interface User {
  * 현재 로그인한 사용자 정보 가져오기
  */
 export async function getCurrentUser(): Promise<User | null> {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error || !user) {
-    return null
-  }
+  try {
+    // 세션 확인
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.log('[getCurrentUser] Session error:', sessionError)
+    }
+    
+    if (!session) {
+      console.log('[getCurrentUser] No session found')
+      // 세션이 없어도 getUser()를 시도 (토큰이 있을 수 있음)
+    } else {
+      console.log('[getCurrentUser] Session found:', session.user.id)
+    }
 
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.user_metadata?.name || user.email?.split('@')[0]
+    // getUser()는 자동으로 토큰을 사용하여 사용자 정보를 가져옴
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.log('[getCurrentUser] Error getting user:', error)
+      return null
+    }
+    
+    if (!user) {
+      console.log('[getCurrentUser] No user found')
+      return null
+    }
+
+    console.log('[getCurrentUser] User found:', user.id, user.email)
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.name || user.email?.split('@')[0]
+    }
+  } catch (error) {
+    console.error('[getCurrentUser] Exception:', error)
+    return null
   }
 }
 
@@ -51,6 +78,17 @@ export async function signInWithEmail(email: string, password: string) {
         error.message = '이메일을 확인해주세요. 이메일 확인 링크를 클릭하거나 관리자에게 문의하세요.'
       } else if (error.message?.includes('Invalid login credentials')) {
         error.message = '이메일 또는 비밀번호가 올바르지 않습니다.'
+      }
+    } else if (data?.session) {
+      // 로그인 성공 시 세션 확인
+      console.log('[Login] Session created:', data.session.user.id)
+      
+      // 세션이 제대로 저장되었는지 확인
+      const { data: { session: verifySession } } = await supabase.auth.getSession()
+      if (verifySession) {
+        console.log('[Login] Session verified:', verifySession.user.id)
+      } else {
+        console.warn('[Login] Session not found after login!')
       }
     }
     

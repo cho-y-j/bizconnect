@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
+/**
+ * 연결 테스트 API (개발 환경 전용)
+ * 프로덕션에서는 비활성화
+ */
 export async function GET() {
+  // 프로덕션 환경에서는 비활성화
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not available in production' },
+      { status: 403 }
+    )
+  }
   const results: any = {
     timestamp: new Date().toISOString(),
     tests: [],

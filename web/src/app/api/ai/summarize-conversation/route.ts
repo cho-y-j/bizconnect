@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-af010f64eb7d44d0bb82ef6d3ff0d539'
+// 환경 변수에서 가져오기 (필수)
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
 
 /**
@@ -10,7 +11,9 @@ const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
  */
 export async function POST(request: NextRequest) {
   try {
+    // 환경 변수 필수 체크
     if (!DEEPSEEK_API_KEY) {
+      console.error('❌ DEEPSEEK_API_KEY 환경 변수가 설정되지 않았습니다!')
       return NextResponse.json(
         { error: 'AI 서비스가 설정되지 않았습니다.' },
         { status: 500 }

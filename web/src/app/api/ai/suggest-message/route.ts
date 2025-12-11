@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 import { createClient } from '@supabase/supabase-js'
 
-// 환경 변수에서 가져오거나, 없으면 기본값 사용 (임시)
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-af010f64eb7d44d0bb82ef6d3ff0d539'
+// 환경 변수에서 가져오기 (필수)
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
-
-if (!DEEPSEEK_API_KEY) {
-  console.error('❌ DEEPSEEK_API_KEY 환경 변수가 설정되지 않았습니다!')
-  console.error('web/.env.local 파일에 DEEPSEEK_API_KEY=sk-af010f64eb7d44d0bb82ef6d3ff0d539 추가하세요.')
-}
 
 /**
  * AI 문자 메시지 추천 API
@@ -17,7 +12,9 @@ if (!DEEPSEEK_API_KEY) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // 환경 변수 필수 체크
     if (!DEEPSEEK_API_KEY) {
+      console.error('❌ DEEPSEEK_API_KEY 환경 변수가 설정되지 않았습니다!')
       return NextResponse.json(
         { error: 'AI 서비스가 설정되지 않았습니다.' },
         { status: 500 }
