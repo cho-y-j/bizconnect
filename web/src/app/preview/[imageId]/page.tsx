@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 // Force dynamic rendering to avoid stale 404s in Next.js 16
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const dynamicParams = true // Allow dynamic params
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
