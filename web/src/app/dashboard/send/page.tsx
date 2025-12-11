@@ -1778,9 +1778,9 @@ export default function SendSMSPage() {
                             key={img.id}
                             type="button"
                             onClick={async () => {
-                              // 이미지 ID로 Open Graph URL 생성
+                              // 이미지 ID로 Open Graph URL 생성 (API 라우트 사용)
                               const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-                              const previewUrl = `${baseUrl}/preview/${img.id}`
+                              const previewUrl = `${baseUrl}/api/preview/${img.id}`
                               setSelectedImage({ 
                                 url: img.image_url, // 미리보기용 원본 URL
                                 name: img.name,
