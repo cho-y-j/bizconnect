@@ -56,6 +56,14 @@ export default function ImagesPage() {
     setSuccess('')
 
     try {
+      // Vercel 요청 크기 제한 (4.5MB) 체크
+      const maxSize = 4.5 * 1024 * 1024 // 4.5MB
+      if (file.size > maxSize) {
+        setError('파일 크기는 4.5MB 이하여야 합니다. (Vercel 제한)')
+        setUploading(false)
+        return
+      }
+
       const user = await getCurrentUser()
       if (!user) {
         setError('로그인이 필요합니다.')
@@ -82,7 +90,15 @@ export default function ImagesPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        if (response.status === 413) {
+          throw new Error('파일 크기가 너무 큽니다. 4.5MB 이하의 파일을 업로드해주세요.')
+        }
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: `서버 오류 (${response.status})` }
+        }
         throw new Error(errorData.error || '이미지 업로드 실패')
       }
 
@@ -250,7 +266,7 @@ export default function ImagesPage() {
             )}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            명함, 로고, 상품 이미지 등을 업로드하여 문자 발송 시 사용할 수 있습니다. (최대 10MB)
+            명함, 로고, 상품 이미지 등을 업로드하여 문자 발송 시 사용할 수 있습니다. (최대 4.5MB - Vercel 제한)
           </p>
         </div>
 

@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '이미지 파일만 업로드 가능합니다.' }, { status: 400 })
     }
 
-    // 파일 크기 제한 (10MB)
-    const maxSize = 10 * 1024 * 1024
+    // 파일 크기 제한 (4.5MB - Vercel 요청 크기 제한)
+    const maxSize = 4.5 * 1024 * 1024
     if (file.size > maxSize) {
-      return NextResponse.json({ error: '파일 크기는 10MB 이하여야 합니다.' }, { status: 400 })
+      return NextResponse.json({ error: '파일 크기는 4.5MB 이하여야 합니다. (Vercel 제한)' }, { status: 400 })
     }
 
     // 파일명 생성 (고유한 이름) - 경로 탐색 공격 방지
@@ -193,9 +193,16 @@ export async function POST(request: NextRequest) {
       imageUrl: imageData?.image_url,
     })
 
+    // Open Graph 미리보기 URL 생성
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
+    const previewUrl = `${baseUrl}/preview/${imageData.id}`
+
     return NextResponse.json({
       success: true,
-      image: imageData,
+      image: {
+        ...imageData,
+        preview_url: previewUrl, // Open Graph 미리보기 URL 추가
+      },
     })
   } catch (error: any) {
     console.error('❌ Unexpected error in image upload:', {
