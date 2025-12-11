@@ -386,9 +386,9 @@ export default function SendSMSPage() {
         return imageUrl
       }
 
-      // Open Graph URL 생성
+      // Open Graph URL 생성 (API 라우트 사용 - 페이지 라우트가 작동하지 않을 때 대체)
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-      return `${baseUrl}/preview/${image.id}`
+      return `${baseUrl}/api/preview/${image.id}`
     } catch (error) {
       console.error('Error converting to preview URL:', error)
       return imageUrl

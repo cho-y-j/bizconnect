@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '이미지를 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    // Open Graph 미리보기 URL 생성
+    // Open Graph 미리보기 URL 생성 (API 라우트 사용)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-    const previewUrl = `${baseUrl}/preview/${image.id}`
+    const previewUrl = `${baseUrl}/api/preview/${image.id}`
 
     return NextResponse.json({
       success: true,

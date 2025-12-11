@@ -196,9 +196,9 @@ export async function POST(request: NextRequest) {
       imageUrl: imageData?.image_url,
     })
 
-    // Open Graph 미리보기 URL 생성
+    // Open Graph 미리보기 URL 생성 (API 라우트 사용)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-    const previewUrl = `${baseUrl}/preview/${imageData.id}`
+    const previewUrl = `${baseUrl}/api/preview/${imageData.id}`
 
     return NextResponse.json({
       success: true,
