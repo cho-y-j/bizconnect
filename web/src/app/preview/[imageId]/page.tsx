@@ -9,14 +9,15 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 interface PageProps {
-  params: {
+  params: Promise<{
     imageId: string
-  }
+  }>
 }
 
 // Open Graph 메타데이터 생성
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { imageId } = params
+  const resolvedParams = await params
+  const { imageId } = resolvedParams
 
   try {
     // 이미지 정보 조회
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       .single()
 
     if (error || !image) {
+      console.error('❌ Metadata generation - Image not found:', { imageId, error })
       return {
         title: '이미지 미리보기',
         description: '이미지를 찾을 수 없습니다.',
@@ -70,7 +72,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ImagePreviewPage({ params }: PageProps) {
-  const { imageId } = params
+  const resolvedParams = await params
+  const { imageId } = resolvedParams
+
+  console.log('🔍 Preview page - imageId:', imageId)
 
   try {
     // 이미지 정보 조회
@@ -80,7 +85,15 @@ export default async function ImagePreviewPage({ params }: PageProps) {
       .eq('id', imageId)
       .single()
 
-    if (error || !image) {
+    console.log('🔍 Preview page - image query result:', { image, error })
+
+    if (error) {
+      console.error('❌ Preview page - Supabase error:', error)
+      notFound()
+    }
+
+    if (!image) {
+      console.error('❌ Preview page - Image not found for ID:', imageId)
       notFound()
     }
 
