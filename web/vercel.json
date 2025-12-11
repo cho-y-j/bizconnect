@@ -1,6 +1,6 @@
 {
   "functions": {
-    "web/src/app/api/upload-image/route.ts": {
+    "app/api/upload-image/route.ts": {
       "maxDuration": 30
     }
   }
