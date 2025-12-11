@@ -11,23 +11,12 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 interface PageProps {
   params: {
     imageId: string
-  } | Promise<{
-    imageId: string
-  }>
-}
-
-// params를 안전하게 처리하는 헬퍼 함수
-async function getImageId(params: PageProps['params']): Promise<string> {
-  if (params instanceof Promise) {
-    const resolved = await params
-    return resolved.imageId
   }
-  return params.imageId
 }
 
 // Open Graph 메타데이터 생성
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const imageId = await getImageId(params)
+  const { imageId } = params
 
   try {
     // 이미지 정보 조회
@@ -82,7 +71,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ImagePreviewPage({ params }: PageProps) {
-  const imageId = await getImageId(params)
+  const { imageId } = params
 
   console.log('🔍 Preview page - imageId:', imageId)
 
