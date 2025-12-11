@@ -367,8 +367,8 @@ export default function SendSMSPage() {
   const getPreviewUrl = async (imageUrl: string): Promise<string> => {
     if (!imageUrl) return imageUrl
     
-    // 이미 Open Graph URL인 경우 그대로 반환
-    if (imageUrl.includes('/preview/')) {
+    // 이미 Open Graph URL인 경우 그대로 반환 (API 라우트 포함)
+    if (imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
       return imageUrl
     }
 
