@@ -168,6 +168,12 @@ export default function ContactsUploadScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack?.() || navigation.navigate?.('SendSMS')}
+        >
+          <Text style={styles.backButtonText}>← 뒤로</Text>
+        </TouchableOpacity>
         <Text style={styles.title}>주소록 업로드</Text>
         <Text style={styles.subtitle}>
           {filteredContacts.length}개 중 {selectedContacts.size}개 선택됨
@@ -252,6 +258,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    marginBottom: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#2563EB',
+    fontWeight: '600',
   },
   title: {
     fontSize: 28,
@@ -347,6 +361,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
 });
+
 
 
 
