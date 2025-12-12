@@ -7,9 +7,14 @@ import { checkDailyLimit, isLimitExceeded } from '../lib/dailyLimit';
 /**
  * 작업 서비스 - 큐와 발송을 통합 관리
  */
+const RECENT_MINUTES = 30; // 최근 30분 내 생성된 작업만 자동 처리 (5분에서 30분으로 증가)
+
 class TaskService {
   private userId: string | null = null;
   private subscription: any = null;
+  private pollingTimer: NodeJS.Timeout | null = null;
+  // 웹에서 보낸 작업을 처리하기 위해 자동 구독 활성화
+  private disableAutoProcessing = false;
 
   /**
    * 사용자 ID 설정
@@ -81,6 +86,10 @@ class TaskService {
    */
   private subscribeToTasks(): void {
     if (!this.userId) return;
+    if (this.disableAutoProcessing) {
+      console.warn('⚠️ Auto processing disabled to prevent unintended sends.');
+      return;
+    }
 
     try {
       // 기존 구독 해제
@@ -122,22 +131,31 @@ class TaskService {
             return;
           }
 
-          // pending 상태이고 예약이 아니거나 예약 시간이 된 작업만 처리
-          if (newTask.status === 'pending') {
+            // pending 상태이고 최근 RECENT_MINUTES 분 이내 생성된 작업만 처리
             const now = new Date();
-            const scheduledAt = newTask.scheduled_at
-              ? new Date(newTask.scheduled_at)
-              : null;
+            const createdAt = newTask.created_at ? new Date(newTask.created_at) : null;
+            const thresholdTime = new Date(now.getTime() - RECENT_MINUTES * 60 * 1000);
 
-            if (!scheduledAt || scheduledAt <= now) {
-              console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
-              await this.addTaskToQueue(newTask);
-            } else {
-              console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
+            // 너무 오래된 작업은 처리하지 않음 (이전 세션의 잔여 대기 작업으로 인한 폭주 방지)
+            if (!createdAt || createdAt < thresholdTime) {
+              console.log(`⏭️ Skipping old pending task (>${RECENT_MINUTES}m):`, newTask.id, newTask.created_at);
+              return;
             }
-          } else {
-            console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
-          }
+
+            if (newTask.status === 'pending' && createdAt > thresholdTime) {
+              const scheduledAt = newTask.scheduled_at
+                ? new Date(newTask.scheduled_at)
+                : null;
+
+              if (!scheduledAt || scheduledAt <= now) {
+                console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
+                await this.addTaskToQueue(newTask);
+              } else {
+                console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
+              }
+            } else {
+              console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
+            }
         }
       )
       .on(
@@ -153,16 +171,21 @@ class TaskService {
           const oldTask = payload.old as Task;
 
           // 상태가 pending으로 변경되었거나 예약 시간이 된 경우
+          const now = new Date();
+          const createdAt = new Date(updatedTask.created_at);
+          const thresholdTime = new Date(now.getTime() - RECENT_MINUTES * 60 * 1000);
+
           if (
             updatedTask.status === 'pending' &&
-            oldTask.status !== 'pending'
+            oldTask.status !== 'pending' &&
+            createdAt > thresholdTime
           ) {
-            const now = new Date();
             const scheduledAt = updatedTask.scheduled_at
               ? new Date(updatedTask.scheduled_at)
               : null;
 
             if (!scheduledAt || scheduledAt <= now) {
+              console.log('🔄 Task status changed to pending, adding to queue:', updatedTask.id);
               await this.addTaskToQueue(updatedTask);
             }
           }
@@ -181,16 +204,15 @@ class TaskService {
           this.loadPendingTasks().catch((error) => {
             console.error('❌ Error loading pending tasks after subscription:', error);
           });
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ ===== CHANNEL ERROR =====');
-          console.error('❌ This means the app CANNOT receive new tasks from web!');
-          console.error('❌ Check Supabase Realtime settings and RLS policies!');
-          console.error('❌ Falling back to polling every 10 seconds...');
-        } else if (status === 'TIMED_OUT') {
-          console.error('❌ ===== SUBSCRIPTION TIMED OUT =====');
-          console.error('❌ This means the app CANNOT receive new tasks from web!');
-          console.error('❌ Check network connection and Supabase Realtime settings!');
-          console.error('❌ Falling back to polling every 10 seconds...');
+          // 구독 성공해도 백업으로 빠른 폴링 시작 (2초 간격) - 단건 발송 즉시 처리
+          this.startPolling(2);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.error('❌ ===== SUBSCRIPTION FAILED =====');
+          console.error('❌ Status:', status);
+          console.error('❌ This means realtime is not working!');
+          console.error('❌ Starting polling fallback every 2 seconds...');
+          // 구독 실패 시 빠른 폴링으로 보완 (2초 간격) - 단건 발송 즉시 처리
+          this.startPolling(2);
         } else {
           console.log('📡 Subscription status:', status);
         }
@@ -265,6 +287,10 @@ class TaskService {
     } else {
       console.log('Task status updated to queued:', task.id);
     }
+
+    // 큐 처리 시작 (작업이 추가되면 자동으로 처리 시작)
+    console.log('🚀 Starting queue processing after adding task:', task.id);
+    smsQueue.startProcessing();
   }
 
   /**
@@ -279,7 +305,9 @@ class TaskService {
     }
 
     try {
-      const now = new Date().toISOString();
+      const nowDate = new Date();
+      const thresholdDate = new Date(nowDate.getTime() - RECENT_MINUTES * 60 * 1000); // 최근 5분만 처리
+      const now = nowDate.toISOString();
       console.log('🔍 User ID:', this.userId);
       console.log('🔍 Current time:', now);
       console.log('🔍 Querying tasks table...');
@@ -289,6 +317,7 @@ class TaskService {
         .select('*')
         .eq('user_id', this.userId)
         .in('status', ['pending', 'queued'])
+        .gte('created_at', thresholdDate.toISOString())
         .or(`scheduled_at.is.null,scheduled_at.lte.${now}`)
         .order('priority', { ascending: false })
         .order('created_at', { ascending: true });
@@ -337,13 +366,20 @@ class TaskService {
   startPolling(intervalSeconds: number = 10): void {
     if (!this.userId) return;
 
+    // 이미 폴링 중이면 기존 타이머 제거 후 새로 시작
+    if (this.pollingTimer) {
+      console.log('🔄 Clearing existing polling timer');
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+
     console.log(`🔄 Starting task polling every ${intervalSeconds} seconds`);
-    
+
     // 즉시 한 번 실행
     this.loadPendingTasks();
 
     // 주기적으로 실행
-    setInterval(() => {
+    this.pollingTimer = setInterval(() => {
       if (this.userId) {
         this.loadPendingTasks();
       }
