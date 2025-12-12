@@ -7,6 +7,8 @@ import {
   ScrollView,
   RefreshControl,
   Linking,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { taskService } from '../services/taskService';
@@ -15,6 +17,7 @@ import { getTodayEvents, TodayEvent } from '../services/customerService';
 import { getTodayStats, TodayStats } from '../services/statsService';
 import { networkMonitor } from '../lib/networkMonitor';
 import { ensurePermissions } from '../lib/permissionManager';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function HomeScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
@@ -37,6 +40,7 @@ export default function HomeScreen({ navigation }: any) {
   const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [favoriteTemplates, setFavoriteTemplates] = useState<Array<{ id: string; name: string; content: string }>>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -72,6 +76,9 @@ export default function HomeScreen({ navigation }: any) {
           loadData().catch((error) => {
             console.error('Error loading data:', error);
           });
+          loadFavoriteTemplates().catch((error) => {
+            console.error('Error loading templates:', error);
+          });
         }
 
         if (isMounted) {
@@ -80,7 +87,7 @@ export default function HomeScreen({ navigation }: any) {
             console.error('Error loading pending tasks:', error);
           });
 
-          // 주기적으로 대기 중인 작업 확인 (10초마다)
+          // 주기적으로 대기 중인 작업 확인 (5초마다 - 더 빠른 반응)
           // 실시간 구독이 실패해도 폴링으로 작업을 받을 수 있음
           const pollingInterval = setInterval(() => {
             if (isMounted && user) {
@@ -88,7 +95,7 @@ export default function HomeScreen({ navigation }: any) {
                 console.error('Error in polling pending tasks:', error);
               });
             }
-          }, 10000); // 10초마다
+          }, 5000); // 5초마다 (웹에서 보낸 작업을 더 빠르게 감지)
 
           // cleanup
           return () => {
@@ -158,14 +165,38 @@ export default function HomeScreen({ navigation }: any) {
     await taskService.loadPendingTasks();
   };
 
+  const loadFavoriteTemplates = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('message_templates')
+        .select('id, name, content')
+        .eq('user_id', user.id)
+        .eq('is_favorite', true)
+        .order('usage_count', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Error loading templates:', error);
+        return;
+      }
+
+      setFavoriteTemplates(data || []);
+    } catch (error) {
+      console.error('Error in loadFavoriteTemplates:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     await loadPendingTasks();
+    await loadFavoriteTemplates();
     setRefreshing(false);
   };
 
   return (
+    <SafeAreaView style={styles.safeArea}>
     <ScrollView
       style={styles.container}
       refreshControl={
@@ -173,8 +204,18 @@ export default function HomeScreen({ navigation }: any) {
       }
     >
       <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
         <Text style={styles.title}>비즈커넥트</Text>
         <Text style={styles.subtitle}>환영합니다, {user?.email}님</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Text style={styles.settingsButtonText}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         <View style={[styles.networkStatus, isOnline ? styles.networkOnline : styles.networkOffline]}>
           <Text style={styles.networkStatusText}>
             {isOnline ? '🟢 온라인' : '🔴 오프라인'}
@@ -182,7 +223,88 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </View>
 
-      <View style={styles.content}>
+        <View style={styles.content}>
+        {/* 바로 문자 보내기 버튼 (가장 크고 눈에 띄게) */}
+        <TouchableOpacity
+          style={styles.sendSmsButton}
+          onPress={() => {
+            if (navigation.navigate) {
+              navigation.navigate('SendSMS');
+            }
+          }}
+        >
+          <Text style={styles.sendSmsIcon}>💬</Text>
+          <Text style={styles.sendSmsText}>바로 문자 보내기</Text>
+        </TouchableOpacity>
+
+        {/* 콜백 설정 카드 */}
+        <TouchableOpacity
+          style={styles.callbackCard}
+          onPress={() => {
+            if (navigation.navigate) {
+              navigation.navigate('CallbackSettings');
+            }
+          }}
+        >
+          <View style={styles.callbackCardHeader}>
+            <Text style={styles.callbackCardTitle}>📞 콜백 설정</Text>
+            {Platform.OS === 'android' && (
+              <View style={styles.androidBadge}>
+                <Text style={styles.androidBadgeText}>Android</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.callbackCardDescription}>
+            통화 종료 후 자동으로 문자 발송
+          </Text>
+        </TouchableOpacity>
+
+        {/* 일일 한도 배너 */}
+        <View style={styles.limitBanner}>
+          <View style={styles.limitHeader}>
+            <Text style={styles.limitTitle}>일일 한도</Text>
+            <Text style={styles.limitText}>
+              {todayStats.sent}건 / {dailyLimit.limit}건
+            </Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.min((todayStats.sent / dailyLimit.limit) * 100, 100)}%`,
+                  backgroundColor: todayStats.sent >= dailyLimit.limit ? '#EF4444' : '#10B981',
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.limitSubtext}>
+            성공: {todayStats.sent}건 | 남은 한도: {dailyLimit.remaining}건
+          </Text>
+        </View>
+
+        {/* 자주 쓰는 템플릿 */}
+        {favoriteTemplates.length > 0 && (
+          <View style={styles.templatesSection}>
+            <Text style={styles.templatesSectionTitle}>자주 쓰는 템플릿</Text>
+            <View style={styles.templatesList}>
+              {favoriteTemplates.map((template) => (
+                <TouchableOpacity
+                  key={template.id}
+                  style={styles.templateButton}
+                  onPress={() => {
+                    if (navigation.navigate) {
+                      navigation.navigate('SendSMS', { templateId: template.id });
+                    }
+                  }}
+                >
+                  <Text style={styles.templateButtonText}>⭐ {template.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* 오늘의 할 일 섹션 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 할 일</Text>
@@ -272,58 +394,21 @@ export default function HomeScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* 일일 한도 카드 */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>📊 일일 한도</Text>
-          <Text style={styles.cardText}>
-            남은 발송: {dailyLimit.remaining}건
-          </Text>
-          <Text style={styles.cardText}>
-            오늘 발송: {todayStats.sent}건 / {dailyLimit.limit}건
-          </Text>
-          <Text style={styles.cardTextSmall}>
-            모드: {dailyLimit.limitMode === 'safe' ? '안전 (199건)' : '최대 (499건)'}
-          </Text>
-          {dailyLimit.remaining === 0 && (
-            <Text style={styles.warningText}>
-              ⚠️ 일일 한도가 초과되었습니다.
-            </Text>
-          )}
-        </View>
-
-        {/* 빠른 액션 버튼 */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('ContactsUpload')}
-          >
-            <Text style={styles.actionButtonText}>📇 주소록 업로드</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.callbackButton}
-            onPress={() => navigation.navigate('CallbackSettings')}
-          >
-            <Text style={styles.callbackButtonText}>📞 콜백 설정</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.webSettingsButton}
-            onPress={() => Linking.openURL('https://bizconnect-web.vercel.app')}
-          >
-            <Text style={styles.webSettingsButtonText}>⚙️ 웹에서 상세 설정</Text>
-          </TouchableOpacity>
-        </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
           <Text style={styles.logoutButtonText}>로그아웃</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
@@ -335,6 +420,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  headerLeft: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -345,8 +439,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
+  settingsButton: {
+    padding: 8,
+  },
+  settingsButtonText: {
+    fontSize: 24,
+  },
   content: {
     padding: 20,
+    paddingBottom: 140, // 하단 여백으로 잘림 방지
   },
   card: {
     backgroundColor: '#fff',
@@ -533,6 +634,133 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  limitBanner: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  limitHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  limitTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  limitText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  limitSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  sendSmsButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  sendSmsIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  sendSmsText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  callbackCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  callbackCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  callbackCardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  androidBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  androidBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  callbackCardDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  templatesSection: {
+    marginBottom: 20,
+  },
+  templatesSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  templatesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  templateButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  templateButtonText: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
   },
 });
 
