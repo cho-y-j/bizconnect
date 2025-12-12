@@ -7,7 +7,7 @@ import { checkDailyLimit, isLimitExceeded } from '../lib/dailyLimit';
 /**
  * 작업 서비스 - 큐와 발송을 통합 관리
  */
-const RECENT_MINUTES = 30; // 최근 30분 내 생성된 작업만 자동 처리 (5분에서 30분으로 증가)
+const RECENT_MINUTES = 5; // 최근 5분 내 생성된 작업만 자동 처리 (오래된 작업 자동 발송 방지)
 
 class TaskService {
   private userId: string | null = null;

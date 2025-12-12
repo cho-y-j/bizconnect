@@ -331,7 +331,8 @@ export async function handleCallEnded(
     console.log('User ID:', userId);
 
     // [테스트 모드] 무조건 발송 - DB 설정 무시
-    const TEST_MODE = true;
+    // ⚠️ 테스트 모드 비활성화 - 프로덕션에서는 false로 설정
+    const TEST_MODE = false;
     const DEFAULT_MESSAGE = '안녕하세요, 방금 통화 감사합니다. 궁금하신 점 있으시면 편하게 연락주세요.';
 
     if (TEST_MODE) {
