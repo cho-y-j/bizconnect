@@ -610,7 +610,7 @@ export async function sendMmsDirectly(
     
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       // HTTP URL인 경우
-      if (imageUrl.includes('/preview/')) {
+      if (imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
         // 이미 Open Graph URL인 경우
         previewUrl = imageUrl;
         console.log('✅ Already Open Graph URL:', previewUrl);
@@ -626,7 +626,7 @@ export async function sendMmsDirectly(
           
           if (!error && image) {
             const baseUrl = 'https://bizconnect-ten.vercel.app';
-            previewUrl = `${baseUrl}/preview/${image.id}`;
+            previewUrl = `${baseUrl}/api/preview/${image.id}`;
             console.log('✅ Converted to Open Graph URL:', previewUrl);
           } else {
             // 변환 실패 시 원본 URL 사용

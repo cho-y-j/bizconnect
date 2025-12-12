@@ -691,13 +691,21 @@ export default function SendSMSPage() {
         // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
         const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
         
+        // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
+        let finalMessage = replaceTemplateVariables(message.trim(), {
+          customer: singleName ? { name: singleName, phone: normalizedPhone } : undefined,
+        })
+        
+        // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+        if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+          finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+        }
+        
         tasksToCreate.push({
           user_id: user.id,
           customer_phone: normalizedPhone,
           customer_name: singleName || null,
-          message_content: replaceTemplateVariables(message.trim(), {
-            customer: singleName ? { name: singleName, phone: normalizedPhone } : undefined,
-          }),
+          message_content: finalMessage,
           type: selectedImage ? 'send_mms' : 'send_sms',
           status: scheduledAt ? 'pending' : 'pending',
           priority: 0,
@@ -732,12 +740,21 @@ export default function SendSMSPage() {
         // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
         const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
         
-        tasksToCreate = (customersWithDetails || []).map(customer => ({
-          user_id: user.id,
-          customer_id: customer.id,
-          customer_phone: customer.phone.replace(/\D/g, ''),
-          customer_name: customer.name,
-          message_content: replaceTemplateVariables(message.trim(), { customer }),
+        tasksToCreate = (customersWithDetails || []).map(customer => {
+          // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
+          let finalMessage = replaceTemplateVariables(message.trim(), { customer })
+          
+          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          }
+          
+          return {
+            user_id: user.id,
+            customer_id: customer.id,
+            customer_phone: customer.phone.replace(/\D/g, ''),
+            customer_name: customer.name,
+            message_content: finalMessage,
           type: selectedImage ? 'send_mms' : 'send_sms',
           status: 'pending',
           priority: 0,
@@ -792,12 +809,21 @@ export default function SendSMSPage() {
         // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
         const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
 
-        tasksToCreate = (groupCustomersWithDetails || []).map(customer => ({
-          user_id: user.id,
-          customer_id: customer.id,
-          customer_phone: customer.phone.replace(/\D/g, ''),
-          customer_name: customer.name,
-          message_content: replaceTemplateVariables(message.trim(), { customer }),
+        tasksToCreate = (groupCustomersWithDetails || []).map(customer => {
+          // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
+          let finalMessage = replaceTemplateVariables(message.trim(), { customer })
+          
+          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          }
+          
+          return {
+            user_id: user.id,
+            customer_id: customer.id,
+            customer_phone: customer.phone.replace(/\D/g, ''),
+            customer_name: customer.name,
+            message_content: finalMessage,
           type: finalImage ? 'send_mms' : 'send_sms',
           status: 'pending',
           priority: 0,
@@ -806,7 +832,8 @@ export default function SendSMSPage() {
           image_url: finalImageUrl, // Open Graph URL 사용
           image_name: finalImage?.name || null,
           is_mms: !!finalImage,
-        }))
+          }
+        })
       } else if (sendMode === 'tag') {
         // 태그별 발송
         if (selectedTags.length === 0) {
@@ -866,12 +893,21 @@ export default function SendSMSPage() {
         // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
         const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
 
-        tasksToCreate = (tagCustomersWithDetails || []).map(customer => ({
-          user_id: user.id,
-          customer_id: customer.id,
-          customer_phone: customer.phone.replace(/\D/g, ''),
-          customer_name: customer.name,
-          message_content: replaceTemplateVariables(message.trim(), { customer }),
+        tasksToCreate = (tagCustomersWithDetails || []).map(customer => {
+          // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
+          let finalMessage = replaceTemplateVariables(message.trim(), { customer })
+          
+          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          }
+          
+          return {
+            user_id: user.id,
+            customer_id: customer.id,
+            customer_phone: customer.phone.replace(/\D/g, ''),
+            customer_name: customer.name,
+            message_content: finalMessage,
           type: finalImage ? 'send_mms' : 'send_sms',
           status: 'pending',
           priority: 0,
@@ -880,7 +916,8 @@ export default function SendSMSPage() {
           image_url: finalImageUrl, // Open Graph URL 사용
           image_name: finalImage?.name || null,
           is_mms: !!finalImage,
-        }))
+          }
+        })
       } else if (sendMode === 'csv') {
         // CSV 발송
         if (csvData.length === 0) {
@@ -912,15 +949,22 @@ export default function SendSMSPage() {
         // CSV 데이터로 작업 생성
         tasksToCreate = csvData.map(row => {
           // CSV에 메시지가 있으면 사용, 없으면 입력한 메시지 사용
-          const finalMessage = row.message || message.trim()
+          let finalMessage = row.message || message.trim()
+          finalMessage = replaceTemplateVariables(finalMessage, {
+            customer: { name: row.name, phone: row.phone },
+          })
+          
+          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          }
+          
           return {
             user_id: user.id,
             customer_id: null, // CSV는 고객 DB에 없을 수 있음
             customer_phone: row.phone.replace(/\D/g, ''),
             customer_name: row.name,
-            message_content: replaceTemplateVariables(finalMessage, {
-              customer: { name: row.name, phone: row.phone },
-            }),
+            message_content: finalMessage,
             type: finalImage ? 'send_mms' : 'send_sms',
             status: 'pending',
             priority: 0,
