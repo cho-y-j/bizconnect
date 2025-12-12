@@ -1,112 +1,45 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { CallDetectionProvider } from './src/components/CallDetectionProvider';
+import { taskService } from './src/services/taskService';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ContactsUploadScreen from './src/screens/ContactsUploadScreen';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { errorHandler } from './src/lib/errorHandler';
-import { networkMonitor } from './src/lib/networkMonitor';
-import { offlineQueue } from './src/lib/offlineQueue';
-import { pushNotificationService } from './src/services/pushNotificationService';
-import { backgroundService } from './src/services/backgroundService';
-import { taskService } from './src/services/taskService';
+import CallbackSettingsScreen from './src/screens/CallbackSettingsScreen';
+import SendSMSScreen from './src/screens/SendSMSScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
-const Stack = createNativeStackNavigator();
+type AppScreen = 'Login' | 'SignUp' | 'Home' | 'ContactsUpload' | 'CallbackSettings' | 'SendSMS' | 'Settings';
 
-function AuthStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function AppStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          title: '비즈커넥트',
-          headerStyle: {
-            backgroundColor: '#2563EB',
-          },
-          headerTintColor: '#fff',
-        }}
-      />
-      <Stack.Screen
-        name="ContactsUpload"
-        component={ContactsUploadScreen}
-        options={{
-          title: '주소록 업로드',
-          headerStyle: {
-            backgroundColor: '#2563EB',
-          },
-          headerTintColor: '#fff',
-        }}
-      />
-    </Stack.Navigator>
-  );
-}
-
-function RootNavigator() {
+// Navigation 없이 간단한 화면 전환
+function AppContent() {
   const { user, loading } = useAuth();
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>('Login');
+  const [routeParams, setRouteParams] = useState<any>({});
 
-  useEffect(() => {
-    // 에러 핸들러 초기화
-    errorHandler.initialize();
+  const navigate = (screen: string, params?: any) => {
+    setCurrentScreen(screen as AppScreen);
+    setRouteParams(params || {});
+  };
+  const goBack = () => setCurrentScreen('Home');
 
-    // 네트워크 모니터 시작
-    networkMonitor.start();
-
-    // 네트워크 상태 변경 감지
-    networkMonitor.on('change', async (isOnline: boolean) => {
-      if (isOnline) {
-        // 온라인 복구 시 동기화
-        await offlineQueue.syncWhenOnline();
-        // 백그라운드 서비스 재시작
-        if (user) {
-          await backgroundService.start();
-        }
-      } else {
-        // 오프라인 시 백그라운드 서비스 중지
-        await backgroundService.stop();
-      }
-    });
-
-    return () => {
-      networkMonitor.stop();
-    };
-  }, []);
-
+  // taskService 초기화 (로그인 시)
   useEffect(() => {
     if (user) {
-      // 사용자 로그인 시 초기화
-      (async () => {
-        // 푸시 알림 초기화
-        pushNotificationService.initialize();
-
-        // TaskService 설정
+      try {
         taskService.setUserId(user.id);
-
-        // 대기 중인 작업 로드
-        await taskService.loadPendingTasks();
-
-        // 백그라운드 서비스 시작
-        if (networkMonitor.getIsOnline()) {
-          await backgroundService.start();
-        }
-      })();
+      } catch (error) {
+        console.error('Error initializing taskService:', error);
+      }
     } else {
       // 로그아웃 시 정리
-      taskService.unsubscribe();
-      backgroundService.stop();
+      try {
+        taskService.unsubscribe();
+      } catch (error) {
+        console.error('Error cleaning up taskService:', error);
+      }
     }
   }, [user]);
 
@@ -118,18 +51,37 @@ function RootNavigator() {
     );
   }
 
-  return (
-    <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
-  );
+  // 로그인된 경우
+  if (user) {
+    if (currentScreen === 'ContactsUpload') {
+      return <ContactsUploadScreen navigation={{ navigate, goBack }} />;
+    }
+    if (currentScreen === 'CallbackSettings') {
+      return <CallbackSettingsScreen navigation={{ navigate, goBack }} />;
+    }
+    if (currentScreen === 'Home') {
+      return <HomeScreen navigation={{ navigate }} />;
+    }
+    if (currentScreen === 'Settings') {
+      return <SettingsScreen navigation={{ navigate, goBack }} />;
+    }
+    // 기본 화면: 문자 보내기 화면
+    return <SendSMSScreen navigation={{ navigate, goBack }} route={{ params: routeParams }} />;
+  }
+
+  // 로그인 안 된 경우
+  if (currentScreen === 'Login' || currentScreen === 'Home') {
+    return <LoginScreen navigation={{ navigate }} />;
+  }
+
+  return <SignUpScreen navigation={{ navigate }} />;
 }
 
-function App(): JSX.Element {
+function App(): React.JSX.Element {
   return (
     <AuthProvider>
       <CallDetectionProvider>
-        <RootNavigator />
+        <AppContent />
       </CallDetectionProvider>
     </AuthProvider>
   );
