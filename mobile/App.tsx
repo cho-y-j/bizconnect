@@ -23,7 +23,7 @@ function AppContent() {
     setCurrentScreen(screen as AppScreen);
     setRouteParams(params || {});
   };
-  const goBack = () => setCurrentScreen('Home');
+  const goBack = () => setCurrentScreen('SendSMS');
 
   // taskService 초기화 (로그인 시)
   useEffect(() => {
@@ -42,6 +42,13 @@ function AppContent() {
       }
     }
   }, [user]);
+
+  // 로그인 후 기본 화면을 문자 보내기 화면으로 설정
+  useEffect(() => {
+    if (user && (currentScreen === 'Login' || currentScreen === 'Home')) {
+      setCurrentScreen('SendSMS');
+    }
+  }, [user, currentScreen]);
 
   if (loading) {
     return (
