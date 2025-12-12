@@ -709,6 +709,28 @@ export default function SendSMSScreen({ navigation, route }: any) {
                 )}
               </View>
             )}
+
+            {/* 콜백 옵션 설정 카드 */}
+            <TouchableOpacity
+              style={styles.callbackOptionCard}
+              onPress={() => {
+                if (navigation.navigate) {
+                  navigation.navigate('CallbackSettings');
+                }
+              }}
+            >
+              <View style={styles.callbackOptionHeader}>
+                <Text style={styles.callbackOptionTitle}>📞 콜백 옵션 설정</Text>
+                {Platform.OS === 'android' && (
+                  <View style={styles.androidBadge}>
+                    <Text style={styles.androidBadgeText}>Android</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.callbackOptionDescription}>
+                통화 종료 후 자동으로 문자 발송
+              </Text>
+            </TouchableOpacity>
             </ScrollView>
 
             {/* 하단 고정 버튼 */}
