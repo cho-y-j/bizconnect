@@ -53,7 +53,9 @@ function AppContent() {
       }
     } else {
       // 로그아웃 시 Login 화면으로
-      setCurrentScreen('Login');
+      if (currentScreen !== 'Login' && currentScreen !== 'SignUp') {
+        setCurrentScreen('Login');
+      }
     }
   }, [user]); // currentScreen을 의존성에서 제거하여 무한 루프 방지
 
