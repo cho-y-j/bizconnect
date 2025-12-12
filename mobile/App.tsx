@@ -45,10 +45,17 @@ function AppContent() {
 
   // 로그인 후 기본 화면을 문자 보내기 화면으로 설정
   useEffect(() => {
-    if (user && (currentScreen === 'Login' || currentScreen === 'Home')) {
-      setCurrentScreen('SendSMS');
+    if (user) {
+      // 로그인된 상태에서 Login이나 Home 화면이면 SendSMS로 변경
+      // 단, 명시적으로 다른 화면으로 이동한 경우는 유지
+      if (currentScreen === 'Login' || currentScreen === 'Home') {
+        setCurrentScreen('SendSMS');
+      }
+    } else {
+      // 로그아웃 시 Login 화면으로
+      setCurrentScreen('Login');
     }
-  }, [user, currentScreen]);
+  }, [user]); // currentScreen을 의존성에서 제거하여 무한 루프 방지
 
   if (loading) {
     return (
