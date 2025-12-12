@@ -57,7 +57,7 @@ function AppContent() {
         setCurrentScreen('Login');
       }
     }
-  }, [user]); // currentScreen을 의존성에서 제거하여 무한 루프 방지
+  }, [user]); // user가 변경될 때만 실행
 
   if (loading) {
     return (
@@ -79,12 +79,8 @@ function AppContent() {
     if (currentScreen === 'Settings') {
       return <SettingsScreen navigation={{ navigate, goBack }} />;
     }
-    // Home 화면은 명시적으로 navigate('Home')을 호출한 경우에만 표시
-    if (currentScreen === 'Home') {
-      return <HomeScreen navigation={{ navigate }} />;
-    }
-    // Login 상태도 문자 보내기 화면으로 (useEffect가 실행되기 전 렌더링 대비)
-    // 기본 화면: 문자 보내기 화면 (SendSMS 또는 Login 상태 모두)
+    // Home 화면은 완전히 제거 - 로그인 후에는 항상 SendSMSScreen 표시
+    // 기본 화면: 문자 보내기 화면 (SendSMS, Login, Home 상태 모두)
     return <SendSMSScreen navigation={{ navigate, goBack }} route={{ params: routeParams }} />;
   }
 
