@@ -69,19 +69,22 @@ function AppContent() {
 
   // 로그인된 경우
   if (user) {
+    // 명시적으로 설정된 화면들만 체크
     if (currentScreen === 'ContactsUpload') {
       return <ContactsUploadScreen navigation={{ navigate, goBack }} />;
     }
     if (currentScreen === 'CallbackSettings') {
       return <CallbackSettingsScreen navigation={{ navigate, goBack }} />;
     }
-    if (currentScreen === 'Home') {
-      return <HomeScreen navigation={{ navigate }} />;
-    }
     if (currentScreen === 'Settings') {
       return <SettingsScreen navigation={{ navigate, goBack }} />;
     }
-    // 기본 화면: 문자 보내기 화면
+    // Home 화면은 명시적으로 navigate('Home')을 호출한 경우에만 표시
+    if (currentScreen === 'Home') {
+      return <HomeScreen navigation={{ navigate }} />;
+    }
+    // Login 상태도 문자 보내기 화면으로 (useEffect가 실행되기 전 렌더링 대비)
+    // 기본 화면: 문자 보내기 화면 (SendSMS 또는 Login 상태 모두)
     return <SendSMSScreen navigation={{ navigate, goBack }} route={{ params: routeParams }} />;
   }
 
