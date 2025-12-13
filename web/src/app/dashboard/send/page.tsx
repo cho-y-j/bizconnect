@@ -16,7 +16,7 @@ import type { Customer } from '@/lib/types/customer'
 import type { MessageTemplate } from '@/lib/types/template'
 import { AVAILABLE_VARIABLES } from '@/lib/types/template'
 
-type SendMode = 'single' | 'multiple' | 'group' | 'tag' | 'csv'
+type SendMode = 'multiple' | 'group' | 'tag' | 'csv'
 
 export default function SendSMSPage() {
   const router = useRouter()
@@ -26,20 +26,19 @@ export default function SendSMSPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // 발송 모드
-  const [sendMode, setSendMode] = useState<SendMode>('single')
+  // 발송 모드 (다중 발송이 기본값)
+  const [sendMode, setSendMode] = useState<SendMode>('multiple')
   
-  // 단건 발송
-  const [singlePhone, setSinglePhone] = useState('')
-  const [singleName, setSingleName] = useState('')
-  
-  // 다중 발송
+  // 다중 발송 (단건 포함 - 한 명만 선택하거나 전화번호 직접 입력)
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
   const [customerSearchQuery, setCustomerSearchQuery] = useState('')
   const [customersLoading, setCustomersLoading] = useState(false)
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
+  // 전화번호 직접 입력 (단건 발송 대체)
+  const [manualPhone, setManualPhone] = useState('')
+  const [manualName, setManualName] = useState('')
   
   // CSV 발송
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -114,9 +113,9 @@ export default function SendSMSPage() {
     
     if (taskIdParam && phoneParam) {
       // 작업에서 온 경우 - 전화번호와 이름, 메시지 미리 채우기
-      setSendMode('single')
-      setSinglePhone(decodeURIComponent(phoneParam))
-      setSingleName(decodeURIComponent(nameParam || ''))
+      setSendMode('multiple')
+      setManualPhone(decodeURIComponent(phoneParam))
+      setManualName(decodeURIComponent(nameParam || ''))
       if (messageParam) {
         setMessage(decodeURIComponent(messageParam))
       }
@@ -204,9 +203,10 @@ export default function SendSMSPage() {
         .single()
 
       if (customer) {
-        setSendMode('single')
-        setSingleName(customer.name)
-        setSinglePhone(customer.phone)
+        setSendMode('multiple')
+        setSelectedCustomers([customer.id])
+        setManualName(customer.name)
+        setManualPhone(customer.phone)
         setAiCustomerId(customer.id)
         setAiCustomerPhone(customer.phone)
         setAiCustomerName(customer.name)
@@ -618,8 +618,8 @@ export default function SendSMSPage() {
 
     // 미리보기용 고객 데이터 생성
     let previewCustomer: any = null
-    if (sendMode === 'single' && singleName) {
-      previewCustomer = { name: singleName, phone: singlePhone }
+    if (sendMode === 'multiple' && manualName) {
+      previewCustomer = { name: manualName, phone: manualPhone }
     } else if (sendMode === 'multiple' && selectedCustomers.length > 0) {
       const firstCustomer = customers.find(c => selectedCustomers.includes(c.id))
       if (firstCustomer) {
@@ -636,7 +636,7 @@ export default function SendSMSPage() {
 
   useEffect(() => {
     handlePreview()
-  }, [message, singleName])
+  }, [message, manualName, selectedCustomers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -673,98 +673,114 @@ export default function SendSMSPage() {
       let tasksToCreate: any[] = []
 
       // 발송 모드에 따라 작업 생성
-      if (sendMode === 'single') {
-        // 단건 발송
-        if (!singlePhone.trim()) {
-          setError('전화번호를 입력해주세요.')
+      if (sendMode === 'multiple') {
+        // 다중 발송 (단건 포함)
+        // 전화번호 직접 입력이 있으면 먼저 처리
+        const manualRecipients: Array<{ phone: string; name: string | null }> = []
+        if (manualPhone.trim()) {
+          const normalizedPhone = manualPhone.replace(/\D/g, '')
+          if (normalizedPhone.length < 10) {
+            setError('전화번호를 올바르게 입력해주세요.')
+            setLoading(false)
+            return
+          }
+          manualRecipients.push({
+            phone: normalizedPhone,
+            name: manualName.trim() || null,
+          })
+        }
+
+        // 고객 선택이 없고 전화번호 직접 입력도 없으면 에러
+        if (selectedCustomers.length === 0 && manualRecipients.length === 0) {
+          setError('고객을 선택하거나 전화번호를 입력해주세요.')
           setLoading(false)
           return
         }
 
-        const normalizedPhone = singlePhone.replace(/\D/g, '')
-        if (normalizedPhone.length < 10) {
-          setError('전화번호를 올바르게 입력해주세요.')
-          setLoading(false)
-          return
+        // 명함 이미지 결정 (Open Graph URL로 변환)
+        let finalImage = selectedImage
+        if (attachBusinessCard && userSettings?.business_card_image_url) {
+          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+          finalImage = { 
+            url: userSettings.business_card_image_url,
+            name: '명함',
+            previewUrl: previewUrl
+          }
         }
-
+        
         // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
-        
-        // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
-        let finalMessage = replaceTemplateVariables(message.trim(), {
-          customer: singleName ? { name: singleName, phone: normalizedPhone } : undefined,
-        })
-        
-        // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-        if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-          finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
+
+        // 선택된 고객 처리
+        if (selectedCustomers.length > 0) {
+          const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id))
+          
+          // 고객 정보와 그룹/태그 정보를 함께 가져오기
+          const customerIds = selectedCustomerData.map(c => c.id)
+          const { data: customersWithDetails } = await supabase
+            .from('customers')
+            .select(`
+              *,
+              group:customer_groups(*),
+              tags:customer_tags(tag_name)
+            `)
+            .in('id', customerIds)
+            .eq('user_id', user.id)
+
+          const customerTasks = (customersWithDetails || []).map(customer => {
+            // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
+            let finalMessage = replaceTemplateVariables(message.trim(), { customer })
+            
+            // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
+            if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
+              finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+            }
+            
+            return {
+              user_id: user.id,
+              customer_id: customer.id,
+              customer_phone: customer.phone.replace(/\D/g, ''),
+              customer_name: customer.name,
+              message_content: finalMessage,
+              type: finalImage ? 'send_mms' : 'send_sms',
+              status: 'pending',
+              priority: 0,
+              scheduled_at: scheduledAt,
+              template_id: selectedTemplateId || null,
+              image_url: finalImageUrl,
+              image_name: finalImage?.name || null,
+              is_mms: !!finalImage,
+            }
+          })
+          tasksToCreate.push(...customerTasks)
         }
 
-        tasksToCreate.push({
-          user_id: user.id,
-          customer_phone: normalizedPhone,
-          customer_name: singleName || null,
-          message_content: finalMessage,
-          type: selectedImage ? 'send_mms' : 'send_sms',
-          status: scheduledAt ? 'pending' : 'pending',
-          priority: 0,
-          scheduled_at: scheduledAt,
-          template_id: selectedTemplateId || null,
-          image_url: finalImageUrl, // Open Graph URL 사용
-          image_name: selectedImage?.name || null,
-          is_mms: !!selectedImage,
-        })
-      } else if (sendMode === 'multiple') {
-        // 다중 발송
-        if (selectedCustomers.length === 0) {
-          setError('고객을 선택해주세요.')
-          setLoading(false)
-          return
-        }
-
-        const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id))
-        
-        // 고객 정보와 그룹/태그 정보를 함께 가져오기
-        const customerIds = selectedCustomerData.map(c => c.id)
-        const { data: customersWithDetails } = await supabase
-          .from('customers')
-          .select(`
-            *,
-            group:customer_groups(*),
-            tags:customer_tags(tag_name)
-          `)
-          .in('id', customerIds)
-          .eq('user_id', user.id)
-
-        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = selectedImage?.previewUrl || selectedImage?.url || null
-        
-        tasksToCreate = (customersWithDetails || []).map(customer => {
-          // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
-          let finalMessage = replaceTemplateVariables(message.trim(), { customer })
+        // 전화번호 직접 입력 처리 (단건 발송 대체)
+        for (const recipient of manualRecipients) {
+          let finalMessage = replaceTemplateVariables(message.trim(), {
+            customer: recipient.name ? { name: recipient.name, phone: recipient.phone } : undefined,
+          })
           
           // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
           if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
             finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
           }
-          
-          return {
+
+          tasksToCreate.push({
             user_id: user.id,
-            customer_id: customer.id,
-            customer_phone: customer.phone.replace(/\D/g, ''),
-            customer_name: customer.name,
+            customer_phone: recipient.phone,
+            customer_name: recipient.name,
             message_content: finalMessage,
-            type: selectedImage ? 'send_mms' : 'send_sms',
+            type: finalImage ? 'send_mms' : 'send_sms',
             status: 'pending',
             priority: 0,
             scheduled_at: scheduledAt,
             template_id: selectedTemplateId || null,
-            image_url: finalImageUrl, // Open Graph URL 사용
-            image_name: selectedImage?.name || null,
-            is_mms: !!selectedImage,
-          }
-        })
+            image_url: finalImageUrl,
+            image_name: finalImage?.name || null,
+            is_mms: !!finalImage,
+          })
+        }
       } else if (sendMode === 'group') {
         // 그룹별 발송
         if (!selectedGroupId) {
@@ -1035,8 +1051,8 @@ export default function SendSMSPage() {
         }
         
         // 폼 초기화
-        setSinglePhone('')
-        setSingleName('')
+        setManualPhone('')
+        setManualName('')
         setSelectedCustomers([])
         setSelectedGroupId('')
         setSelectedTags([])
@@ -1087,24 +1103,10 @@ export default function SendSMSPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-                비즈커넥트
-              </Link>
-              <span className="text-gray-400">/</span>
-              <h1 className="text-xl font-semibold text-gray-900">문자 보내기</h1>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div>
       {/* 메인 콘텐츠 */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">문자 보내기</h1>
         <div className="bg-white rounded-xl shadow p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -1125,17 +1127,6 @@ export default function SendSMSPage() {
                 발송 방식
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSendMode('single')}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                    sendMode === 'single'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  단건 발송
-                </button>
                 <button
                   type="button"
                   onClick={() => setSendMode('multiple')}
@@ -1169,65 +1160,65 @@ export default function SendSMSPage() {
                 >
                   태그별
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSendMode('csv')}
+                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                    sendMode === 'csv'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  CSV 업로드
+                </button>
               </div>
             </div>
 
-            {/* 단건 발송 */}
-            {sendMode === 'single' && (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                <div>
+            {/* 다중 발송 (단건 포함 - 고객 선택 또는 전화번호 직접 입력) */}
+            {sendMode === 'multiple' && (
+              <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+                {/* 전화번호 직접 입력 (단건 발송 대체) */}
+                <div className="p-4 bg-white border border-gray-200 rounded-lg">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    전화번호 <span className="text-red-500">*</span>
+                    📱 전화번호 직접 입력 (고객 목록에 없는 경우)
                   </label>
-                  <input
-                    type="tel"
-                    required
-                    value={singlePhone}
-                    onChange={(e) => setSinglePhone(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="010-1234-5678"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    고객명 (선택)
-                  </label>
-                  <input
-                    type="text"
-                    value={singleName}
-                    onChange={(e) => setSingleName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="홍길동"
-                  />
-                </div>
-                
-                {/* 요약 정보 표시 (참고용) */}
-                {summaryInfo && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-semibold text-blue-900">📋 이전 대화 요약 (참고용)</h4>
-                      <Link
-                        href={`/dashboard/customers/${aiCustomerId}`}
-                        className="text-xs text-blue-600 hover:text-blue-700"
-                      >
-                        전체 보기 →
-                      </Link>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <input
+                        type="tel"
+                        value={manualPhone}
+                        onChange={(e) => setManualPhone(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="010-1234-5678"
+                      />
                     </div>
-                    <p className="text-xs text-blue-800 line-clamp-2 mb-2">{summaryInfo.summary}</p>
-                    {summaryInfo.next_actions && summaryInfo.next_actions.length > 0 && (
-                      <div className="text-xs text-blue-700">
-                        <strong>다음 액션:</strong> {summaryInfo.next_actions[0]}
-                      </div>
-                    )}
+                    <div>
+                      <input
+                        type="text"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="고객명 (선택)"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 전화번호를 직접 입력하면 고객 목록에 없어도 발송할 수 있습니다. (단건 발송)
+                  </p>
+                </div>
+
+                {/* 또는 구분선 */}
+                {(selectedCustomers.length > 0 || customerSearchQuery) && manualPhone && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="text-sm text-gray-500">또는</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* 다중 발송 */}
-            {sendMode === 'multiple' && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
+                {/* 고객 선택 */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium text-gray-700">
                     고객 선택 <span className="text-red-500">*</span>
                   </label>
@@ -1505,8 +1496,18 @@ export default function SendSMSPage() {
                   메시지 <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
-                  {/* 단건 발송 시 요약 보기 버튼 */}
-                  {sendMode === 'single' && (singlePhone || aiCustomerId) && (
+                  {/* 다중 발송에서 한 명만 선택했을 때 요약 보기 버튼 */}
+                  {sendMode === 'multiple' && selectedCustomers.length === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSummary(!showSummary)}
+                      className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                    >
+                      {showSummary ? '📋 요약 숨기기' : '📋 대화 요약 보기'}
+                    </button>
+                  )}
+                  {/* 전화번호 직접 입력 시 요약 보기 버튼 */}
+                  {sendMode === 'multiple' && manualPhone && (
                     <button
                       type="button"
                       onClick={() => setShowSummary(!showSummary)}
@@ -1539,18 +1540,19 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    // 단건 발송 모드에서 고객 정보 설정
-                    if (sendMode === 'single') {
-                      setAiCustomerId(undefined)
-                      setAiCustomerPhone(singlePhone)
-                      setAiCustomerName(singleName)
-                    } else if (sendMode === 'multiple' && selectedCustomers.length === 1) {
+                    // 다중 발송 모드에서 고객 정보 설정
+                    if (sendMode === 'multiple' && selectedCustomers.length === 1) {
                       const customer = customers.find(c => selectedCustomers.includes(c.id))
                       if (customer) {
                         setAiCustomerId(customer.id)
                         setAiCustomerPhone(customer.phone)
                         setAiCustomerName(customer.name)
                       }
+                    } else if (sendMode === 'multiple' && manualPhone) {
+                      setAiCustomerId(undefined)
+                      setAiCustomerPhone(manualPhone)
+                      setAiCustomerName(manualName)
+                      loadCustomerByPhone(manualPhone)
                     }
                     setShowAISuggestions(true)
                   }}
@@ -1877,13 +1879,13 @@ export default function SendSMSPage() {
               )}
             </div>
 
-            {/* 단건 발송 시 요약 표시 */}
-            {sendMode === 'single' && showSummary && aiCustomerId && (
+            {/* 다중 발송에서 한 명만 선택했을 때 요약 표시 */}
+            {sendMode === 'multiple' && showSummary && aiCustomerId && (
               <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                 <ConversationSummary
                   customerId={aiCustomerId}
-                  customerPhone={singlePhone || aiCustomerPhone || ''}
-                  customerName={singleName || aiCustomerName || '고객'}
+                  customerPhone={aiCustomerPhone || ''}
+                  customerName={aiCustomerName || '고객'}
                   onSummaryUpdate={() => {
                     // 요약 업데이트 시 정보 다시 로드
                     loadSummaryForCustomer(aiCustomerId)
@@ -1891,7 +1893,7 @@ export default function SendSMSPage() {
                 />
               </div>
             )}
-            {sendMode === 'single' && showSummary && !aiCustomerId && singlePhone && (
+            {sendMode === 'multiple' && showSummary && !aiCustomerId && manualPhone && (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
                   💡 고객이 등록되어 있지 않아 요약 기능을 사용할 수 없습니다. 
