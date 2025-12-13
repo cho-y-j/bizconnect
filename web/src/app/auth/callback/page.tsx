@@ -25,8 +25,10 @@ function AuthCallbackContent() {
           return
         }
 
-        // PKCE 플로우: Supabase가 자동으로 URL의 code를 처리하므로 getSession()만 호출
-        // exchangeCodeForSession은 수동 호출 시에만 필요하며, PKCE에서는 code verifier가 필요함
+        // PKCE 플로우: detectSessionInUrl이 true이면 Supabase가 자동으로 URL의 code를 처리
+        // 잠시 대기 후 세션 확인 (Supabase가 URL에서 code를 처리할 시간 필요)
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
         const { data, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
