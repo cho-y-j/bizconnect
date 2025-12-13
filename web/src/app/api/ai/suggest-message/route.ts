@@ -137,20 +137,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 사용자 이름 결정 (full_name 우선, 없으면 이메일 사용)
-    // full_name이 있으면 반드시 사용 (공백 제거 후 확인)
-    let userName = '사용자'
+    // 사용자 이름 결정 - 반드시 full_name만 사용 (이메일 아이디 절대 사용 금지!)
+    let userName: string | null = null
     const fullName = userSettings?.full_name?.trim()
     
     if (fullName && fullName.length > 0) {
       userName = fullName
-      console.log(`✅ 사용자 이름 사용: "${userName}"`)
+      console.log(`✅ 사용자 이름 확인: "${userName}"`)
     } else {
-      // full_name이 없으면 이메일 사용
-      userName = user.email?.split('@')[0] || '사용자'
-      console.warn(`⚠️ 사용자 이름(full_name)이 설정되지 않아 이메일을 사용합니다: "${userName}"`)
-      console.warn(`💡 설정 페이지(/dashboard/settings)에서 "이름" 필드를 입력해주세요.`)
-      console.warn(`💡 현재 userSettings.full_name 값:`, userSettings?.full_name)
+      // full_name이 없으면 에러 반환 (이메일 아이디를 이름으로 사용하는 것은 절대 안 됨!)
+      console.error(`❌ CRITICAL: 사용자 이름(full_name)이 설정되지 않았습니다!`)
+      console.error(`❌ userSettings:`, JSON.stringify(userSettings, null, 2))
+      console.error(`❌ user.email:`, user.email)
+      
+      return NextResponse.json(
+        { 
+          error: '사용자 이름이 설정되지 않았습니다. 설정 페이지(/dashboard/settings)에서 "이름" 필드를 입력해주세요.',
+          requiresNameSetup: true
+        },
+        { status: 400 }
+      )
+    }
+    
+    // 최종 확인: userName이 이메일 형식이면 에러
+    if (userName.includes('@')) {
+      console.error(`❌ CRITICAL: userName에 이메일이 포함되어 있습니다! userName: "${userName}"`)
+      return NextResponse.json(
+        { 
+          error: '사용자 이름이 올바르지 않습니다. 설정 페이지에서 올바른 이름을 입력해주세요.',
+          requiresNameSetup: true
+        },
+        { status: 400 }
+      )
     }
 
     // 최근 발송 내역 조회 (최대 5개) - 전화번호가 있을 때만
@@ -229,18 +247,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 프롬프트 구성
-    const systemPrompt = `너는 ${userName}${userCompany ? ` (${userCompany}${userPosition ? ` ${userPosition}` : ''})` : ''}의 개인 비서야.
-${userName}의 입장에서 고객에게 보낼 문자 메시지를 작성해야 해.
+    // 프롬프트 구성 - 매우 명확하게 지시
+    const systemPrompt = `너는 "${userName}"${userCompany ? ` (${userCompany}${userPosition ? ` ${userPosition}` : ''})` : ''}의 개인 비서야.
 
-중요한 원칙:
-1. ${userName}의 입장에서 작성 (1인칭 "저" 또는 "나" 사용)
-2. 회사 서신이 아닌 개인적인 메시지로 작성
-3. 고객과의 기존 관계와 소통 패턴을 정확히 파악하여 일관성 유지
-4. 반말을 쓰는 관계면 계속 반말로, 존댓말을 쓰는 관계면 계속 존댓말로 작성
-5. 고객의 나이, 관계, 상황을 고려하여 적절한 톤 사용
-6. 기존 대화 이력을 분석하여 상황 파악
-7. 한국 현재 시간(Asia/Seoul 기준)을 정확히 인식하여 적절한 인사 사용
+⚠️ 매우 중요한 지시사항:
+1. 작성자는 "${userName}"입니다. 이 이름은 설정 페이지에서 입력한 실제 이름입니다.
+2. 절대로 이메일 아이디나 로그인 아이디를 이름으로 사용하지 마세요. "${userName}"만 사용하세요.
+3. "${userName}"의 입장에서 작성하세요 (1인칭 "저" 또는 "나" 사용).
+4. 회사 서신이 아닌 "${userName}"의 개인적인 메시지로 작성하세요.
+5. 고객과의 기존 관계와 소통 패턴을 정확히 파악하여 일관성 유지하세요.
+6. 반말을 쓰는 관계면 계속 반말로, 존댓말을 쓰는 관계면 계속 존댓말로 작성하세요.
+7. 고객의 나이, 관계, 상황을 고려하여 적절한 톤을 사용하세요.
+8. 기존 대화 이력을 분석하여 상황을 파악하세요.
+9. 한국 현재 시간(Asia/Seoul 기준)을 정확히 인식하여 적절한 인사를 사용하세요.
+
+다시 한 번 강조: 작성자는 "${userName}"입니다. 이메일 아이디나 다른 것을 사용하지 마세요.
 
 응답은 반드시 다음 JSON 형식으로 해줘:
 {
@@ -257,11 +278,14 @@ ${userName}의 입장에서 고객에게 보낼 문자 메시지를 작성해야
 - 고객과의 관계에 맞는 말투 사용 (반말/존댓말 일관성 유지)
 - 불필요한 이모지나 과도한 친근함 지양`
 
-    const userPrompt = `[${userName}의 정보]
+    const userPrompt = `[작성자 정보 - 매우 중요!]
+- 이름: "${userName}" (이것이 작성자의 실제 이름입니다. 절대로 이메일 아이디나 다른 것을 사용하지 마세요!)
 ${userCompany ? `- 소속: ${userCompany}` : ''}
 ${userPosition ? `- 직책: ${userPosition}` : ''}
 ${userBio ? `- 소개: ${userBio}` : ''}
 ${userSpecialties.length > 0 ? `- 전문 분야: ${userSpecialties.join(', ')}` : ''}
+
+⚠️ 중요: 메시지를 작성할 때는 반드시 "${userName}"의 입장에서 작성하세요. 이메일 아이디나 로그인 아이디를 절대 사용하지 마세요.
 
 [현재 상황 - 한국 시간(Asia/Seoul) 기준]
 - 날짜: ${now.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })} ${dayOfWeek}
