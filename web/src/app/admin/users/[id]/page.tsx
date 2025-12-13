@@ -39,6 +39,7 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true)
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null)
   const [recentSMS, setRecentSMS] = useState<RecentSMS[]>([])
+  const [showTrialForm, setShowTrialForm] = useState(false)
 
   useEffect(() => {
     if (userId) {
@@ -221,9 +222,20 @@ export default function UserDetailPage() {
       </div>
 
       {/* 구독 정보 */}
-      {userDetail.subscription && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">구독 정보</h2>
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">구독 정보</h2>
+          {userDetail.subscription && (
+            <button
+              onClick={() => setShowTrialForm(!showTrialForm)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              무료 기간 설정
+            </button>
+          )}
+        </div>
+        
+        {userDetail.subscription ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-500">플랜</label>
@@ -270,8 +282,31 @@ export default function UserDetailPage() {
               </p>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-gray-500 mb-4">구독 정보가 없습니다.</p>
+            <button
+              onClick={() => setShowTrialForm(!showTrialForm)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              무료 기간 설정
+            </button>
+          </div>
+        )}
+
+        {/* 무료 기간 설정 폼 */}
+        {showTrialForm && (
+          <TrialPeriodForm
+            userId={userId}
+            currentSubscription={userDetail.subscription}
+            onSuccess={() => {
+              setShowTrialForm(false)
+              loadUserDetail()
+            }}
+            onCancel={() => setShowTrialForm(false)}
+          />
+        )}
+      </div>
 
       {/* 최근 SMS 발송 내역 */}
       <div className="bg-white rounded-lg shadow">
@@ -314,6 +349,111 @@ export default function UserDetailPage() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// 무료 기간 설정 폼 컴포넌트
+function TrialPeriodForm({
+  userId,
+  currentSubscription,
+  onSuccess,
+  onCancel,
+}: {
+  userId: string
+  currentSubscription?: UserDetail['subscription']
+  onSuccess: () => void
+  onCancel: () => void
+}) {
+  const [trialStartDate, setTrialStartDate] = useState('2026-01-01')
+  const [trialEndDate, setTrialEndDate] = useState('2026-01-31')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/admin/set-trial-period', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          start_date: trialStartDate,
+          end_date: trialEndDate,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '무료 기간 설정에 실패했습니다.')
+      }
+
+      onSuccess()
+    } catch (err: any) {
+      setError(err.message || '오류가 발생했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-6 p-6 bg-blue-50 rounded-lg border border-blue-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">무료 사용 기간 설정</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              시작일
+            </label>
+            <input
+              type="date"
+              value={trialStartDate}
+              onChange={(e) => setTrialStartDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              종료일
+            </label>
+            <input
+              type="date"
+              value={trialEndDate}
+              onChange={(e) => setTrialEndDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+        </div>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? '저장 중...' : '저장'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            취소
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "비즈커넥트 - 모바일 통합 CRM",
-  description: "월 15만 원의 문자 비용을 0원으로 만드는, 영업인을 위한 가장 쉬운 AI 비서",
+  title: "비즈커넥트 - 모바일 통합 CRM | 다인",
+  description: "월 15만 원의 문자 비용을 0원으로 만드는, 영업인을 위한 가장 쉬운 AI 비서. PC에서 입력하면 내 폰이 자동으로 발송합니다.",
 };
 
 export default function RootLayout({
