@@ -135,8 +135,11 @@ class TaskService {
           filter: `user_id=eq.${this.userId}`,
         },
         async (payload) => {
-          console.log('🔔 New task received from Supabase:', payload.new);
+          console.log('🔔 ===== NEW TASK RECEIVED FROM SUPABASE =====');
+          console.log('🔔 Event type:', payload.eventType);
+          console.log('🔔 Payload:', JSON.stringify(payload, null, 2));
           const newTask = payload.new as Task;
+          console.log('🔔 New task:', JSON.stringify(newTask, null, 2));
 
           // 필수 필드 검증
           if (!newTask.user_id) {
@@ -152,21 +155,29 @@ class TaskService {
             return;
           }
 
-            // pending 상태이고 최근 RECENT_MINUTES 분 이내 생성된 작업만 처리
-            const now = new Date();
-            const createdAt = newTask.created_at ? new Date(newTask.created_at) : null;
-            const thresholdTime = new Date(now.getTime() - RECENT_MINUTES * 60 * 1000);
+          // pending 상태이고 최근 RECENT_MINUTES 분 이내 생성된 작업만 처리
+          const now = new Date();
+          const createdAt = newTask.created_at ? new Date(newTask.created_at) : null;
+          const thresholdTime = new Date(now.getTime() - RECENT_MINUTES * 60 * 1000);
 
-            // 너무 오래된 작업은 처리하지 않음 (이전 세션의 잔여 대기 작업으로 인한 폭주 방지)
-            if (!createdAt || createdAt < thresholdTime) {
-              console.log(`⏭️ Skipping old pending task (>${RECENT_MINUTES}m):`, newTask.id, newTask.created_at);
-              return;
-            }
+          console.log('🔔 Task status:', newTask.status);
+          console.log('🔔 Task created_at:', newTask.created_at);
+          console.log('🔔 Threshold time:', thresholdTime.toISOString());
+          console.log('🔔 Current time:', now.toISOString());
 
-            if (newTask.status === 'pending' && createdAt > thresholdTime) {
+          // 너무 오래된 작업은 처리하지 않음 (이전 세션의 잔여 대기 작업으로 인한 폭주 방지)
+          if (!createdAt || createdAt < thresholdTime) {
+            console.log(`⏭️ Skipping old pending task (>${RECENT_MINUTES}m):`, newTask.id, newTask.created_at);
+            return;
+          }
+
+          if (newTask.status === 'pending' && createdAt > thresholdTime) {
             const scheduledAt = newTask.scheduled_at
               ? new Date(newTask.scheduled_at)
               : null;
+
+            console.log('🔔 Scheduled at:', scheduledAt?.toISOString() || 'null');
+            console.log('🔔 Now:', now.toISOString());
 
             if (!scheduledAt || scheduledAt <= now) {
               console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
@@ -177,6 +188,7 @@ class TaskService {
           } else {
             console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
           }
+          console.log('🔔 ===== NEW TASK PROCESSING COMPLETE =====');
         }
       )
       .on(
@@ -333,15 +345,24 @@ class TaskService {
       console.log('🔍 Current time:', now);
       console.log('🔍 Querying tasks table...');
 
-      const { data: tasks, error } = await supabase
+      // 쿼리 조건 단순화: scheduled_at 조건을 별도로 처리
+      let query = supabase
         .from('tasks')
         .select('*')
         .eq('user_id', this.userId)
-        .in('status', ['pending', 'queued'])
-        .gte('created_at', thresholdDate.toISOString())
-        .or(`scheduled_at.is.null,scheduled_at.lte.${now}`)
-        .order('priority', { ascending: false })
-        .order('created_at', { ascending: true });
+        .eq('status', 'pending') // pending만 처리 (queued는 제외)
+        .gte('created_at', thresholdDate.toISOString());
+      
+      // scheduled_at이 null이거나 현재 시간 이전인 것만 가져오기
+      // Supabase의 or() 조건이 복잡하므로 필터링을 두 단계로 나눔
+      const { data: tasks, error } = await query;
+      
+      // 클라이언트 측에서 scheduled_at 필터링
+      const filteredTasks = tasks?.filter(task => {
+        if (!task.scheduled_at) return true;
+        const scheduledAt = new Date(task.scheduled_at);
+        return scheduledAt <= nowDate;
+      }) || [];
 
       if (error) {
         console.error('❌ ===== ERROR LOADING PENDING TASKS =====');
@@ -353,15 +374,16 @@ class TaskService {
         return;
       }
 
-      console.log('🔍 Query result:', tasks?.length || 0, 'tasks found');
+      console.log('🔍 Query result:', tasks?.length || 0, 'tasks found (before filtering)');
+      console.log('🔍 Filtered result:', filteredTasks.length, 'tasks found (after scheduled_at filter)');
 
-      if (tasks && tasks.length > 0) {
-        console.log(`✅ ===== FOUND ${tasks.length} PENDING TASKS =====`);
-        for (const task of tasks) {
-          console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}, status: ${task.status}`);
+      if (filteredTasks && filteredTasks.length > 0) {
+        console.log(`✅ ===== FOUND ${filteredTasks.length} PENDING TASKS =====`);
+        for (const task of filteredTasks) {
+          console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}, status: ${task.status}, scheduled_at: ${task.scheduled_at || 'null'}`);
         }
         console.log('✅ Adding tasks to queue...');
-        for (const task of tasks) {
+        for (const task of filteredTasks) {
           await this.addTaskToQueue(task);
         }
         // 큐 강제 시작
@@ -370,6 +392,9 @@ class TaskService {
         console.log('✅ ===== PENDING TASKS LOADED =====');
       } else {
         console.log('ℹ️ No pending tasks found for user:', this.userId);
+        console.log('ℹ️ Query returned', tasks?.length || 0, 'tasks before filtering');
+        console.log('ℹ️ Threshold date:', thresholdDate.toISOString());
+        console.log('ℹ️ Current time:', nowDate.toISOString());
         console.log('ℹ️ This is normal if no tasks were created from web');
       }
     } catch (error: any) {
