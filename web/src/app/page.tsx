@@ -13,8 +13,9 @@ function HomeContent() {
     // OAuth 콜백 code 파라미터가 있으면 /auth/callback으로 리다이렉트
     const code = searchParams.get('code')
     if (code) {
-      console.log('OAuth code detected in root, redirecting to /auth/callback')
-      router.replace(`/auth/callback?code=${code}`)
+      console.log('OAuth code detected in root, redirecting to /auth/callback', code)
+      // 즉시 리다이렉트 (replace 사용하여 히스토리에 남기지 않음)
+      window.location.href = `/auth/callback?code=${encodeURIComponent(code)}`
       return
     }
 
