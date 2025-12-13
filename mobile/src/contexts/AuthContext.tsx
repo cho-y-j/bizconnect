@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabaseClient';
+import { taskService } from '../services/taskService';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // 세션이 있으면 taskService 초기화 (웹에서 보낸 작업 수신)
+      if (session?.user?.id) {
+        console.log('🔧 [AuthContext] Initializing taskService for user:', session.user.id);
+        taskService.setUserId(session.user.id).catch((error) => {
+          console.error('❌ [AuthContext] Failed to initialize taskService:', error);
+        });
+      }
     });
 
     // 인증 상태 변경 감지
@@ -33,6 +42,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // 로그인 시 taskService 초기화
+      if (session?.user?.id) {
+        console.log('🔧 [AuthContext] Auth state changed, initializing taskService for user:', session.user.id);
+        taskService.setUserId(session.user.id).catch((error) => {
+          console.error('❌ [AuthContext] Failed to initialize taskService:', error);
+        });
+      } else {
+        // 로그아웃 시 구독 해제
+        console.log('🔧 [AuthContext] User logged out, unsubscribing taskService');
+        taskService.unsubscribe();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -77,6 +98,7 @@ export const useAuth = () => {
   }
   return context;
 };
+
 
 
 
