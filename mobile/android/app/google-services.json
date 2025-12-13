@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "680990103964",
+    "project_id": "call-93289",
+    "storage_bucket": "call-93289.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680990103964:android:ff7720bc554265c4d59059",
+        "android_client_info": {
+          "package_name": "com.bizconnectmobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "680990103964-uaeqrtphi0os3vdfj01u8tn68dslrve8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFO36NiPOWWhPgHdDWcNKoqv5xZ7mQCPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "680990103964-uaeqrtphi0os3vdfj01u8tn68dslrve8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680990103964:android:5af65956b8b7dc42d59059",
+        "android_client_info": {
+          "package_name": "pcon.call"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "680990103964-uaeqrtphi0os3vdfj01u8tn68dslrve8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFO36NiPOWWhPgHdDWcNKoqv5xZ7mQCPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "680990103964-uaeqrtphi0os3vdfj01u8tn68dslrve8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

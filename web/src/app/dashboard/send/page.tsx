@@ -1034,6 +1034,28 @@ export default function SendSMSPage() {
           console.error('❌ Exception creating SMS logs:', logErr)
           // 로그 생성 실패해도 작업은 생성되었으므로 계속 진행
         }
+
+        // FCM 푸시 발송 (예약 발송이 아닌 경우에만)
+        if (!scheduledAt) {
+          try {
+            console.log('📤 Sending FCM push to mobile app...')
+            const fcmResponse = await fetch('/api/send-fcm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.id,
+                taskId: insertedTasks[0]?.id,
+                type: insertedTasks[0]?.type || 'send_sms',
+              }),
+            })
+            const fcmResult = await fcmResponse.json()
+            console.log('📤 FCM result:', fcmResult)
+          } catch (fcmErr) {
+            console.error('❌ FCM push failed:', fcmErr)
+            // FCM 실패해도 Realtime/폴링으로 처리됨
+          }
+        }
+
         if (scheduledAt) {
           const scheduledDate = new Date(scheduledAt)
           setSuccess(`${tasksToCreate.length}개의 발송 작업이 예약되었습니다. (${scheduledDate.toLocaleString('ko-KR')}에 발송 예정)`)

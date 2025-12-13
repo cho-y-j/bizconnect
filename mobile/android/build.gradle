@@ -1,9 +1,9 @@
 buildscript {
     ext {
-        buildToolsVersion = "34.0.0"
-        minSdkVersion = 21
-        compileSdkVersion = 34
-        targetSdkVersion = 34
+        buildToolsVersion = "35.0.0"
+        minSdkVersion = 28  // Android 9.0 (Pie) - 안드로이드 9 이상 지원
+        compileSdkVersion = 35  // Android 15 지원
+        targetSdkVersion = 35  // Android 15 타겟팅
         ndkVersion = "25.1.8937393"
         kotlinVersion = "1.8.0"
     }
@@ -15,6 +15,7 @@ buildscript {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("com.google.gms:google-services:4.4.0")
     }
 }
 
