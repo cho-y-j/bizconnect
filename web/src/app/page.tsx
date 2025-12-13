@@ -1,21 +1,30 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { isAuthenticated } from '@/lib/auth'
 import Link from 'next/link'
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    // OAuth 콜백 code 파라미터가 있으면 /auth/callback으로 리다이렉트
+    const code = searchParams.get('code')
+    if (code) {
+      console.log('OAuth code detected in root, redirecting to /auth/callback')
+      router.replace(`/auth/callback?code=${code}`)
+      return
+    }
+
     // 로그인 상태 확인 후 대시보드로 리다이렉트
     isAuthenticated().then((authenticated) => {
       if (authenticated) {
         router.push('/dashboard')
       }
     })
-  }, [router])
+  }, [router, searchParams])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
