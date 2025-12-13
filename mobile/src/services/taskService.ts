@@ -7,7 +7,7 @@ import { checkDailyLimit, isLimitExceeded } from '../lib/dailyLimit';
 /**
  * 작업 서비스 - 큐와 발송을 통합 관리
  */
-const RECENT_MINUTES = 5; // 최근 5분 내 생성된 작업만 자동 처리 (오래된 작업 자동 발송 방지)
+const RECENT_MINUTES = 30; // 최근 30분 내 생성된 작업만 자동 처리 (웹에서 보낸 작업 처리 보장)
 
 class TaskService {
   private userId: string | null = null;
@@ -225,15 +225,15 @@ class TaskService {
           this.loadPendingTasks().catch((error) => {
             console.error('❌ Error loading pending tasks after subscription:', error);
           });
-          // 구독 성공해도 백업으로 빠른 폴링 시작 (2초 간격) - 단건 발송 즉시 처리
-          this.startPolling(2);
+          // 구독 성공해도 백업으로 빠른 폴링 시작 (1초 간격) - 웹에서 보낸 작업 즉시 처리
+          this.startPolling(1);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.error('❌ ===== SUBSCRIPTION FAILED =====');
           console.error('❌ Status:', status);
           console.error('❌ This means realtime is not working!');
-          console.error('❌ Starting polling fallback every 2 seconds...');
-          // 구독 실패 시 빠른 폴링으로 보완 (2초 간격) - 단건 발송 즉시 처리
-          this.startPolling(2);
+          console.error('❌ Starting polling fallback every 1 second...');
+          // 구독 실패 시 빠른 폴링으로 보완 (1초 간격) - 웹에서 보낸 작업 즉시 처리
+          this.startPolling(1);
         } else {
           console.log('📡 Subscription status:', status);
         }

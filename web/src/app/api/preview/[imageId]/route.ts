@@ -77,8 +77,8 @@ export async function GET(
   <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${ogUrl}" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image:width" content="1920" />
+  <meta property="og:image:height" content="1080" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />

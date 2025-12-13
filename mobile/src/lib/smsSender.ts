@@ -650,7 +650,8 @@ export async function sendMmsDirectly(
       
       // Open Graph URL을 메시지에 포함하여 SMS 발송
       // 수신자의 메시지 앱이 Open Graph 메타 태그를 읽어서 이미지 미리보기 표시
-      const messageWithPreview = `${message}\n\n${previewUrl}`;
+      // URL을 최대한 아래로 밀어내기 위해 여러 줄바꿈 추가 (5줄)
+      const messageWithPreview = `${message}\n\n\n\n\n${previewUrl}`;
       
     return new Promise((resolve, reject) => {
         SmsAndroid.autoSend(

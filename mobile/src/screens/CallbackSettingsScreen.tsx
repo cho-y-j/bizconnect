@@ -263,7 +263,7 @@ export default function CallbackSettingsScreen({ navigation }: any) {
         {
           text: '확인',
           onPress: () => {
-            navigation.goBack();
+      navigation.goBack();
           },
         },
       ]);
@@ -383,7 +383,7 @@ export default function CallbackSettingsScreen({ navigation }: any) {
       } else if (asset.uri.startsWith('http://') || asset.uri.startsWith('https://')) {
         // HTTP URL인 경우 fetch 사용
         console.log('📥 Fetching image from URL...');
-        const response = await fetch(asset.uri);
+      const response = await fetch(asset.uri);
         if (!response.ok) {
           throw new Error('이미지를 다운로드할 수 없습니다.');
         }
@@ -522,6 +522,14 @@ export default function CallbackSettingsScreen({ navigation }: any) {
           showsVerticalScrollIndicator={true}
         >
           <View style={styles.header}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}
+              >
+                <Text style={styles.backButtonText}>← 뒤로</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.title}>콜백 설정</Text>
             <Text style={styles.subtitle}>
               통화 종료 후 자동으로 고객에게 문자를 발송합니다
@@ -840,6 +848,22 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6B7280',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#2563EB',
+    fontWeight: '600',
   },
   header: {
     backgroundColor: '#fff',
