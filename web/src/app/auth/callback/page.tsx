@@ -25,29 +25,8 @@ function AuthCallbackContent() {
           return
         }
 
-        // code 파라미터가 있으면 exchangeSessionForCode로 처리
-        const code = searchParams.get('code')
-        if (code) {
-          console.log('OAuth code received, exchanging for session...')
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-          
-          if (exchangeError) {
-            console.error('Exchange error:', exchangeError)
-            setError(exchangeError.message)
-            setTimeout(() => {
-              router.push('/auth/login?error=' + encodeURIComponent(exchangeError.message))
-            }, 3000)
-            return
-          }
-
-          if (data.session) {
-            console.log('Login successful, redirecting to dashboard')
-            router.push('/dashboard')
-            return
-          }
-        }
-
-        // OAuth 콜백 처리 - URL의 hash에서 토큰 추출 (기존 방식)
+        // PKCE 플로우: Supabase가 자동으로 URL의 code를 처리하므로 getSession()만 호출
+        // exchangeCodeForSession은 수동 호출 시에만 필요하며, PKCE에서는 code verifier가 필요함
         const { data, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
