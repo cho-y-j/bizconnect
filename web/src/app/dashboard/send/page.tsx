@@ -700,7 +700,7 @@ export default function SendSMSPage() {
         if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
           finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
         }
-        
+
         tasksToCreate.push({
           user_id: user.id,
           customer_phone: normalizedPhone,
@@ -755,15 +755,16 @@ export default function SendSMSPage() {
             customer_phone: customer.phone.replace(/\D/g, ''),
             customer_name: customer.name,
             message_content: finalMessage,
-          type: selectedImage ? 'send_mms' : 'send_sms',
-          status: 'pending',
-          priority: 0,
-          scheduled_at: scheduledAt,
-          template_id: selectedTemplateId || null,
-          image_url: finalImageUrl, // Open Graph URL 사용
-          image_name: selectedImage?.name || null,
-          is_mms: !!selectedImage,
-        }))
+            type: selectedImage ? 'send_mms' : 'send_sms',
+            status: 'pending',
+            priority: 0,
+            scheduled_at: scheduledAt,
+            template_id: selectedTemplateId || null,
+            image_url: finalImageUrl, // Open Graph URL 사용
+            image_name: selectedImage?.name || null,
+            is_mms: !!selectedImage,
+          }
+        })
       } else if (sendMode === 'group') {
         // 그룹별 발송
         if (!selectedGroupId) {
@@ -819,10 +820,10 @@ export default function SendSMSPage() {
           }
           
           return {
-            user_id: user.id,
-            customer_id: customer.id,
-            customer_phone: customer.phone.replace(/\D/g, ''),
-            customer_name: customer.name,
+          user_id: user.id,
+          customer_id: customer.id,
+          customer_phone: customer.phone.replace(/\D/g, ''),
+          customer_name: customer.name,
             message_content: finalMessage,
           type: finalImage ? 'send_mms' : 'send_sms',
           status: 'pending',
@@ -903,10 +904,10 @@ export default function SendSMSPage() {
           }
           
           return {
-            user_id: user.id,
-            customer_id: customer.id,
-            customer_phone: customer.phone.replace(/\D/g, ''),
-            customer_name: customer.name,
+          user_id: user.id,
+          customer_id: customer.id,
+          customer_phone: customer.phone.replace(/\D/g, ''),
+          customer_name: customer.name,
             message_content: finalMessage,
           type: finalImage ? 'send_mms' : 'send_sms',
           status: 'pending',
