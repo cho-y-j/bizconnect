@@ -63,7 +63,16 @@ Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID
 
 ## 4. 일반적인 문제 해결
 
-### 문제 1: "redirect_uri_mismatch" 에러
+### 문제 1: "400 Bad Request" 에러
+**원인:** Supabase에서 Google Provider가 활성화되지 않았거나, Client ID/Secret이 입력되지 않음
+
+**해결:**
+1. Supabase Dashboard → Authentication → Providers → Google
+2. **Enable Google provider** 토글이 **ON**인지 확인
+3. **Client ID (for OAuth)**와 **Client Secret (for OAuth)**가 입력되어 있는지 확인
+4. 입력 후 **Save** 클릭
+
+### 문제 2: "redirect_uri_mismatch" 에러
 **원인:** Google Cloud Console에 Supabase 콜백 URL이 등록되지 않음
 
 **해결:**
@@ -73,7 +82,7 @@ Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID
    https://hdeebyhwoogxawjkwufx.supabase.co/auth/v1/callback
    ```
 
-### 문제 2: "invalid_client" 에러
+### 문제 3: "invalid_client" 에러
 **원인:** Supabase에 잘못된 Client ID 또는 Secret 입력
 
 **해결:**
@@ -81,7 +90,7 @@ Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID
 2. Supabase Dashboard에서 올바르게 입력했는지 확인
 3. 공백이나 특수문자가 포함되지 않았는지 확인
 
-### 문제 3: 로그인 후 세션이 생성되지 않음
+### 문제 4: 로그인 후 세션이 생성되지 않음
 **원인:** 콜백 URL이 올바르게 처리되지 않음
 
 **해결:**
