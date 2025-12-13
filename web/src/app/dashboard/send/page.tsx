@@ -730,7 +730,7 @@ export default function SendSMSPage() {
             let finalMessage = replaceTemplateVariables(message.trim(), { customer })
             
             // 모든 이미지 URL을 메시지에 추가
-            const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+            const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter((url): url is string => !!url)
             if (allImageUrls.length > 0) {
               const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
               if (urlsToAdd.length > 0) {
@@ -764,7 +764,7 @@ export default function SendSMSPage() {
           })
           
           // 모든 이미지 URL을 메시지에 추가
-          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter((url): url is string => !!url)
           if (allImageUrls.length > 0) {
             const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
             if (urlsToAdd.length > 0) {
@@ -828,7 +828,7 @@ export default function SendSMSPage() {
           let finalMessage = replaceTemplateVariables(message.trim(), { customer })
           
           // 모든 이미지 URL을 메시지에 추가
-          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter((url): url is string => !!url)
           if (allImageUrls.length > 0) {
             const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
             if (urlsToAdd.length > 0) {
@@ -907,7 +907,7 @@ export default function SendSMSPage() {
           let finalMessage = replaceTemplateVariables(message.trim(), { customer })
           
           // 모든 이미지 URL을 메시지에 추가
-          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter((url): url is string => !!url)
           if (allImageUrls.length > 0) {
             const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
             if (urlsToAdd.length > 0) {
@@ -959,7 +959,7 @@ export default function SendSMSPage() {
           })
           
           // 모든 이미지 URL을 메시지에 추가
-          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter((url): url is string => !!url)
           if (allImageUrls.length > 0) {
             const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
             if (urlsToAdd.length > 0) {
