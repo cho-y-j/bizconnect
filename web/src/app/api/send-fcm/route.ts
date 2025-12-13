@@ -4,8 +4,71 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// 서버 사이드에서 service role key 사용
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Firebase 서비스 계정 정보 (환경 변수에서)
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'call-93289';
+const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+/**
+ * JWT 토큰 생성 (Google OAuth2용)
+ */
+async function createJWT(): Promise<string> {
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT',
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: FIREBASE_CLIENT_EMAIL,
+    sub: FIREBASE_CLIENT_EMAIL,
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+  };
+
+  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
+  const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signatureInput = `${base64Header}.${base64Payload}`;
+
+  // Node.js crypto로 서명
+  const crypto = await import('crypto');
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(signatureInput);
+  const signature = sign.sign(FIREBASE_PRIVATE_KEY!, 'base64url');
+
+  return `${signatureInput}.${signature}`;
+}
+
+/**
+ * OAuth2 액세스 토큰 얻기
+ */
+async function getAccessToken(): Promise<string> {
+  const jwt = await createJWT();
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!data.access_token) {
+    console.error('[FCM] Failed to get access token:', data);
+    throw new Error('Failed to get access token');
+  }
+
+  return data.access_token;
+}
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +76,12 @@ export async function POST(request: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    // 환경 변수 확인
+    if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
+      console.error('[FCM] Firebase credentials not configured');
+      return NextResponse.json({ error: 'Firebase not configured' }, { status: 500 });
     }
 
     // user_settings에서 FCM 토큰 조회
@@ -31,41 +100,48 @@ export async function POST(request: Request) {
     }
 
     const fcmToken = userSettings.fcm_token;
-    const fcmServerKey = process.env.FCM_SERVER_KEY;
 
-    if (!fcmServerKey) {
-      console.error('[FCM] FCM_SERVER_KEY not configured');
-      return NextResponse.json({ error: 'FCM not configured' }, { status: 500 });
-    }
+    // OAuth2 액세스 토큰 얻기
+    const accessToken = await getAccessToken();
 
-    // FCM 푸시 발송
-    const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `key=${fcmServerKey}`,
-      },
-      body: JSON.stringify({
-        to: fcmToken,
-        priority: 'high',
-        data: {
-          type: type,
-          taskId: taskId || '',
-          timestamp: new Date().toISOString(),
+    // FCM v1 API로 푸시 발송
+    const fcmResponse = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
-        notification: {
-          title: '문자 발송 요청',
-          body: '웹에서 문자 발송 요청이 있습니다.',
-          sound: 'default',
-        },
-      }),
-    });
+        body: JSON.stringify({
+          message: {
+            token: fcmToken,
+            data: {
+              type: type,
+              taskId: taskId || '',
+              timestamp: new Date().toISOString(),
+            },
+            notification: {
+              title: '문자 발송 요청',
+              body: '웹에서 문자 발송 요청이 있습니다.',
+            },
+            android: {
+              priority: 'high',
+              notification: {
+                sound: 'default',
+                channelId: 'bizconnect-default',
+              },
+            },
+          },
+        }),
+      }
+    );
 
     const fcmResult = await fcmResponse.json();
-    console.log('[FCM] Push result:', fcmResult);
+    console.log('[FCM v1] Push result:', fcmResult);
 
-    if (fcmResult.success === 1) {
-      return NextResponse.json({ success: true, message: 'FCM push sent' });
+    if (fcmResponse.ok) {
+      return NextResponse.json({ success: true, message: 'FCM push sent', result: fcmResult });
     } else {
       return NextResponse.json({
         success: false,
@@ -75,6 +151,6 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('[FCM] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }
