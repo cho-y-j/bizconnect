@@ -9,7 +9,33 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Firebase 서비스 계정 정보 (환경 변수에서)
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'call-93289';
 const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+// PRIVATE_KEY 처리: \n 문자열 또는 공백으로 구분된 형식 모두 지원
+function formatPrivateKey(key: string | undefined): string | undefined {
+  if (!key) return undefined;
+
+  // 이미 줄바꿈이 있으면 그대로 사용
+  if (key.includes('\n') && !key.includes('\\n')) {
+    return key;
+  }
+
+  // \n 문자열을 실제 줄바꿈으로 변환
+  let formatted = key.replace(/\\n/g, '\n');
+
+  // 공백으로 구분된 경우 (BEGIN/END 사이의 base64 부분)
+  // "-----BEGIN PRIVATE KEY----- MIIE... -----END PRIVATE KEY-----" 형식 처리
+  if (!formatted.includes('\n')) {
+    formatted = formatted
+      .replace('-----BEGIN PRIVATE KEY----- ', '-----BEGIN PRIVATE KEY-----\n')
+      .replace(' -----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
+      .replace(/(.{64})/g, '$1\n')  // 64자마다 줄바꿈
+      .replace(/\n\n/g, '\n');  // 중복 줄바꿈 제거
+  }
+
+  return formatted;
+}
+
+const FIREBASE_PRIVATE_KEY = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
 /**
  * JWT 토큰 생성 (Google OAuth2용)
