@@ -285,13 +285,13 @@ export async function sendSms(
             clearTimeout(timeoutId);
             console.error('❌ Failed to send SMS:', fail);
             const error = fail?.message || fail?.toString() || 'SMS 발송 실패';
-
+            
             // 실패해도 sms_logs에 기록 저장
             console.log('💾 Saving failed SMS log...');
             saveSmsLog(task, normalizedPhone, 'failed').catch((logError) => {
               console.error('❌ Failed to save failed SMS log:', logError);
             });
-
+            
             updateTaskStatus(task.id, 'failed', error);
             onFailure?.(error);
             resolve(false);
@@ -428,7 +428,7 @@ async function saveSmsLog(
       .from('sms_logs')
       .select('id')
       .eq('task_id', task.id)
-      .single();
+      .maybeSingle(); // .single() 대신 .maybeSingle() 사용 (없을 수도 있음)
 
     const logData: any = {
       status,
@@ -545,21 +545,21 @@ export async function sendSmsDirectly(
       try {
         console.log('✅ Calling SmsModule.autoSend now...');
         SmsModule.autoSend(
-          normalizedPhone,
-          message,
-          (fail: any) => {
+        normalizedPhone,
+        message,
+        (fail: any) => {
             clearTimeout(timeoutId);
-            console.error('=== SMS FAILED ===', fail);
+          console.error('=== SMS FAILED ===', fail);
             console.error('Fail details:', JSON.stringify(fail, null, 2));
             reject(new Error(fail?.message || fail?.toString() || 'SMS 발송 실패'));
-          },
-          (success: any) => {
+        },
+        (success: any) => {
             clearTimeout(timeoutId);
-            console.log('=== SMS SUCCESS ===', success);
+          console.log('=== SMS SUCCESS ===', success);
             console.log('Success details:', JSON.stringify(success, null, 2));
-            resolve(true);
-          }
-        );
+          resolve(true);
+        }
+      );
         console.log('✅ SmsModule.autoSend called successfully');
       } catch (error: any) {
         clearTimeout(timeoutId);
@@ -652,7 +652,7 @@ export async function sendMmsDirectly(
       // 수신자의 메시지 앱이 Open Graph 메타 태그를 읽어서 이미지 미리보기 표시
       const messageWithPreview = `${message}\n\n${previewUrl}`;
       
-      return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         SmsAndroid.autoSend(
           normalizedPhone,
           messageWithPreview,
@@ -666,7 +666,7 @@ export async function sendMmsDirectly(
           }
         );
       });
-    } else {
+      } else {
       // Open Graph URL이 없으면 일반 SMS로 발송
       console.log('⚠️ No preview URL available, sending SMS only');
       return new Promise((resolve, reject) => {
@@ -683,7 +683,7 @@ export async function sendMmsDirectly(
           }
         );
       });
-    }
+      }
   } catch (error: any) {
     console.error('=== sendMmsDirectly ERROR ===', error);
     console.error('Error stack:', error?.stack);

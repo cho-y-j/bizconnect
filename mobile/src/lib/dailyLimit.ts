@@ -82,29 +82,81 @@ export async function createOrUpdateDailyLimit(
 export async function incrementSentCount(userId: string): Promise<boolean> {
   try {
     const today = new Date().toISOString().split('T')[0];
+    console.log('📊 Incrementing sent count for user:', userId, 'date:', today);
 
-    const { data, error } = await supabase.rpc('increment_daily_limit', {
+    // 먼저 RPC 함수 시도 (increment_daily_sent_count)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('increment_daily_sent_count', {
       p_user_id: userId,
       p_date: today,
     });
 
-    if (error) {
-      // RPC 함수가 없으면 직접 업데이트
-      const { error: updateError } = await supabase
-        .from('daily_limits')
-        .update({ sent_count: supabase.raw('sent_count + 1') })
-        .eq('user_id', userId)
-        .eq('date', today);
-
-      if (updateError) {
-        console.error('Error incrementing sent count:', updateError);
-        return false;
-      }
+    if (!rpcError && rpcData !== null) {
+      console.log('✅ RPC increment_daily_sent_count succeeded, new count:', rpcData);
+      return true;
     }
 
+    // RPC 함수가 없거나 실패하면 직접 업데이트
+    console.log('⚠️ RPC failed, trying direct update. Error:', rpcError?.message);
+
+    // 먼저 현재 값 조회
+    const { data: currentLimit, error: fetchError } = await supabase
+      .from('daily_limits')
+      .select('sent_count')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .maybeSingle();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      // PGRST116은 "no rows returned" 에러 (정상)
+      console.error('❌ Error fetching daily limit:', fetchError);
+      return false;
+    }
+
+    // 레코드가 없으면 생성
+    if (!currentLimit) {
+      console.log('📊 Daily limit not found, creating new record...');
+      const { data: newLimit, error: createError } = await supabase
+        .from('daily_limits')
+        .insert({
+          user_id: userId,
+          date: today,
+          sent_count: 1,
+          limit_mode: 'safe',
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Error creating daily limit:', createError);
+        return false;
+      }
+
+      console.log('✅ Daily limit created with count 1');
+      return true;
+    }
+
+    // 레코드가 있으면 +1 업데이트
+    const newCount = (currentLimit.sent_count || 0) + 1;
+    console.log('📊 Updating count from', currentLimit.sent_count, 'to', newCount);
+
+    const { error: updateError } = await supabase
+      .from('daily_limits')
+      .update({ 
+        sent_count: newCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .eq('date', today);
+
+    if (updateError) {
+      console.error('❌ Error updating sent count:', updateError);
+      return false;
+    }
+
+    console.log('✅ Sent count updated successfully to', newCount);
     return true;
   } catch (error) {
-    console.error('Error in incrementSentCount:', error);
+    console.error('❌ Exception in incrementSentCount:', error);
     return false;
   }
 }
@@ -157,6 +209,7 @@ export async function isLimitExceeded(userId: string): Promise<boolean> {
   const { canSend } = await checkDailyLimit(userId);
   return !canSend;
 }
+
 
 
 

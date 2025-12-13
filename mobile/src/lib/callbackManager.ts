@@ -153,18 +153,19 @@ async function getCallbackConfig(userId: string): Promise<CallbackConfig> {
       .single();
 
     if (error || !settings) {
-      // 설정이 없으면 기본값 (모든 옵션 활성화)
+      // 설정이 없으면 기본값 (모든 옵션 비활성화 - 안전한 기본값)
+      console.warn('⚠️ No callback settings found, using safe defaults (all disabled)');
       return {
-        enabled: true, // 기본 활성화
+        enabled: false, // 기본 비활성화 (안전)
         autoSend: true,
         delay: 0,
-        onEndEnabled: true,
+        onEndEnabled: false,
         onEndMessage: DEFAULT_MESSAGES.ended,
         onEndImageUrl: null,
-        onMissedEnabled: true,
+        onMissedEnabled: false,
         onMissedMessage: DEFAULT_MESSAGES.missed,
         onMissedImageUrl: null,
-        onBusyEnabled: true,
+        onBusyEnabled: false,
         onBusyMessage: DEFAULT_MESSAGES.busy,
         onBusyImageUrl: null,
         businessCardEnabled: false,
@@ -173,16 +174,16 @@ async function getCallbackConfig(userId: string): Promise<CallbackConfig> {
     }
 
     return {
-      enabled: settings.auto_callback_enabled ?? true,
+      enabled: settings.auto_callback_enabled ?? false, // null이면 false (안전)
       autoSend: true,
       delay: 0,
-      onEndEnabled: settings.callback_on_end_enabled ?? true,
+      onEndEnabled: settings.callback_on_end_enabled ?? false, // null이면 false (안전)
       onEndMessage: settings.callback_on_end_message || DEFAULT_MESSAGES.ended,
       onEndImageUrl: settings.callback_on_end_image_url || null,
-      onMissedEnabled: settings.callback_on_missed_enabled ?? true,
+      onMissedEnabled: settings.callback_on_missed_enabled ?? false, // null이면 false (안전)
       onMissedMessage: settings.callback_on_missed_message || DEFAULT_MESSAGES.missed,
       onMissedImageUrl: settings.callback_on_missed_image_url || null,
-      onBusyEnabled: settings.callback_on_busy_enabled ?? true,
+      onBusyEnabled: settings.callback_on_busy_enabled ?? false, // null이면 false (안전)
       onBusyMessage: settings.callback_on_busy_message || DEFAULT_MESSAGES.busy,
       onBusyImageUrl: settings.callback_on_busy_image_url || null,
       businessCardEnabled: settings.business_card_enabled ?? false,
@@ -190,18 +191,19 @@ async function getCallbackConfig(userId: string): Promise<CallbackConfig> {
     };
   } catch (error) {
     console.error('Error in getCallbackConfig:', error);
-    // 에러 시에도 기본값 반환 (발송 계속 진행)
+    // 에러 시에도 안전한 기본값 반환 (모든 콜백 비활성화)
+    console.warn('⚠️ Error fetching callback config, using safe defaults (all disabled)');
     return {
-      enabled: true,
+      enabled: false, // 에러 시 비활성화 (안전)
       autoSend: true,
       delay: 0,
-      onEndEnabled: true,
+      onEndEnabled: false,
       onEndMessage: DEFAULT_MESSAGES.ended,
       onEndImageUrl: null,
-      onMissedEnabled: true,
+      onMissedEnabled: false,
       onMissedMessage: DEFAULT_MESSAGES.missed,
       onMissedImageUrl: null,
-      onBusyEnabled: true,
+      onBusyEnabled: false,
       onBusyMessage: DEFAULT_MESSAGES.busy,
       onBusyImageUrl: null,
       businessCardEnabled: false,
@@ -444,14 +446,24 @@ export async function handleCallEvent(
     console.log('Callback config:', JSON.stringify(config, null, 2));
     console.log('Callback enabled:', config.enabled);
 
-    // 전체 콜백 기능 OFF 체크
+    // ⚠️ 가장 중요한 체크: 전체 콜백 기능 OFF 체크
+    // auto_callback_enabled가 false이면 어떠한 경우에도 콜백 발송 안 함
     if (!config.enabled) {
+      console.log('❌❌❌ CALLBACK DISABLED - STOPPING ALL CALLBACK OPERATIONS ❌❌❌');
       console.log('❌ Callback is disabled globally (auto_callback_enabled = false)');
+      console.log('❌ No callback will be sent for any event type');
       console.log('💡 To enable: Go to Callback Settings and turn on "콜백 서비스 활성화"');
-      return;
+      return; // 즉시 종료 - 이후 코드 실행 안 됨
     }
 
     // 이벤트 타입별 ON/OFF, 메시지, 개별 이미지 확인
+    // ⚠️ 추가 안전장치: config.enabled가 false면 이미 return했으므로 여기까지 오지 않음
+    // 하지만 혹시 모를 경우를 대비해 이중 체크
+    if (!config.enabled) {
+      console.log('❌❌❌ DOUBLE CHECK: Callback still disabled - stopping ❌❌❌');
+      return;
+    }
+
     let isEnabled = false;
     let message = '';
     let eventImageUrl: string | null = null;
@@ -478,6 +490,7 @@ export async function handleCallEvent(
     console.log(`Event ${eventType} message:`, message);
     console.log(`Event ${eventType} specific image:`, eventImageUrl);
 
+    // 이벤트별 ON/OFF 체크
     if (!isEnabled) {
       console.log(`❌ Callback for ${eventType} is disabled`);
       console.log(`💡 To enable: Go to Callback Settings and turn on "${eventType}" option`);

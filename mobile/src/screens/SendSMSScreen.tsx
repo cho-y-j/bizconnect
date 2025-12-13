@@ -47,8 +47,12 @@ export default function SendSMSScreen({ navigation, route }: any) {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null); // Open Graph URL
   const [uploadingImage, setUploadingImage] = useState(false);
   const [customersLoading, setCustomersLoading] = useState(true);
+  const [savedImages, setSavedImages] = useState<any[]>([]); // user_images 테이블에서 불러온 이미지들
+  const [showImagePicker, setShowImagePicker] = useState(false); // 이미지 선택 모달 표시 여부
+  const [loadingSavedImages, setLoadingSavedImages] = useState(false);
   const messageInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -56,6 +60,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
     if (user) {
       loadCustomers();
       loadTemplates();
+      loadSavedImages();
     } else {
       console.log('⚠️ User not yet loaded, waiting...');
       setCustomersLoading(true);
@@ -134,6 +139,31 @@ export default function SendSMSScreen({ navigation, route }: any) {
       setTemplates(data || []);
     } catch (error) {
       console.error('Error in loadTemplates:', error);
+    }
+  };
+
+  const loadSavedImages = async () => {
+    if (!user) return;
+    setLoadingSavedImages(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_images')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading saved images:', error);
+        return;
+      }
+
+      console.log('✅ Loaded saved images:', data?.length || 0);
+      setSavedImages(data || []);
+    } catch (error) {
+      console.error('Error in loadSavedImages:', error);
+    } finally {
+      setLoadingSavedImages(false);
     }
   };
 
@@ -310,7 +340,33 @@ export default function SendSMSScreen({ navigation, route }: any) {
   };
 
   const handlePickImage = async () => {
+    // 이미지 선택 모달 표시 (저장된 이미지 또는 새로 선택)
+    setShowImagePicker(true);
+  };
+
+  const handleSelectSavedImage = async (image: any) => {
     try {
+      console.log('📷 Selected saved image:', image);
+      
+      // Open Graph URL 생성
+      const baseUrl = 'https://bizconnect-ten.vercel.app';
+      const previewUrl = `${baseUrl}/api/preview/${image.id}`;
+      
+      setSelectedImage(image.image_url);
+      setSelectedImagePreviewUrl(previewUrl);
+      setShowImagePicker(false);
+      
+      console.log('✅ Image selected, preview URL:', previewUrl);
+    } catch (error: any) {
+      console.error('Error selecting saved image:', error);
+      Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handlePickNewImage = async () => {
+    try {
+      setShowImagePicker(false);
+      
       const hasPerm = await requestImagePermission();
       if (!hasPerm) {
         Alert.alert('권한 필요', '이미지 접근 권한을 허용해주세요.');
@@ -331,32 +387,93 @@ export default function SendSMSScreen({ navigation, route }: any) {
       const asset = result.assets[0];
       if (!asset.uri) return;
 
-      console.log('📷 Selected image URI:', asset.uri);
+      console.log('📷 Selected new image URI:', asset.uri);
       console.log('📷 Image type:', asset.type);
       console.log('📷 Image file size:', asset.fileSize);
 
-      // 로컬 이미지 URI를 그대로 사용 (MMS 발송 시 네이티브 모듈이 처리)
-      // React Native Image 컴포넌트는 file:// URI를 지원하므로 그대로 사용
-      // content:// URI도 지원
-      let imageUri = asset.uri;
-      
-      // file:// URI는 그대로 사용 가능
-      // content:// URI도 그대로 사용 가능
-      // 절대 경로인 경우 file:// 추가
-      if (imageUri.startsWith('/') && !imageUri.startsWith('//')) {
-        imageUri = `file://${imageUri}`;
-      }
-      
-      console.log('📷 Final image URI for preview:', imageUri);
-      setSelectedImage(imageUri);
+      // 이미지 업로드 및 저장
+      await uploadAndSaveImage(asset);
     } catch (error: any) {
       console.error('Error picking image:', error);
       Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
     }
   };
 
+  const uploadAndSaveImage = async (asset: any) => {
+    if (!user) {
+      Alert.alert('오류', '로그인이 필요합니다.');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // 세션 토큰 가져오기
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        Alert.alert('오류', '세션이 만료되었습니다.');
+        return;
+      }
+
+      // React Native FormData 생성 (File 객체 없이 직접 사용)
+      const formData = new FormData();
+      
+      // 파일명 생성
+      const fileName = asset.fileName || `image_${Date.now()}.jpg`;
+      const fileType = asset.type || 'image/jpeg';
+      
+      // React Native에서는 uri를 직접 FormData에 추가
+      // @ts-ignore - React Native FormData는 uri를 직접 지원
+      formData.append('file', {
+        uri: asset.uri,
+        type: fileType,
+        name: fileName,
+      });
+      formData.append('name', fileName);
+      formData.append('category', 'general');
+
+      console.log('📤 Uploading image:', {
+        uri: asset.uri,
+        type: fileType,
+        name: fileName,
+      });
+
+      // API 호출
+      const uploadResponse = await fetch('https://bizconnect-ten.vercel.app/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          // Content-Type은 FormData가 자동으로 설정하므로 명시하지 않음
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || '이미지 업로드 실패');
+      }
+
+      const uploadData = await uploadResponse.json();
+      console.log('✅ Image uploaded successfully:', uploadData);
+
+      // 저장된 이미지 목록 새로고침
+      await loadSavedImages();
+
+      // 선택된 이미지 설정
+      setSelectedImage(uploadData.image.image_url);
+      setSelectedImagePreviewUrl(uploadData.image.preview_url);
+      
+      Alert.alert('성공', '이미지가 업로드되었습니다.');
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      Alert.alert('오류', error.message || '이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleRemoveImage = () => {
     setSelectedImage(null);
+    setSelectedImagePreviewUrl(null);
   };
 
   const handleSend = async () => {
@@ -393,36 +510,18 @@ export default function SendSMSScreen({ navigation, route }: any) {
           console.log('📤 NativeModules.Sms:', NativeModules.Sms);
           console.log('📤 NativeModules.Sms?.autoSend:', typeof NativeModules.Sms?.autoSend);
 
-          // 이미지가 있으면 네이티브 Intent로 실제 MMS 첨부 발송, 없으면 SMS
+          // 이미지가 있으면 Open Graph URL을 사용하여 MMS 발송
           if (selectedImage) {
             console.log('📤 Sending message with image attachment');
-            console.log('📤 Selected image:', selectedImage);
+            console.log('📤 Selected image URL:', selectedImage);
+            console.log('📤 Preview URL (Open Graph):', selectedImagePreviewUrl);
             
-            // HTTP URL이면 다운로드 후 로컬 경로 사용
-            let imagePath = selectedImage;
-            if (selectedImage.startsWith('http://') || selectedImage.startsWith('https://')) {
-              try {
-                console.log('📥 Image is HTTP URL, attempting to download...');
-                const cachedPath = await getCachedImagePath(selectedImage);
-                if (cachedPath) {
-                  imagePath = cachedPath;
-                  console.log('✅ Using cached image:', imagePath);
-                } else {
-                  imagePath = await downloadImage(selectedImage);
-                  console.log('✅ Image downloaded to:', imagePath);
-                }
-              } catch (error: any) {
-                console.error('❌ Failed to download image:', error);
-                console.error('❌ Error details:', JSON.stringify(error, null, 2));
-                throw new Error('이미지를 다운로드할 수 없습니다.');
-              }
-            } else {
-              console.log('📥 Image is local file:', imagePath);
-            }
+            // Open Graph URL이 있으면 그것을 사용, 없으면 원본 URL 사용
+            const imageUrlToSend = selectedImagePreviewUrl || selectedImage;
             
-            // sendMmsDirectly 사용 (자동 MMS 시도 후 Intent 폴백)
-            console.log('📤 Calling sendMmsDirectly with image:', imagePath);
-            await sendMmsDirectly(customer.phone, message, imagePath);
+            // sendMmsDirectly는 Open Graph URL을 자동으로 처리함
+            console.log('📤 Calling sendMmsDirectly with Open Graph URL:', imageUrlToSend);
+            await sendMmsDirectly(customer.phone, message, imageUrlToSend);
             console.log('✅ sendMmsDirectly completed');
           } else {
             console.log('📤 Sending SMS directly using NativeModules.Sms');
@@ -474,7 +573,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
             status: 'sent',
             sent_at: new Date().toISOString(),
             is_mms: !!selectedImage,
-            image_url: selectedImage || null,
+            image_url: selectedImagePreviewUrl || selectedImage || null, // Open Graph URL 우선 사용
           });
 
           if (logError) {
@@ -509,7 +608,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
               sent_at: new Date().toISOString(),
               error_message: error?.message || error?.toString() || '발송 실패',
               is_mms: !!selectedImage,
-              image_url: selectedImage || null,
+              image_url: selectedImagePreviewUrl || selectedImage || null, // Open Graph URL 우선 사용
             });
           } catch (logError) {
             console.error('Error saving failed log:', logError);
@@ -528,6 +627,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
               setMessage('');
               setSelectedCustomers([]);
               setSelectedImage(null);
+              setSelectedImagePreviewUrl(null);
               setSearchQuery('');
               navigation.goBack();
             },
@@ -669,6 +769,9 @@ export default function SendSMSScreen({ navigation, route }: any) {
                       </TouchableOpacity>
                     </View>
                     <Text style={styles.imageAttachedLabel}>✓ 이미지 첨부됨</Text>
+                    <TouchableOpacity style={styles.changeImageBtn} onPress={handlePickImage}>
+                      <Text style={styles.changeImageBtnText}>이미지 변경</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.attachBtn} onPress={handlePickImage} disabled={uploadingImage}>
@@ -732,6 +835,70 @@ export default function SendSMSScreen({ navigation, route }: any) {
               </Text>
             </TouchableOpacity>
             </ScrollView>
+
+            {/* 이미지 선택 모달 */}
+            {showImagePicker && (
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>이미지 선택</Text>
+                    <TouchableOpacity onPress={() => setShowImagePicker(false)}>
+                      <Text style={styles.modalClose}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <ScrollView style={styles.modalScrollView}>
+                    {/* 새 이미지 선택 버튼 */}
+                    <TouchableOpacity 
+                      style={styles.newImageButton}
+                      onPress={handlePickNewImage}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? (
+                        <ActivityIndicator size="small" color="#2563EB" />
+                      ) : (
+                        <>
+                          <Text style={styles.newImageButtonIcon}>📷</Text>
+                          <Text style={styles.newImageButtonText}>새 이미지 선택</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* 저장된 이미지 목록 */}
+                    <Text style={styles.savedImagesTitle}>저장된 이미지</Text>
+                    {loadingSavedImages ? (
+                      <View style={styles.loadingState}>
+                        <ActivityIndicator size="small" color="#2563EB" />
+                        <Text style={styles.loadingText}>로딩중...</Text>
+                      </View>
+                    ) : savedImages.length === 0 ? (
+                      <Text style={styles.emptyText}>저장된 이미지가 없습니다.</Text>
+                    ) : (
+                      <View style={styles.savedImagesGrid}>
+                        {savedImages.map((image) => (
+                          <TouchableOpacity
+                            key={image.id}
+                            style={styles.savedImageItem}
+                            onPress={() => handleSelectSavedImage(image)}
+                          >
+                            <Image 
+                              source={{ uri: image.image_url }} 
+                              style={styles.savedImageThumb} 
+                              resizeMode="cover"
+                            />
+                            {image.name && (
+                              <Text style={styles.savedImageName} numberOfLines={1}>
+                                {image.name}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
 
             {/* 하단 고정 버튼 */}
             <View style={styles.bottomBar}>
@@ -1329,6 +1496,106 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#6B7280',
+    fontWeight: 'bold',
+  },
+  modalScrollView: {
+    maxHeight: 500,
+  },
+  newImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#2563EB',
+    borderStyle: 'dashed',
+  },
+  newImageButtonIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  newImageButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  savedImagesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  savedImagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  savedImageItem: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  savedImageThumb: {
+    width: '100%',
+    height: '80%',
+  },
+  savedImageName: {
+    fontSize: 11,
+    color: '#6B7280',
+    padding: 4,
+    textAlign: 'center',
+  },
+  changeImageBtn: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  changeImageBtnText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });
 
