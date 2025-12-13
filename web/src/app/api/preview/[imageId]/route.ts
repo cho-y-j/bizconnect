@@ -45,9 +45,22 @@ export async function GET(
         .replace(/'/g, '&#039;')
     }
 
-    const safeTitle = escapeHtml(image.name || '이미지 미리보기')
+    // 명함 이미지인지 확인
+    const isBusinessCard = image.category === 'business_card'
+    
+    // 제목 결정 (파일명 제거)
+    const ogTitle = isBusinessCard ? '📇 내 명함' : '이미지 미리보기'
+    const safeTitle = escapeHtml(ogTitle)
+    
+    // 설명은 빈 값 또는 최소한의 텍스트
+    const safeDescription = ''
+    
+    // 이미지 URL
     const safeImageUrl = escapeHtml(image.image_url)
-    const safeDescription = escapeHtml(`비즈커넥트 - ${image.name || '이미지 미리보기'}`)
+    
+    // 현재 페이지 URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
+    const ogUrl = `${baseUrl}/api/preview/${imageId}`
 
     // HTML 응답 반환 (Open Graph 메타 태그 포함)
     const html = `<!DOCTYPE html>
@@ -63,6 +76,7 @@ export async function GET(
   <meta property="og:description" content="${safeDescription}" />
   <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="${ogUrl}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   
@@ -106,35 +120,12 @@ export async function GET(
       max-height: 100%;
       object-fit: contain;
     }
-    .info {
-      padding: 24px;
-    }
-    .info h1 {
-      margin: 0 0 8px 0;
-      font-size: 24px;
-      font-weight: bold;
-      color: #111827;
-    }
-    .info .category {
-      color: #6b7280;
-      font-size: 14px;
-      margin-bottom: 16px;
-    }
-    .info .date {
-      color: #9ca3af;
-      font-size: 12px;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="image-container">
       <img src="${safeImageUrl}" alt="${safeTitle}" />
-    </div>
-    <div class="info">
-      <h1>${safeTitle}</h1>
-      ${image.category ? `<p class="category">카테고리: ${image.category}</p>` : ''}
-      ${image.created_at ? `<p class="date">업로드: ${new Date(image.created_at).toLocaleDateString('ko-KR')}</p>` : ''}
     </div>
   </div>
 </body>

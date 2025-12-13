@@ -72,13 +72,12 @@ export default function SendSMSPage() {
   const [summaryInfo, setSummaryInfo] = useState<any>(null)
   const [showSummary, setShowSummary] = useState(false)
   
-  // 이미지 첨부
-  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; previewUrl?: string } | null>(null)
+  // 이미지 첨부 (다중 이미지 지원)
+  const [selectedImages, setSelectedImages] = useState<Array<{ url: string; name: string; previewUrl?: string }>>([])
   const [savedImages, setSavedImages] = useState<any[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingBusinessCard, setUploadingBusinessCard] = useState(false)
-  const [attachBusinessCard, setAttachBusinessCard] = useState(false)
   const [userSettings, setUserSettings] = useState<any>(null)
   const [showBusinessCardUpload, setShowBusinessCardUpload] = useState(false)
   
@@ -456,17 +455,25 @@ export default function SendSMSPage() {
       if (result.success && result.image) {
         // 업로드된 이미지 선택 (Open Graph URL 저장, 미리보기는 원본 URL)
         const previewUrl = result.image.preview_url || result.image.image_url
-        setSelectedImage({
+        const newImage = {
           url: result.image.image_url, // 미리보기용 원본 URL
           name: result.image.name,
           previewUrl: previewUrl // 발송용 Open Graph URL
-        })
-        // 메시지에 Open Graph URL 자동 추가
-        if (previewUrl) {
-          const currentMessage = message.trim()
-          // 이미 링크가 있으면 제거 후 새로 추가
-          const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
-          setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+        }
+        // 배열에 추가 (중복 체크)
+        const alreadySelected = selectedImages.find(img => img.url === result.image.image_url)
+        if (!alreadySelected) {
+          setSelectedImages([...selectedImages, newImage])
+          // 메시지에 Open Graph URL 자동 추가
+          if (previewUrl) {
+            const currentMessage = message.trim()
+            const previewUrls = selectedImages
+              .map(img => img.previewUrl)
+              .filter(url => url)
+              .concat([previewUrl])
+              .join('\n\n')
+            setMessage(currentMessage ? `${currentMessage}\n\n${previewUrls}` : previewUrls)
+          }
         }
         // 저장된 이미지 목록 새로고침
         await loadSavedImages()
@@ -697,19 +704,10 @@ export default function SendSMSPage() {
           return
         }
 
-        // 명함 이미지 결정 (Open Graph URL로 변환)
-        let finalImage = selectedImage
-        if (attachBusinessCard && userSettings?.business_card_image_url) {
-          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-          finalImage = { 
-            url: userSettings.business_card_image_url,
-            name: '명함',
-            previewUrl: previewUrl
-          }
-        }
-        
-        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
+        // 선택된 이미지들 처리 (첫 번째 이미지만 첨부용으로 사용, 나머지는 URL로 메시지에 포함)
+        const firstImage = selectedImages.length > 0 ? selectedImages[0] : null
+        const finalImageUrl = firstImage?.previewUrl || firstImage?.url || null
+        const additionalImageUrls = selectedImages.slice(1).map(img => img.previewUrl || img.url).filter(url => url)
 
         // 선택된 고객 처리
         if (selectedCustomers.length > 0) {
@@ -731,9 +729,13 @@ export default function SendSMSPage() {
             // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
             let finalMessage = replaceTemplateVariables(message.trim(), { customer })
             
-            // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-            if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-              finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+            // 모든 이미지 URL을 메시지에 추가
+            const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+            if (allImageUrls.length > 0) {
+              const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
+              if (urlsToAdd.length > 0) {
+                finalMessage = finalMessage ? `${finalMessage}\n\n${urlsToAdd.join('\n\n')}` : urlsToAdd.join('\n\n')
+              }
             }
             
             return {
@@ -742,14 +744,14 @@ export default function SendSMSPage() {
               customer_phone: customer.phone.replace(/\D/g, ''),
               customer_name: customer.name,
               message_content: finalMessage,
-              type: finalImage ? 'send_mms' : 'send_sms',
+              type: firstImage ? 'send_mms' : 'send_sms',
               status: 'pending',
               priority: 0,
               scheduled_at: scheduledAt,
               template_id: selectedTemplateId || null,
               image_url: finalImageUrl,
-              image_name: finalImage?.name || null,
-              is_mms: !!finalImage,
+              image_name: firstImage?.name || null,
+              is_mms: !!firstImage,
             }
           })
           tasksToCreate.push(...customerTasks)
@@ -761,9 +763,13 @@ export default function SendSMSPage() {
             customer: recipient.name ? { name: recipient.name, phone: recipient.phone } : undefined,
           })
           
-          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          // 모든 이미지 URL을 메시지에 추가
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          if (allImageUrls.length > 0) {
+            const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
+            if (urlsToAdd.length > 0) {
+              finalMessage = finalMessage ? `${finalMessage}\n\n${urlsToAdd.join('\n\n')}` : urlsToAdd.join('\n\n')
+            }
           }
 
           tasksToCreate.push({
@@ -771,14 +777,14 @@ export default function SendSMSPage() {
             customer_phone: recipient.phone,
             customer_name: recipient.name,
             message_content: finalMessage,
-            type: finalImage ? 'send_mms' : 'send_sms',
+            type: firstImage ? 'send_mms' : 'send_sms',
             status: 'pending',
             priority: 0,
             scheduled_at: scheduledAt,
             template_id: selectedTemplateId || null,
             image_url: finalImageUrl,
-            image_name: finalImage?.name || null,
-            is_mms: !!finalImage,
+            image_name: firstImage?.name || null,
+            is_mms: !!firstImage,
           })
         }
       } else if (sendMode === 'group') {
@@ -812,27 +818,22 @@ export default function SendSMSPage() {
           .eq('user_id', user.id)
           .eq('group_id', selectedGroupId)
 
-        // 명함 이미지 결정 (Open Graph URL로 변환)
-        let finalImage = selectedImage
-        if (attachBusinessCard && userSettings?.business_card_image_url) {
-          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-          finalImage = { 
-            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
-            name: '명함',
-            previewUrl: previewUrl // 발송용 Open Graph URL
-          }
-        }
-        
-        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
+        // 선택된 이미지들 처리
+        const firstImage = selectedImages.length > 0 ? selectedImages[0] : null
+        const finalImageUrl = firstImage?.previewUrl || firstImage?.url || null
+        const additionalImageUrls = selectedImages.slice(1).map(img => img.previewUrl || img.url).filter(url => url)
 
         tasksToCreate = (groupCustomersWithDetails || []).map(customer => {
           // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
           let finalMessage = replaceTemplateVariables(message.trim(), { customer })
           
-          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          // 모든 이미지 URL을 메시지에 추가
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          if (allImageUrls.length > 0) {
+            const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
+            if (urlsToAdd.length > 0) {
+              finalMessage = finalMessage ? `${finalMessage}\n\n${urlsToAdd.join('\n\n')}` : urlsToAdd.join('\n\n')
+            }
           }
           
           return {
@@ -841,14 +842,14 @@ export default function SendSMSPage() {
           customer_phone: customer.phone.replace(/\D/g, ''),
           customer_name: customer.name,
             message_content: finalMessage,
-          type: finalImage ? 'send_mms' : 'send_sms',
+          type: firstImage ? 'send_mms' : 'send_sms',
           status: 'pending',
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: finalImageUrl, // Open Graph URL 사용
-          image_name: finalImage?.name || null,
-          is_mms: !!finalImage,
+          image_url: finalImageUrl,
+          image_name: firstImage?.name || null,
+          is_mms: !!firstImage,
           }
         })
       } else if (sendMode === 'tag') {
@@ -896,27 +897,22 @@ export default function SendSMSPage() {
           .eq('user_id', user.id)
           .in('id', tagCustomerIds)
 
-        // 명함 이미지 결정 (Open Graph URL로 변환)
-        let finalImage = selectedImage
-        if (attachBusinessCard && userSettings?.business_card_image_url) {
-          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-          finalImage = { 
-            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
-            name: '명함',
-            previewUrl: previewUrl // 발송용 Open Graph URL
-          }
-        }
-        
-        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
+        // 선택된 이미지들 처리
+        const firstImage = selectedImages.length > 0 ? selectedImages[0] : null
+        const finalImageUrl = firstImage?.previewUrl || firstImage?.url || null
+        const additionalImageUrls = selectedImages.slice(1).map(img => img.previewUrl || img.url).filter(url => url)
 
         tasksToCreate = (tagCustomersWithDetails || []).map(customer => {
           // 메시지에 Open Graph URL 포함 (이미지가 있는 경우)
           let finalMessage = replaceTemplateVariables(message.trim(), { customer })
           
-          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          // 모든 이미지 URL을 메시지에 추가
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          if (allImageUrls.length > 0) {
+            const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
+            if (urlsToAdd.length > 0) {
+              finalMessage = finalMessage ? `${finalMessage}\n\n${urlsToAdd.join('\n\n')}` : urlsToAdd.join('\n\n')
+            }
           }
           
           return {
@@ -924,15 +920,15 @@ export default function SendSMSPage() {
           customer_id: customer.id,
           customer_phone: customer.phone.replace(/\D/g, ''),
           customer_name: customer.name,
-            message_content: finalMessage,
-          type: finalImage ? 'send_mms' : 'send_sms',
+          message_content: finalMessage,
+          type: firstImage ? 'send_mms' : 'send_sms',
           status: 'pending',
           priority: 0,
           scheduled_at: scheduledAt,
           template_id: selectedTemplateId || null,
-          image_url: finalImageUrl, // Open Graph URL 사용
-          image_name: finalImage?.name || null,
-          is_mms: !!finalImage,
+          image_url: finalImageUrl,
+          image_name: firstImage?.name || null,
+          is_mms: !!firstImage,
           }
         })
       } else if (sendMode === 'csv') {
@@ -949,19 +945,10 @@ export default function SendSMSPage() {
           return
         }
 
-        // 명함 이미지 결정 (Open Graph URL로 변환)
-        let finalImage = selectedImage
-        if (attachBusinessCard && userSettings?.business_card_image_url) {
-          const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-          finalImage = { 
-            url: userSettings.business_card_image_url, // 미리보기용 원본 URL
-            name: '명함',
-            previewUrl: previewUrl // 발송용 Open Graph URL
-          }
-        }
-        
-        // 이미지 URL 결정: previewUrl이 있으면 사용, 없으면 url 사용
-        const finalImageUrl = finalImage?.previewUrl || finalImage?.url || null
+        // 선택된 이미지들 처리
+        const firstImage = selectedImages.length > 0 ? selectedImages[0] : null
+        const finalImageUrl = firstImage?.previewUrl || firstImage?.url || null
+        const additionalImageUrls = selectedImages.slice(1).map(img => img.previewUrl || img.url).filter(url => url)
 
         // CSV 데이터로 작업 생성
         tasksToCreate = csvData.map(row => {
@@ -971,9 +958,13 @@ export default function SendSMSPage() {
             customer: { name: row.name, phone: row.phone },
           })
           
-          // 이미지가 있고 메시지에 Open Graph URL이 없으면 추가
-          if (finalImageUrl && !finalMessage.includes(finalImageUrl)) {
-            finalMessage = finalMessage ? `${finalMessage}\n\n${finalImageUrl}` : finalImageUrl
+          // 모든 이미지 URL을 메시지에 추가
+          const allImageUrls = [finalImageUrl, ...additionalImageUrls].filter(url => url)
+          if (allImageUrls.length > 0) {
+            const urlsToAdd = allImageUrls.filter(url => !finalMessage.includes(url))
+            if (urlsToAdd.length > 0) {
+              finalMessage = finalMessage ? `${finalMessage}\n\n${urlsToAdd.join('\n\n')}` : urlsToAdd.join('\n\n')
+            }
           }
           
           return {
@@ -982,14 +973,14 @@ export default function SendSMSPage() {
             customer_phone: row.phone.replace(/\D/g, ''),
             customer_name: row.name,
             message_content: finalMessage,
-            type: finalImage ? 'send_mms' : 'send_sms',
+            type: firstImage ? 'send_mms' : 'send_sms',
             status: 'pending',
             priority: 0,
             scheduled_at: scheduledAt,
             template_id: selectedTemplateId || null,
-            image_url: finalImageUrl, // Open Graph URL 사용
-            image_name: finalImage?.name || null,
-            is_mms: !!finalImage,
+            image_url: finalImageUrl,
+            image_name: firstImage?.name || null,
+            is_mms: !!firstImage,
           }
         })
       }
@@ -1595,20 +1586,37 @@ export default function SendSMSPage() {
                   type="button"
                   onClick={async () => {
                     if (userSettings?.business_card_image_url) {
-                      // 명함 이미지가 있으면 Open Graph URL로 변환하여 선택
-                      const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-                      setSelectedImage({ 
-                        url: userSettings.business_card_image_url, // 미리보기용 원본 URL
-                        name: '명함',
-                        previewUrl: previewUrl // 발송용 Open Graph URL
-                      })
-                      setAttachBusinessCard(true)
-                      // 메시지에 Open Graph URL 자동 추가
-                      if (previewUrl) {
-                        const currentMessage = message.trim()
-                        // 이미 링크가 있으면 제거 후 새로 추가
-                        const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
-                        setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+                      // 명함 이미지가 이미 선택되어 있는지 확인
+                      const alreadySelected = selectedImages.find(img => img.name === '명함')
+                      if (alreadySelected) {
+                        // 이미 선택되어 있으면 제거
+                        const updatedImages = selectedImages.filter(img => img.name !== '명함')
+                        setSelectedImages(updatedImages)
+                        // 메시지에서 명함 URL 제거
+                        if (alreadySelected.previewUrl) {
+                          const currentMessage = message.trim()
+                          const messageWithoutLink = currentMessage.replace(alreadySelected.previewUrl, '').trim()
+                          setMessage(messageWithoutLink)
+                        }
+                      } else {
+                        // 명함 이미지가 있으면 Open Graph URL로 변환하여 배열에 추가
+                        const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
+                        const businessCardImage = { 
+                          url: userSettings.business_card_image_url, // 미리보기용 원본 URL
+                          name: '명함',
+                          previewUrl: previewUrl // 발송용 Open Graph URL
+                        }
+                        setSelectedImages([...selectedImages, businessCardImage])
+                        // 메시지에 Open Graph URL 자동 추가
+                        if (previewUrl) {
+                          const currentMessage = message.trim()
+                          const previewUrls = selectedImages
+                            .map(img => img.previewUrl)
+                            .filter(url => url)
+                            .concat([previewUrl])
+                            .join('\n\n')
+                          setMessage(currentMessage ? `${currentMessage}\n\n${previewUrls}` : previewUrls)
+                        }
                       }
                     } else {
                       // 명함 이미지가 없으면 업로드 화면 표시
@@ -1616,12 +1624,12 @@ export default function SendSMSPage() {
                     }
                   }}
                   className={`px-4 py-2 border rounded-lg transition-colors flex items-center gap-2 ${
-                    attachBusinessCard || (selectedImage?.name === '명함')
+                    selectedImages.find(img => img.name === '명함')
                       ? 'bg-blue-100 border-blue-500 text-blue-700'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  💼 명함 첨부 {attachBusinessCard || (selectedImage?.name === '명함') ? '✓' : ''}
+                  💼 명함 첨부 {selectedImages.find(img => img.name === '명함') ? '✓' : ''}
                 </button>
                 <button
                   type="button"
@@ -1632,42 +1640,49 @@ export default function SendSMSPage() {
                 </button>
               </div>
 
-              {/* 선택된 이미지 표시 */}
-              {selectedImage && (
-                <div className="relative inline-block p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <img
-                    src={selectedImage.url} // 항상 원본 URL 사용 (미리보기용)
-                    alt={selectedImage.name}
-                    className="max-w-xs max-h-48 rounded"
-                    onError={(e) => {
-                      // 에러 발생 시 savedImages에서 찾기
-                      const img = savedImages.find(i => i.name === selectedImage.name)
-                      if (img) {
-                        (e.target as HTMLImageElement).src = img.image_url
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // 메시지에서 Open Graph URL 제거
-                      if (selectedImage?.previewUrl) {
-                        const currentMessage = message.trim()
-                        const messageWithoutLink = currentMessage.replace(selectedImage.previewUrl, '').trim()
-                        setMessage(messageWithoutLink)
-                      }
-                      setSelectedImage(null)
-                      setAttachBusinessCard(false)
-                    }}
-                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-                    title="이미지 선택 취소"
-                  >
-                    ×
-                  </button>
-                  <p className="text-xs text-gray-600 mt-1">{selectedImage.name}</p>
-                  {selectedImage.previewUrl && (
-                    <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨 (발송 시 자동 추가)</p>
-                  )}
+              {/* 선택된 이미지 표시 (다중 이미지) */}
+              {selectedImages.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">선택된 이미지 ({selectedImages.length}개):</p>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedImages.map((img, index) => (
+                      <div key={index} className="relative inline-block p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <img
+                          src={img.url} // 항상 원본 URL 사용 (미리보기용)
+                          alt={img.name}
+                          className="max-w-xs max-h-48 rounded"
+                          onError={(e) => {
+                            // 에러 발생 시 savedImages에서 찾기
+                            const savedImg = savedImages.find(i => i.name === img.name)
+                            if (savedImg) {
+                              (e.target as HTMLImageElement).src = savedImg.image_url
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // 메시지에서 해당 이미지의 Open Graph URL 제거
+                            if (img.previewUrl) {
+                              const currentMessage = message.trim()
+                              const messageWithoutLink = currentMessage.replace(img.previewUrl, '').trim()
+                              setMessage(messageWithoutLink)
+                            }
+                            // 배열에서 제거
+                            setSelectedImages(selectedImages.filter((_, i) => i !== index))
+                          }}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                          title="이미지 선택 취소"
+                        >
+                          ×
+                        </button>
+                        <p className="text-xs text-gray-600 mt-1">{img.name}</p>
+                        {img.previewUrl && (
+                          <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1761,23 +1776,29 @@ export default function SendSMSPage() {
                                 console.error('Error saving business card:', settingsError)
                                 setError('명함 이미지는 업로드되었지만 설정 저장에 실패했습니다.')
                               } else {
-                                // 명함 이미지 선택
+                                // 명함 이미지 선택 (배열에 추가)
                                 const previewUrl = result.image.preview_url || result.image.image_url
-                                setSelectedImage({
+                                const businessCardImage = {
                                   url: result.image.image_url, // 미리보기용 원본 URL
                                   name: '명함',
                                   previewUrl: previewUrl // 발송용 Open Graph URL
-                                })
-                                setAttachBusinessCard(true)
-                                setShowBusinessCardUpload(false)
-                                
-                                // 메시지에 Open Graph URL 자동 추가
-                                if (previewUrl) {
-                                  const currentMessage = message.trim()
-                                  // 이미 링크가 있으면 제거 후 새로 추가
-                                  const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
-                                  setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
                                 }
+                                // 이미 선택되어 있지 않으면 추가
+                                const alreadySelected = selectedImages.find(img => img.name === '명함')
+                                if (!alreadySelected) {
+                                  setSelectedImages([...selectedImages, businessCardImage])
+                                  // 메시지에 Open Graph URL 자동 추가
+                                  if (previewUrl) {
+                                    const currentMessage = message.trim()
+                                    const previewUrls = selectedImages
+                                      .map(img => img.previewUrl)
+                                      .filter(url => url)
+                                      .concat([previewUrl])
+                                      .join('\n\n')
+                                    setMessage(currentMessage ? `${currentMessage}\n\n${previewUrls}` : previewUrls)
+                                  }
+                                }
+                                setShowBusinessCardUpload(false)
                                 
                                 // userSettings 새로고침
                                 await loadUserSettings()
@@ -1829,16 +1850,25 @@ export default function SendSMSPage() {
                               // 이미지 ID로 Open Graph URL 생성 (API 라우트 사용)
                               const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
                               const previewUrl = `${baseUrl}/api/preview/${img.id}`
-                              setSelectedImage({ 
+                              const newImage = { 
                                 url: img.image_url, // 미리보기용 원본 URL
                                 name: img.name,
                                 previewUrl: previewUrl // 발송용 Open Graph URL
-                              })
-                              // 메시지에 Open Graph URL 자동 추가
-                              const currentMessage = message.trim()
-                              // 이미 링크가 있으면 제거 후 새로 추가
-                              const messageWithoutLink = currentMessage.replace(/\s*https?:\/\/[^\s]+/g, '').trim()
-                              setMessage(messageWithoutLink ? `${messageWithoutLink}\n\n${previewUrl}` : previewUrl)
+                              }
+                              // 이미 선택되어 있는지 확인
+                              const alreadySelected = selectedImages.find(sel => sel.url === img.image_url)
+                              if (!alreadySelected) {
+                                // 배열에 추가
+                                setSelectedImages([...selectedImages, newImage])
+                                // 메시지에 Open Graph URL 자동 추가
+                                const currentMessage = message.trim()
+                                const previewUrls = selectedImages
+                                  .map(sel => sel.previewUrl)
+                                  .filter(url => url)
+                                  .concat([previewUrl])
+                                  .join('\n\n')
+                                setMessage(currentMessage ? `${currentMessage}\n\n${previewUrls}` : previewUrls)
+                              }
                               setShowImagePicker(false)
                             }}
                             className="relative aspect-square border-2 border-gray-300 rounded hover:border-blue-500 transition-colors overflow-hidden"
