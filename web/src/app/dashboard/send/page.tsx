@@ -1321,6 +1321,7 @@ export default function SendSMSPage() {
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
