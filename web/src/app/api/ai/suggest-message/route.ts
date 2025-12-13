@@ -41,19 +41,32 @@ export async function POST(request: NextRequest) {
     // Supabase 클라이언트 생성 (서버 사이드)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    
+    // 토큰 추출
+    const token = authHeader.replace('Bearer ', '')
+    
+    // 사용자 인증을 위한 Supabase 클라이언트 생성
     const supabaseServer = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
     })
 
     // 토큰에서 사용자 ID 추출
-    const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('❌ 인증 실패:', authError)
       return NextResponse.json({ error: '인증 실패' }, { status: 401 })
     }
+    
+    console.log('✅ 사용자 인증 성공:', { userId: user.id, email: user.email })
 
     // 고객 정보 조회 (customerId가 있으면 ID로, 없으면 전화번호로)
     let customer: any = null
@@ -123,11 +136,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 사용자 설정 정보 조회 (개인정보 포함) - 필수 정보
+    // RLS 정책을 위해 사용자 컨텍스트가 포함된 클라이언트 사용
     const { data: userSettings, error: settingsError } = await supabaseServer
       .from('user_settings')
       .select('full_name, company_name, position, department, email, bio, specialties')
       .eq('user_id', user.id)
       .single()
+    
+    // finalUserSettings 변수로 통일
+    const finalUserSettings = userSettings
 
     // 디버깅: 상세 로그 출력
     console.log('🔍 [DEBUG] user_settings 조회 결과:')
@@ -169,7 +186,7 @@ export async function POST(request: NextRequest) {
       
       // 더 친절하고 명확한 에러 메시지
       let errorMessage = '⚠️ AI 메시지 생성을 위해 이름이 필요합니다.\n\n'
-      if (!userSettings) {
+      if (!finalUserSettings) {
         errorMessage += '📋 설정 페이지(/dashboard/settings)에서:\n'
         errorMessage += '   1. "개인정보 상세 입력" 섹션으로 이동\n'
         errorMessage += '   2. "이름" 필드에 본인의 이름을 입력\n'
@@ -192,11 +209,13 @@ export async function POST(request: NextRequest) {
           error: errorMessage,
           requiresNameSetup: true,
           debug: {
-            hasUserSettings: !!userSettings,
+            hasUserSettings: !!finalUserSettings,
             fullNameRaw: fullNameRaw,
             fullNameValue: fullName,
             userId: user.id,
-            userEmail: user.email
+            userEmail: user.email,
+            settingsError: settingsError?.message || null,
+            settingsErrorCode: settingsError?.code || null
           }
         },
         { status: 400 }
@@ -274,10 +293,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 사용자 정보 구성 (위에서 이미 userName 결정됨)
-    const userCompany = userSettings?.company_name?.trim() || ''
-    const userPosition = userSettings?.position?.trim() || ''
-    const userBio = userSettings?.bio?.trim() || ''
-    const userSpecialties = userSettings?.specialties || []
+    const userCompany = finalUserSettings?.company_name?.trim() || ''
+    const userPosition = finalUserSettings?.position?.trim() || ''
+    const userBio = finalUserSettings?.bio?.trim() || ''
+    const userSpecialties = finalUserSettings?.specialties || []
 
     // 고객과의 관계 정보 추출
     let relationshipInfo = ''
