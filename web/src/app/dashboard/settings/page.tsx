@@ -181,6 +181,18 @@ export default function SettingsPage() {
         // 명함
         business_card_enabled: businessCard.business_card_enabled,
         business_card_image_url: businessCard.business_card_image_url || null,
+        // 개인정보 상세 입력 (AI가 사용자를 이해하기 위한 정보)
+        full_name: businessCard.full_name || null,
+        company_name: businessCard.company_name || null,
+        position: businessCard.position || null,
+        department: businessCard.department || null,
+        email: businessCard.email || null,
+        website: businessCard.website || null,
+        address: businessCard.address || null,
+        bio: businessCard.bio || null,
+        specialties: businessCard.specialties.length > 0 ? businessCard.specialties : null,
+        social_links: businessCard.social_links,
+        profile_image_url: businessCard.profile_image_url || null,
         // 알림
         push_notifications_enabled: notifications.push_notifications_enabled,
         birthday_notifications_enabled: notifications.birthday_notifications_enabled,
@@ -201,6 +213,8 @@ export default function SettingsPage() {
       } else {
         setSuccess('설정이 저장되었습니다.')
         setTimeout(() => setSuccess(''), 3000)
+        // 저장 후 설정 다시 로드하여 UI 업데이트
+        await loadSettings()
       }
     } catch (err: any) {
       console.error('Save error:', err)
@@ -261,12 +275,12 @@ export default function SettingsPage() {
         if (response.status === 413) {
           errorMessage = '파일 크기가 너무 큽니다. 4.5MB 이하의 파일을 업로드해주세요.'
         } else {
-          try {
-            const errorData = await response.json()
-            errorMessage = errorData.error || errorMessage
-          } catch (parseError) {
-            // JSON 파싱 실패 시 상태 텍스트 사용
-            errorMessage = `이미지 업로드 실패 (상태 코드: ${response.status})`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상태 텍스트 사용
+          errorMessage = `이미지 업로드 실패 (상태 코드: ${response.status})`
           }
         }
         console.error('❌ Image upload failed:', {
