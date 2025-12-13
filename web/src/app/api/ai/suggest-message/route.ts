@@ -122,12 +122,29 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 사용자 설정 정보 조회 (개인정보 포함)
-    const { data: userSettings } = await supabaseServer
+    // 사용자 설정 정보 조회 (개인정보 포함) - 필수 정보
+    const { data: userSettings, error: settingsError } = await supabaseServer
       .from('user_settings')
-      .select('*')
+      .select('full_name, company_name, position, department, email, bio, specialties')
       .eq('user_id', user.id)
       .single()
+
+    if (settingsError && settingsError.code !== 'PGRST116') {
+      console.error('❌ Error loading user settings:', settingsError)
+    }
+
+    // 사용자 이름 결정 (full_name 우선, 없으면 이메일 사용)
+    // full_name이 있으면 반드시 사용 (공백 제거 후 확인)
+    let userName = '사용자'
+    if (userSettings?.full_name && userSettings.full_name.trim()) {
+      userName = userSettings.full_name.trim()
+      console.log(`✅ 사용자 이름 사용: ${userName}`)
+    } else {
+      // full_name이 없으면 이메일 사용
+      userName = user.email?.split('@')[0] || '사용자'
+      console.warn(`⚠️ 사용자 이름(full_name)이 설정되지 않아 이메일을 사용합니다: ${userName}`)
+      console.warn(`💡 설정 페이지(/dashboard/settings)에서 "전체 이름"을 입력해주세요.`)
+    }
 
     // 최근 발송 내역 조회 (최대 5개) - 전화번호가 있을 때만
     let recentLogs: any[] = []
@@ -183,11 +200,10 @@ export async function POST(request: NextRequest) {
       timeOfDayKorean = '밤/새벽'
     }
 
-    // 사용자 정보 구성
-    const userName = userSettings?.full_name || user.email?.split('@')[0] || '사용자'
-    const userCompany = userSettings?.company_name || ''
-    const userPosition = userSettings?.position || ''
-    const userBio = userSettings?.bio || ''
+    // 사용자 정보 구성 (위에서 이미 userName 결정됨)
+    const userCompany = userSettings?.company_name?.trim() || ''
+    const userPosition = userSettings?.position?.trim() || ''
+    const userBio = userSettings?.bio?.trim() || ''
     const userSpecialties = userSettings?.specialties || []
 
     // 고객과의 관계 정보 추출
