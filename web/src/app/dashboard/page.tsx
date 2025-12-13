@@ -234,27 +234,39 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">로딩 중...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* 헤더 - 개선된 디자인 */}
+      <header className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div className="text-2xl font-bold text-blue-600">비즈커넥트</div>
             <div className="flex items-center gap-4">
-              <span className="text-gray-700">{user?.email}</span>
+              <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700 transition-all">
+                비즈커넥트
+              </Link>
+              <span className="hidden md:inline-block px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 text-xs font-semibold rounded-full">
+                대시보드
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <span className="text-gray-700 font-medium text-sm">{user?.email}</span>
+              </div>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"
+                className="px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium text-sm"
               >
                 로그아웃
               </button>
@@ -265,80 +277,126 @@ export default function DashboardPage() {
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 통계 카드 */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">총 고객 수</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalCustomers}</p>
+        {/* 환영 메시지 */}
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
+            안녕하세요, <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{user?.email?.split('@')[0] || '사용자'}</span>님! 👋
+          </h1>
+          <p className="text-lg text-gray-600">오늘도 효율적인 영업 활동을 시작해보세요.</p>
+        </div>
+
+        {/* 통계 카드 - 개선된 디자인 */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
+                👥
               </div>
-              <div className="text-4xl">👥</div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 font-medium mb-1">총 고객 수</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalCustomers.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <Link href="/dashboard/customers" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                고객 관리 <span>→</span>
+              </Link>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">예약 발송</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendingTasks}</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
+                ⏳
               </div>
-              <div className="text-4xl">⏳</div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 font-medium mb-1">예약 발송</p>
+                <p className="text-3xl font-bold text-yellow-600">{stats.pendingTasks.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <Link href="/dashboard/scheduled" className="text-sm text-yellow-600 hover:text-yellow-700 font-medium flex items-center gap-1">
+                예약 확인 <span>→</span>
+              </Link>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">오늘 발송</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.todaySent}</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
+                📤
               </div>
-              <div className="text-4xl">📤</div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 font-medium mb-1">오늘 발송</p>
+                <p className="text-3xl font-bold text-green-600">{stats.todaySent.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <Link href="/dashboard/history" className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1">
+                발송 기록 <span>→</span>
+              </Link>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">그룹 수</p>
-                <p className="text-3xl font-bold text-green-600">{stats.totalGroups}</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
+                🏷️
               </div>
-              <div className="text-4xl">🏷️</div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 font-medium mb-1">그룹 수</p>
+                <p className="text-3xl font-bold text-purple-600">{stats.totalGroups.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <Link href="/dashboard/customers/groups" className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
+                그룹 관리 <span>→</span>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* 오늘의 이벤트 (생일/기념일) */}
+        {/* 오늘의 이벤트 (생일/기념일) - 개선된 디자인 */}
         {todayEvents.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">🎉 오늘의 특별한 날</h2>
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">🎉 오늘의 특별한 날</h2>
+              <span className="px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 text-sm font-semibold rounded-full">
+                {todayEvents.length}건
+              </span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
               {todayEvents.map((event) => (
                 <div
                   key={`${event.type}-${event.id}`}
-                  className={`bg-gradient-to-r ${
+                  className={`bg-gradient-to-br ${
                     event.type === 'birthday'
-                      ? 'from-pink-500 to-rose-500'
-                      : 'from-purple-500 to-indigo-500'
-                  } rounded-xl shadow-lg p-6 text-white`}
+                      ? 'from-pink-500 via-rose-500 to-pink-600'
+                      : 'from-purple-500 via-indigo-500 to-purple-600'
+                  } rounded-2xl shadow-2xl p-6 text-white hover:shadow-3xl transition-all transform hover:-translate-y-1`}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium opacity-90 mb-1">
-                        {event.type === 'birthday' ? '🎂 생일' : '💝 기념일'}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">
+                          {event.type === 'birthday' ? '🎂' : '💝'}
+                        </span>
+                        <span className="text-sm font-semibold opacity-90 bg-white/20 px-3 py-1 rounded-full">
+                          {event.type === 'birthday' ? '생일' : '기념일'}
+                        </span>
                       </div>
-                      <h3 className="text-xl font-bold mb-1">{event.customer_name}님</h3>
-                      <p className="text-sm opacity-90">
+                      <h3 className="text-2xl font-bold mb-2">{event.customer_name}님</h3>
+                      <p className="text-lg opacity-90 mb-4">
                         {event.type === 'birthday'
-                          ? `${event.age}세 생일을 축하합니다!`
-                          : `${event.years}주년 기념일입니다!`}
+                          ? `${event.age}세 생일을 축하합니다! 🎈`
+                          : `${event.years}주년 기념일입니다! 💐`}
                       </p>
                     </div>
                     <Link
                       href={`/dashboard/send?customerId=${event.id}`}
-                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors text-sm font-semibold"
+                      className="ml-4 px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all text-sm font-bold border border-white/30 hover:border-white/50 whitespace-nowrap"
                     >
-                      축하 문자 보내기
+                      축하 문자 보내기 →
                     </Link>
                   </div>
                 </div>
@@ -347,139 +405,191 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* 오늘의 할 일 섹션 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">오늘의 할 일</h1>
-          <p className="text-gray-600">
-            {tasks.length > 0 || todayEvents.length > 0
-              ? `오늘 예약된 문자 ${tasks.length}개${todayEvents.length > 0 ? `와 오늘 생일/기념일 ${todayEvents.length}개` : ''}가 있습니다.`
-              : todayEvents.length > 0
-              ? `오늘 생일/기념일 ${todayEvents.length}개가 있습니다.`
-              : '오늘 예약된 문자가 없습니다.'}
-          </p>
-        </div>
-
-        {/* 작업 카드들 */}
-        <div className="space-y-4 mb-8">
-          {tasks.length === 0 && todayEvents.length === 0 ? (
-            <div className="bg-white rounded-xl shadow p-8 text-center">
-              <p className="text-gray-500 mb-4">오늘 예약된 문자가 없습니다.</p>
-              <Link
-                href="/dashboard/send"
-                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                문자 보내기
-              </Link>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">📅 오늘의 할 일</h2>
+              <p className="text-gray-600">
+                {tasks.length > 0 || todayEvents.length > 0
+                  ? `오늘 예약된 문자 ${tasks.length}개${todayEvents.length > 0 ? `와 오늘 생일/기념일 ${todayEvents.length}개` : ''}가 있습니다.`
+                  : todayEvents.length > 0
+                  ? `오늘 생일/기념일 ${todayEvents.length}개가 있습니다.`
+                  : '오늘 예약된 문자가 없습니다.'}
+              </p>
             </div>
-          ) : tasks.length > 0 ? (
-            tasks.map((task) => (
-              <div
-                key={task.id}
-                className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800 mb-1">
-                      {task.type === 'birthday' ? '🎂 생일 축하 문자' :
-                       task.type === 'anniversary' ? '💝 기념일 문자' :
-                       task.type === 'callback' ? '📞 콜백 문자' :
-                       '📱 일반 문자'}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {task.customer_name || '고객'} ({task.customer_phone})
-                    </p>
-                    {task.scheduled_at && (
-                      <p className="text-sm text-blue-600 mt-1 font-medium">
-                        📅 {new Date(task.scheduled_at).toLocaleString('ko-KR', { 
-                          month: 'long', 
-                          day: 'numeric', 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {task.message_content}
-                </p>
+            <Link
+              href="/dashboard/send"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+            >
+              + 새 문자 작성
+            </Link>
+          </div>
+
+          {/* 작업 카드들 */}
+          <div className="space-y-4">
+            {tasks.length === 0 && todayEvents.length === 0 ? (
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100/50">
+                <div className="text-6xl mb-4">📭</div>
+                <p className="text-gray-600 text-lg mb-6 font-medium">오늘 예약된 문자가 없습니다.</p>
                 <Link
-                  href={`/dashboard/send?taskId=${task.id}&phone=${encodeURIComponent(task.customer_phone)}&name=${encodeURIComponent(task.customer_name || '')}&message=${encodeURIComponent(task.message_content)}`}
-                  className="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  href="/dashboard/send"
+                  className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
                 >
-                  수정하거나 지금 보내기
+                  문자 보내기 시작하기 →
                 </Link>
               </div>
-            ))
-          ) : null}
+            ) : tasks.length > 0 ? (
+              tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all border border-gray-100/50"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">
+                          {task.type === 'birthday' ? '🎂' :
+                           task.type === 'anniversary' ? '💝' :
+                           task.type === 'callback' ? '📞' :
+                           '📱'}
+                        </span>
+                        <h3 className="font-bold text-lg text-gray-900">
+                          {task.type === 'birthday' ? '생일 축하 문자' :
+                           task.type === 'anniversary' ? '기념일 문자' :
+                           task.type === 'callback' ? '콜백 문자' :
+                           '일반 문자'}
+                        </h3>
+                      </div>
+                      <div className="ml-11 space-y-2">
+                        <p className="text-gray-700 font-medium">
+                          {task.customer_name || '고객'} <span className="text-gray-500">({task.customer_phone})</span>
+                        </p>
+                        {task.scheduled_at && (
+                          <p className="text-sm text-blue-600 font-semibold flex items-center gap-2">
+                            <span>📅</span>
+                            <span>
+                              {new Date(task.scheduled_at).toLocaleString('ko-KR', { 
+                                month: 'long', 
+                                day: 'numeric', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </p>
+                        )}
+                        <p className="text-gray-600 text-sm line-clamp-2 mt-2">
+                          {task.message_content}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/dashboard/send?taskId=${task.id}&phone=${encodeURIComponent(task.customer_phone)}&name=${encodeURIComponent(task.customer_name || '')}&message=${encodeURIComponent(task.message_content)}`}
+                      className="ml-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-semibold whitespace-nowrap"
+                    >
+                      수정/발송 →
+                    </Link>
+                  </div>
+                </div>
+              ))
+            ) : null}
+          </div>
         </div>
 
-        {/* 빠른 액션 */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Link
-            href="/dashboard/send"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">📤</div>
-            <h3 className="font-bold mb-1">문자 보내기</h3>
-            <p className="text-sm text-gray-600">새로운 문자를 발송합니다</p>
-          </Link>
+        {/* 빠른 액션 - 개선된 디자인 */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">⚡ 빠른 액션</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href="/dashboard/send"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                📤
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">문자 보내기</h3>
+              <p className="text-sm text-gray-600">새로운 문자를 발송합니다</p>
+            </Link>
 
-          <Link
-            href="/dashboard/customers"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">👥</div>
-            <h3 className="font-bold mb-1">고객 관리</h3>
-            <p className="text-sm text-gray-600">고객 정보를 관리합니다</p>
-          </Link>
+            <Link
+              href="/dashboard/customers"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                👥
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">고객 관리</h3>
+              <p className="text-sm text-gray-600">고객 정보를 관리합니다</p>
+            </Link>
 
-          <Link
-            href="/dashboard/history"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">📋</div>
-            <h3 className="font-bold mb-1">발송 기록</h3>
-            <p className="text-sm text-gray-600">발송 이력을 확인합니다</p>
-          </Link>
+            <Link
+              href="/dashboard/history"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                📋
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">발송 기록</h3>
+              <p className="text-sm text-gray-600">발송 이력을 확인합니다</p>
+            </Link>
 
-          <Link
-            href="/dashboard/templates"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">📝</div>
-            <h3 className="font-bold mb-1">문자 템플릿</h3>
-            <p className="text-sm text-gray-600">자주 쓰는 메시지를 저장합니다</p>
-          </Link>
+            <Link
+              href="/dashboard/templates"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                📝
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">문자 템플릿</h3>
+              <p className="text-sm text-gray-600">자주 쓰는 메시지를 저장합니다</p>
+            </Link>
 
-          <Link
-            href="/dashboard/images"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">📷</div>
-            <h3 className="font-bold mb-1">이미지 관리</h3>
-            <p className="text-sm text-gray-600">명함, 로고 등 이미지 저장</p>
-          </Link>
+            <Link
+              href="/dashboard/images"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                📷
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">이미지 관리</h3>
+              <p className="text-sm text-gray-600">명함, 로고 등 이미지 저장</p>
+            </Link>
 
-          <Link
-            href="/dashboard/settings"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">⚙️</div>
-            <h3 className="font-bold mb-1">설정</h3>
-            <p className="text-sm text-gray-600">개인정보 및 명함 설정</p>
-          </Link>
+            <Link
+              href="/dashboard/settings"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                ⚙️
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">설정</h3>
+              <p className="text-sm text-gray-600">개인정보 및 명함 설정</p>
+            </Link>
 
-          <Link
-            href="/dashboard/scheduled"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow text-center"
-          >
-            <div className="text-4xl mb-2">📅</div>
-            <h3 className="font-bold mb-1">예약된 발송</h3>
-            <p className="text-sm text-gray-600">예약된 발송을 관리합니다</p>
-          </Link>
+            <Link
+              href="/dashboard/scheduled"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                📅
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">예약된 발송</h3>
+              <p className="text-sm text-gray-600">예약된 발송을 관리합니다</p>
+            </Link>
+
+            <Link
+              href="/dashboard/customers/groups"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all transform hover:-translate-y-1 border border-gray-100/50 text-center"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                🏷️
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">고객 그룹</h3>
+              <p className="text-sm text-gray-600">고객 그룹을 관리합니다</p>
+            </Link>
+          </div>
         </div>
       </main>
     </div>
   )
 }
-
