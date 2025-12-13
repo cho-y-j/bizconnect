@@ -129,6 +129,22 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
+    // 디버깅: 상세 로그 출력
+    console.log('🔍 [DEBUG] user_settings 조회 결과:')
+    console.log('  - user.id:', user.id)
+    console.log('  - user.email:', user.email)
+    console.log('  - settingsError:', settingsError)
+    console.log('  - userSettings 존재:', !!userSettings)
+    if (userSettings) {
+      console.log('  - userSettings.full_name 원본:', userSettings.full_name)
+      console.log('  - userSettings.full_name 타입:', typeof userSettings.full_name)
+      console.log('  - userSettings.full_name 길이:', userSettings.full_name?.length)
+      console.log('  - userSettings.full_name?.trim():', userSettings.full_name?.trim())
+      console.log('  - userSettings 전체:', JSON.stringify(userSettings, null, 2))
+    } else {
+      console.log('  - userSettings: null 또는 undefined')
+    }
+
     if (settingsError) {
       if (settingsError.code !== 'PGRST116') {
         console.error('❌ Error loading user settings:', settingsError)
@@ -138,18 +154,50 @@ export async function POST(request: NextRequest) {
     }
 
     // 사용자 이름 결정 - 반드시 full_name만 사용 (이메일 아이디 절대 사용 금지!)
-    const fullName = userSettings?.full_name?.trim()
+    const fullNameRaw = userSettings?.full_name
+    const fullName = fullNameRaw?.trim()
     
     if (!fullName || fullName.length === 0) {
       // full_name이 없으면 에러 반환 (이메일 아이디를 이름으로 사용하는 것은 절대 안 됨!)
       console.error(`❌ CRITICAL: 사용자 이름(full_name)이 설정되지 않았습니다!`)
-      console.error(`❌ userSettings:`, JSON.stringify(userSettings, null, 2))
+      console.error(`❌ userSettings 존재 여부:`, !!userSettings)
+      console.error(`❌ userSettings?.full_name 원본 값:`, fullNameRaw)
+      console.error(`❌ userSettings?.full_name 타입:`, typeof fullNameRaw)
+      console.error(`❌ userSettings?.full_name?.trim() 결과:`, fullName)
       console.error(`❌ user.email:`, user.email)
+      console.error(`❌ user.id:`, user.id)
+      
+      // 더 친절하고 명확한 에러 메시지
+      let errorMessage = '⚠️ AI 메시지 생성을 위해 이름이 필요합니다.\n\n'
+      if (!userSettings) {
+        errorMessage += '📋 설정 페이지(/dashboard/settings)에서:\n'
+        errorMessage += '   1. "개인정보 상세 입력" 섹션으로 이동\n'
+        errorMessage += '   2. "이름" 필드에 본인의 이름을 입력\n'
+        errorMessage += '   3. 하단 "저장" 버튼 클릭\n\n'
+        errorMessage += '💡 이름을 입력하면 AI가 더 정확하고 개인화된 메시지를 생성할 수 있습니다.'
+      } else if (!fullNameRaw) {
+        errorMessage += '📋 설정 페이지(/dashboard/settings)에서:\n'
+        errorMessage += '   1. "개인정보 상세 입력" 섹션의 "이름" 필드 확인\n'
+        errorMessage += '   2. 이름을 입력하고 "저장" 버튼 클릭\n\n'
+        errorMessage += '💡 현재 이름이 저장되지 않은 상태입니다.'
+      } else {
+        errorMessage += '📋 설정 페이지(/dashboard/settings)에서:\n'
+        errorMessage += '   1. "개인정보 상세 입력" 섹션의 "이름" 필드 확인\n'
+        errorMessage += '   2. 이름이 공백이 아닌지 확인하고 다시 저장\n\n'
+        errorMessage += '💡 이름은 공백만 입력할 수 없습니다.'
+      }
       
       return NextResponse.json(
         { 
-          error: '사용자 이름이 설정되지 않았습니다. 설정 페이지(/dashboard/settings)에서 "이름" 필드를 입력해주세요.',
-          requiresNameSetup: true
+          error: errorMessage,
+          requiresNameSetup: true,
+          debug: {
+            hasUserSettings: !!userSettings,
+            fullNameRaw: fullNameRaw,
+            fullNameValue: fullName,
+            userId: user.id,
+            userEmail: user.email
+          }
         },
         { status: 400 }
       )

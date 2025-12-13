@@ -181,6 +181,14 @@ export default function SettingsPage() {
         return
       }
 
+      // full_name 검증 및 준비
+      const trimmedFullName = businessCard.full_name?.trim()
+      if (!trimmedFullName || trimmedFullName.length === 0) {
+        setError('이름은 필수 항목입니다. "개인정보 상세 입력" 섹션에서 이름을 입력해주세요.')
+        setSaving(false)
+        return
+      }
+
       // DB에 존재하는 컬럼만 저장
       const saveData = {
         user_id: user.id,
@@ -202,7 +210,7 @@ export default function SettingsPage() {
         business_card_enabled: businessCard.business_card_enabled,
         business_card_image_url: businessCard.business_card_image_url || null,
         // 개인정보 상세 입력 (AI가 사용자를 이해하기 위한 정보)
-        full_name: businessCard.full_name?.trim() || null, // 공백 제거 후 저장
+        full_name: trimmedFullName, // 검증된 이름 저장 (null이 아님)
         company_name: businessCard.company_name || null,
         position: businessCard.position || null,
         department: businessCard.department || null,
@@ -226,15 +234,38 @@ export default function SettingsPage() {
         updated_at: new Date().toISOString(),
       }
 
-      const { error } = await supabase
+      // 디버깅: 저장 전 로그
+      console.log('💾 [DEBUG] 설정 저장 시도:')
+      console.log('  - user.id:', user.id)
+      console.log('  - businessCard.full_name 원본:', businessCard.full_name)
+      console.log('  - trimmedFullName:', trimmedFullName)
+      console.log('  - saveData.full_name:', saveData.full_name)
+
+      const { data: upsertedData, error } = await supabase
         .from('user_settings')
         .upsert(saveData, { onConflict: 'user_id' })
+        .select('full_name') // 저장된 full_name 확인
 
       if (error) {
+        console.error('❌ 설정 저장 실패:', error)
         setError('설정 저장 중 오류가 발생했습니다: ' + error.message)
       } else {
-        setSuccess('설정이 저장되었습니다.')
-        setTimeout(() => setSuccess(''), 3000)
+        // 저장 후 실제로 DB에 반영되었는지 확인
+        const savedFullName = upsertedData?.[0]?.full_name
+        console.log('✅ 설정 저장 성공:', {
+          savedFullName,
+          expectedFullName: trimmedFullName,
+          match: savedFullName === trimmedFullName
+        })
+
+        if (!savedFullName || savedFullName.trim() !== trimmedFullName) {
+          console.error('⚠️ 저장된 이름이 예상과 다릅니다!')
+          setError('이름이 제대로 저장되지 않았습니다. 다시 시도해주세요.')
+        } else {
+          setSuccess(`설정이 저장되었습니다. (이름: ${savedFullName})`)
+          setTimeout(() => setSuccess(''), 3000)
+        }
+        
         // 저장 후 설정 다시 로드하여 UI 업데이트
         await loadSettings()
       }
