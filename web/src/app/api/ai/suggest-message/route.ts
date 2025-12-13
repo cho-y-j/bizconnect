@@ -129,21 +129,28 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (settingsError && settingsError.code !== 'PGRST116') {
-      console.error('❌ Error loading user settings:', settingsError)
+    if (settingsError) {
+      if (settingsError.code !== 'PGRST116') {
+        console.error('❌ Error loading user settings:', settingsError)
+      } else {
+        console.warn('⚠️ user_settings 레코드가 없습니다. 설정 페이지에서 정보를 입력해주세요.')
+      }
     }
 
     // 사용자 이름 결정 (full_name 우선, 없으면 이메일 사용)
     // full_name이 있으면 반드시 사용 (공백 제거 후 확인)
     let userName = '사용자'
-    if (userSettings?.full_name && userSettings.full_name.trim()) {
-      userName = userSettings.full_name.trim()
-      console.log(`✅ 사용자 이름 사용: ${userName}`)
+    const fullName = userSettings?.full_name?.trim()
+    
+    if (fullName && fullName.length > 0) {
+      userName = fullName
+      console.log(`✅ 사용자 이름 사용: "${userName}"`)
     } else {
       // full_name이 없으면 이메일 사용
       userName = user.email?.split('@')[0] || '사용자'
-      console.warn(`⚠️ 사용자 이름(full_name)이 설정되지 않아 이메일을 사용합니다: ${userName}`)
-      console.warn(`💡 설정 페이지(/dashboard/settings)에서 "전체 이름"을 입력해주세요.`)
+      console.warn(`⚠️ 사용자 이름(full_name)이 설정되지 않아 이메일을 사용합니다: "${userName}"`)
+      console.warn(`💡 설정 페이지(/dashboard/settings)에서 "이름" 필드를 입력해주세요.`)
+      console.warn(`💡 현재 userSettings.full_name 값:`, userSettings?.full_name)
     }
 
     // 최근 발송 내역 조회 (최대 5개) - 전화번호가 있을 때만

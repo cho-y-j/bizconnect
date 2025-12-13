@@ -202,7 +202,7 @@ export default function SettingsPage() {
         business_card_enabled: businessCard.business_card_enabled,
         business_card_image_url: businessCard.business_card_image_url || null,
         // 개인정보 상세 입력 (AI가 사용자를 이해하기 위한 정보)
-        full_name: businessCard.full_name || null,
+        full_name: businessCard.full_name?.trim() || null, // 공백 제거 후 저장
         company_name: businessCard.company_name || null,
         position: businessCard.position || null,
         department: businessCard.department || null,
@@ -448,7 +448,7 @@ export default function SettingsPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  전체 이름 <span className="text-red-500">*</span>
+                  이름 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
