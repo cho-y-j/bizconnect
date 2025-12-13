@@ -19,11 +19,32 @@ class TaskService {
   /**
    * 사용자 ID 설정
    */
-  setUserId(userId: string): void {
+  async setUserId(userId: string): Promise<void> {
     try {
       console.log('🔧 ===== TASK SERVICE INITIALIZATION =====');
       console.log('🔧 Setting userId:', userId);
       this.userId = userId;
+      
+      // user_settings에서 throttle_interval 조회 및 적용
+      try {
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('throttle_interval')
+          .eq('user_id', userId)
+          .single();
+
+        if (settingsError && settingsError.code !== 'PGRST116') {
+          console.warn('⚠️ Error loading throttle_interval:', settingsError);
+        }
+
+        const throttleInterval = userSettings?.throttle_interval || 15; // 기본값 15초
+        smsQueue.setThrottleInterval(throttleInterval * 1000); // 초를 밀리초로 변환
+        console.log(`⏱️ Throttle interval set to: ${throttleInterval} seconds (${throttleInterval * 1000}ms)`);
+      } catch (error) {
+        console.error('❌ Error loading throttle_interval, using default:', error);
+        smsQueue.setThrottleInterval(15 * 1000); // 기본값 15초
+      }
+      
       console.log('🔧 Setting up queue...');
       this.setupQueue();
       console.log('🔧 Subscribing to tasks...');
@@ -143,19 +164,19 @@ class TaskService {
             }
 
             if (newTask.status === 'pending' && createdAt > thresholdTime) {
-              const scheduledAt = newTask.scheduled_at
-                ? new Date(newTask.scheduled_at)
-                : null;
+            const scheduledAt = newTask.scheduled_at
+              ? new Date(newTask.scheduled_at)
+              : null;
 
-              if (!scheduledAt || scheduledAt <= now) {
-                console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
-                await this.addTaskToQueue(newTask);
-              } else {
-                console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
-              }
+            if (!scheduledAt || scheduledAt <= now) {
+              console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
+              await this.addTaskToQueue(newTask);
             } else {
-              console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
+              console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
             }
+          } else {
+            console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
+          }
         }
       )
       .on(
@@ -374,7 +395,7 @@ class TaskService {
     }
 
     console.log(`🔄 Starting task polling every ${intervalSeconds} seconds`);
-
+    
     // 즉시 한 번 실행
     this.loadPendingTasks();
 

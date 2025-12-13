@@ -5,13 +5,12 @@ import { CallDetectionProvider } from './src/components/CallDetectionProvider';
 import { taskService } from './src/services/taskService';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
-import HomeScreen from './src/screens/HomeScreen';
 import ContactsUploadScreen from './src/screens/ContactsUploadScreen';
 import CallbackSettingsScreen from './src/screens/CallbackSettingsScreen';
 import SendSMSScreen from './src/screens/SendSMSScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
-type AppScreen = 'Login' | 'SignUp' | 'Home' | 'ContactsUpload' | 'CallbackSettings' | 'SendSMS' | 'Settings';
+type AppScreen = 'Login' | 'SignUp' | 'ContactsUpload' | 'CallbackSettings' | 'SendSMS' | 'Settings';
 
 // Navigation 없이 간단한 화면 전환
 function AppContent() {
@@ -27,28 +26,31 @@ function AppContent() {
 
   // taskService 초기화 (로그인 시)
   useEffect(() => {
-    if (user) {
-      try {
-        taskService.setUserId(user.id);
-      } catch (error) {
-        console.error('Error initializing taskService:', error);
+    const initializeTaskService = async () => {
+      if (user) {
+        try {
+          await taskService.setUserId(user.id);
+        } catch (error) {
+          console.error('Error initializing taskService:', error);
+        }
+      } else {
+        // 로그아웃 시 정리
+        try {
+          taskService.unsubscribe();
+        } catch (error) {
+          console.error('Error cleaning up taskService:', error);
+        }
       }
-    } else {
-      // 로그아웃 시 정리
-      try {
-        taskService.unsubscribe();
-      } catch (error) {
-        console.error('Error cleaning up taskService:', error);
-      }
-    }
+    };
+    
+    initializeTaskService();
   }, [user]);
 
   // 로그인 후 기본 화면을 문자 보내기 화면으로 설정
   useEffect(() => {
     if (user) {
-      // 로그인된 상태에서 Login이나 Home 화면이면 SendSMS로 변경
-      // 단, 명시적으로 다른 화면으로 이동한 경우는 유지
-      if (currentScreen === 'Login' || currentScreen === 'Home') {
+      // 로그인된 상태에서 Login 화면이면 SendSMS로 변경
+      if (currentScreen === 'Login') {
         setCurrentScreen('SendSMS');
       }
     } else {
@@ -79,13 +81,12 @@ function AppContent() {
     if (currentScreen === 'Settings') {
       return <SettingsScreen navigation={{ navigate, goBack }} />;
     }
-    // Home 화면은 완전히 제거 - 로그인 후에는 항상 SendSMSScreen 표시
-    // 기본 화면: 문자 보내기 화면 (SendSMS, Login, Home 상태 모두)
+    // 기본 화면: 문자 보내기 화면 (SendSMS)
     return <SendSMSScreen navigation={{ navigate, goBack }} route={{ params: routeParams }} />;
   }
 
   // 로그인 안 된 경우
-  if (currentScreen === 'Login' || currentScreen === 'Home') {
+  if (currentScreen === 'Login') {
     return <LoginScreen navigation={{ navigate }} />;
   }
 
