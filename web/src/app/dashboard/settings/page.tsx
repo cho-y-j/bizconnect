@@ -70,6 +70,10 @@ export default function SettingsPage() {
 
   const [specialtyInput, setSpecialtyInput] = useState('')
 
+  // AI 의도 샘플 관리
+  const [aiIntentSamples, setAiIntentSamples] = useState<string[]>([])
+  const [newIntentSample, setNewIntentSample] = useState('')
+
   useEffect(() => {
     loadSettings()
   }, [])
@@ -140,6 +144,22 @@ export default function SettingsPage() {
           },
           profile_image_url: data.profile_image_url || '',
         })
+
+        // AI 의도 샘플 로드
+        if (data.ai_intent_samples && Array.isArray(data.ai_intent_samples)) {
+          setAiIntentSamples(data.ai_intent_samples)
+        } else {
+          // 기본값 설정
+          setAiIntentSamples([
+            '기존 대화를 확인하고 온화한 말투로 고객 안부를 물어주는 문자',
+            '고객과의 관계를 유지하며 간단한 인사 문자',
+            '새로운 상품이나 서비스를 소개하는 영업 문자',
+            '약속이나 미팅 일정을 확인하는 문자',
+            '고객의 문의나 불만에 대한 답변 문자',
+            '명절이나 기념일 인사 문자',
+            '고객의 구매 결정을 돕는 추진 문자',
+          ])
+        }
       }
     } catch (err) {
       console.error('Error:', err)
@@ -201,6 +221,8 @@ export default function SettingsPage() {
         notification_time: notifications.notification_time + ':00',
         birthday_reminder_days: notifications.birthday_reminder_days,
         anniversary_reminder_days: notifications.anniversary_reminder_days,
+        // AI 의도 샘플
+        ai_intent_samples: aiIntentSamples.length > 0 ? aiIntentSamples : null,
         updated_at: new Date().toISOString(),
       }
 
@@ -1035,6 +1057,110 @@ export default function SettingsPage() {
                 💡 <strong>안내:</strong> 푸시 알림은 모바일 앱에서만 작동합니다. 
                 웹에서는 브라우저 알림을 사용할 수 있습니다.
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* AI 의도 샘플 관리 */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            🤖 AI 메시지 추천 의도 샘플 관리
+          </h2>
+          <p className="text-sm text-gray-600 mb-6">
+            AI 메시지 추천 시 사용할 의도 샘플을 관리합니다. 자주 사용하는 의도를 추가하거나 수정할 수 있습니다.
+          </p>
+
+          <div className="space-y-4">
+            {/* 기존 샘플 목록 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                현재 의도 샘플 목록
+              </label>
+              <div className="space-y-2">
+                {aiIntentSamples.map((sample, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={sample}
+                      onChange={(e) => {
+                        const newSamples = [...aiIntentSamples]
+                        newSamples[idx] = e.target.value
+                        setAiIntentSamples(newSamples)
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAiIntentSamples(aiIntentSamples.filter((_, i) => i !== idx))
+                      }}
+                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 새 샘플 추가 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                새 의도 샘플 추가
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newIntentSample}
+                  onChange={(e) => setNewIntentSample(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (newIntentSample.trim()) {
+                        setAiIntentSamples([...aiIntentSamples, newIntentSample.trim()])
+                        setNewIntentSample('')
+                      }
+                    }
+                  }}
+                  placeholder="예: 고객의 생일을 축하하는 문자"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newIntentSample.trim()) {
+                      setAiIntentSamples([...aiIntentSamples, newIntentSample.trim()])
+                      setNewIntentSample('')
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  추가
+                </button>
+              </div>
+            </div>
+
+            {/* 기본값으로 초기화 */}
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('기본 의도 샘플로 초기화하시겠습니까?')) {
+                    setAiIntentSamples([
+                      '기존 대화를 확인하고 온화한 말투로 고객 안부를 물어주는 문자',
+                      '고객과의 관계를 유지하며 간단한 인사 문자',
+                      '새로운 상품이나 서비스를 소개하는 영업 문자',
+                      '약속이나 미팅 일정을 확인하는 문자',
+                      '고객의 문의나 불만에 대한 답변 문자',
+                      '명절이나 기념일 인사 문자',
+                      '고객의 구매 결정을 돕는 추진 문자',
+                    ])
+                  }
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              >
+                기본값으로 초기화
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { getCurrentUser } from '@/lib/auth'
 import { useMessageTemplates } from '@/lib/hooks/useMessageTemplates'
@@ -14,8 +14,8 @@ interface AIMessageSuggestionsProps {
   onIntentSelect?: (intent: string) => void // 의도 선택 시 콜백
 }
 
-// 기본 의도 샘플
-const INTENT_SAMPLES = [
+// 기본 의도 샘플 (fallback)
+const DEFAULT_INTENT_SAMPLES = [
   '기존 대화를 확인하고 온화한 말투로 고객 안부를 물어주는 문자',
   '고객과의 관계를 유지하며 간단한 인사 문자',
   '새로운 상품이나 서비스를 소개하는 영업 문자',
@@ -46,6 +46,32 @@ export default function AIMessageSuggestions({
   const [customIntent, setCustomIntent] = useState('')
   const [selectedIntentSample, setSelectedIntentSample] = useState<string | null>(null)
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const [intentSamples, setIntentSamples] = useState<string[]>(DEFAULT_INTENT_SAMPLES)
+
+  // 사용자 설정에서 의도 샘플 로드
+  useEffect(() => {
+    const loadIntentSamples = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (!user) return
+
+        const { data } = await supabase
+          .from('user_settings')
+          .select('ai_intent_samples')
+          .eq('user_id', user.id)
+          .single()
+
+        if (data?.ai_intent_samples && Array.isArray(data.ai_intent_samples) && data.ai_intent_samples.length > 0) {
+          setIntentSamples(data.ai_intent_samples)
+        }
+      } catch (error) {
+        console.error('Error loading intent samples:', error)
+        // 에러 시 기본값 사용
+      }
+    }
+
+    loadIntentSamples()
+  }, [])
 
   const handleGetSuggestions = async (intent?: string) => {
     if (!customerId && !customerPhone) {
@@ -206,7 +232,7 @@ export default function AIMessageSuggestions({
                   또는 샘플 선택
                 </label>
                 <div className="space-y-2">
-                  {INTENT_SAMPLES.map((sample, idx) => (
+                  {intentSamples.map((sample, idx) => (
                     <button
                       key={idx}
                       onClick={() => {

@@ -267,6 +267,106 @@ export default function CustomersPage() {
     router.push(`/dashboard/send?customerIds=${customerIds}`)
   }
 
+  const handleQuickGroupChange = async (customerId: string, groupId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update({ group_id: groupId })
+        .eq('id', customerId)
+
+      if (error) {
+        alert('그룹 변경 중 오류가 발생했습니다: ' + error.message)
+      } else {
+        loadCustomers()
+      }
+    } catch (error) {
+      console.error('Error updating group:', error)
+      alert('그룹 변경 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleBulkGroupChange = async (groupId: string | null) => {
+    if (selectedCustomers.length === 0) {
+      alert('고객을 선택해주세요.')
+      return
+    }
+
+    if (!confirm(`선택한 ${selectedCustomers.length}명의 고객을 ${groupId ? groups.find(g => g.id === groupId)?.name : '미분류'}로 변경하시겠습니까?`)) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update({ group_id: groupId })
+        .in('id', selectedCustomers)
+
+      if (error) {
+        alert('그룹 변경 중 오류가 발생했습니다: ' + error.message)
+      } else {
+        loadCustomers()
+        setSelectedCustomers([])
+      }
+    } catch (error) {
+      console.error('Error updating groups:', error)
+      alert('그룹 변경 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleQuickTagAdd = async (customerId: string, tagName: string) => {
+    try {
+      // 기존 태그 확인
+      const { data: existingTags } = await supabase
+        .from('customer_tags')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('tag_name', tagName)
+
+      if (existingTags && existingTags.length > 0) {
+        // 이미 존재하는 태그
+        return
+      }
+
+      // 새 태그 추가
+      const { error } = await supabase
+        .from('customer_tags')
+        .insert({
+          customer_id: customerId,
+          tag_name: tagName,
+        })
+
+      if (error) {
+        alert('태그 추가 중 오류가 발생했습니다: ' + error.message)
+      } else {
+        loadCustomers()
+        loadAvailableTags()
+      }
+    } catch (error) {
+      console.error('Error adding tag:', error)
+      alert('태그 추가 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleQuickTagRemove = async (customerId: string, tagName: string) => {
+    try {
+      const { error } = await supabase
+        .from('customer_tags')
+        .delete()
+        .eq('customer_id', customerId)
+        .eq('tag_name', tagName)
+
+      if (error) {
+        alert('태그 삭제 중 오류가 발생했습니다: ' + error.message)
+      } else {
+        loadCustomers()
+        loadAvailableTags()
+      }
+    } catch (error) {
+      console.error('Error removing tag:', error)
+      alert('태그 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   const isTodayBirthday = (birthday: string | null | undefined): boolean => {
     if (!birthday) return false
     const today = new Date()
@@ -334,23 +434,42 @@ export default function CustomersPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 선택된 고객 액션 바 */}
         {selectedCustomers.length > 0 && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">
-              {selectedCustomers.length}명 선택됨
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={handleBulkSend}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-              >
-                📤 선택한 고객에게 문자 보내기
-              </button>
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedCustomers.length}명 선택됨
+              </span>
               <button
                 onClick={() => setSelectedCustomers([])}
                 className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
               >
                 선택 해제
               </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleBulkSend}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+              >
+                📤 선택한 고객에게 문자 보내기
+              </button>
+              {/* 일괄 그룹 변경 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">그룹:</span>
+                <select
+                  onChange={(e) => handleBulkGroupChange(e.target.value || null)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  defaultValue=""
+                >
+                  <option value="">그룹 선택...</option>
+                  <option value="">미분류</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         )}
@@ -580,34 +699,60 @@ export default function CustomersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{formatPhone(customer.phone)}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {customer.group ? (
-                          <span
-                            className="px-2 py-1 text-xs font-semibold rounded-full text-white"
-                            style={{ backgroundColor: customer.group.color }}
-                          >
-                            {customer.group.name}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            미분류
-                          </span>
-                        )}
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={customer.group_id || ''}
+                          onChange={(e) => handleQuickGroupChange(customer.id, e.target.value || null)}
+                          className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500"
+                          style={customer.group ? { backgroundColor: customer.group.color, color: 'white', borderColor: customer.group.color } : {}}
+                        >
+                          <option value="">미분류</option>
+                          {groups.map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
+                            </option>
+                          ))}
+                        </select>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-wrap gap-1 items-center">
                           {customer.tags && customer.tags.length > 0 ? (
                             customer.tags.map((tag) => (
                               <span
                                 key={tag.id}
-                                className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800"
+                                className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 flex items-center gap-1"
                               >
                                 {tag.tag_name}
+                                <button
+                                  onClick={() => handleQuickTagRemove(customer.id, tag.tag_name)}
+                                  className="text-red-600 hover:text-red-800"
+                                  title="태그 제거"
+                                >
+                                  ×
+                                </button>
                               </span>
                             ))
                           ) : (
                             <span className="text-xs text-gray-400">-</span>
                           )}
+                          {/* 빠른 태그 추가 */}
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleQuickTagAdd(customer.id, e.target.value)
+                                e.target.value = ''
+                              }
+                            }}
+                            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50"
+                            title="태그 추가"
+                          >
+                            <option value="">+ 태그</option>
+                            {availableTags.filter(tag => !customer.tags?.some(ct => ct.tag_name === tag)).map((tag) => (
+                              <option key={tag} value={tag}>
+                                {tag}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

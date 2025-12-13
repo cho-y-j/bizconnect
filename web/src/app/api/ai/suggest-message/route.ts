@@ -122,7 +122,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 최근 발송 내역 조회 (최대 3개) - 전화번호가 있을 때만
+    // 사용자 설정 정보 조회 (개인정보 포함)
+    const { data: userSettings } = await supabaseServer
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    // 최근 발송 내역 조회 (최대 5개) - 전화번호가 있을 때만
     let recentLogs: any[] = []
     if (customerInfo.phone) {
       const { data } = await supabaseServer
@@ -131,9 +138,22 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .eq('phone_number', customerInfo.phone.replace(/\D/g, ''))
         .order('sent_at', { ascending: false })
-        .limit(3)
+        .limit(5)
       
       recentLogs = data || []
+    }
+
+    // 대화 요약 정보 조회 (고객과의 관계 정보)
+    let conversationSummary: any = null
+    if (customerId) {
+      const { data: summary } = await supabaseServer
+        .from('conversation_summaries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('customer_id', customerId)
+        .single()
+      
+      conversationSummary = summary
     }
 
     // 대화 이력 구성
@@ -143,16 +163,61 @@ export async function POST(request: NextRequest) {
       message: log.message,
     }))
 
-    // 현재 상황 정보
-    const now = new Date()
+    // 한국 시간대(Asia/Seoul)로 현재 시간 계산
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     const dayOfWeek = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][now.getDay()]
     const hour = now.getHours()
-    const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : hour < 22 ? 'evening' : 'night'
+    let timeOfDay: string
+    let timeOfDayKorean: string
+    if (hour >= 5 && hour < 12) {
+      timeOfDay = 'morning'
+      timeOfDayKorean = '오전'
+    } else if (hour >= 12 && hour < 18) {
+      timeOfDay = 'afternoon'
+      timeOfDayKorean = '오후'
+    } else if (hour >= 18 && hour < 22) {
+      timeOfDay = 'evening'
+      timeOfDayKorean = '저녁'
+    } else {
+      timeOfDay = 'night'
+      timeOfDayKorean = '밤/새벽'
+    }
+
+    // 사용자 정보 구성
+    const userName = userSettings?.full_name || user.email?.split('@')[0] || '사용자'
+    const userCompany = userSettings?.company_name || ''
+    const userPosition = userSettings?.position || ''
+    const userBio = userSettings?.bio || ''
+    const userSpecialties = userSettings?.specialties || []
+
+    // 고객과의 관계 정보 추출
+    let relationshipInfo = ''
+    if (conversationSummary?.relationship_type) {
+      relationshipInfo = `- 관계 유형: ${conversationSummary.relationship_type}\n`
+    }
+    if (conversationSummary?.communication_style) {
+      relationshipInfo += `- 소통 스타일: ${conversationSummary.communication_style}\n`
+    }
+    if (customerInfo.notes) {
+      // notes에서 관계 정보 추출 시도
+      const notesLower = customerInfo.notes.toLowerCase()
+      if (notesLower.includes('반말') || notesLower.includes('친구') || notesLower.includes('동생')) {
+        relationshipInfo += `- 메모에서 확인된 관계: ${customerInfo.notes}\n`
+      }
+    }
 
     // 프롬프트 구성
-    const systemPrompt = `너는 예의 바르고 센스 있는 비즈니스 파트너 '비즈커넥트 비서'야. 
-아래 [대화 이력]과 [현재 상황]을 고려해서, 고객에게 보낼 적절한 안부/영업 문자를 
-3가지 버전(정중한, 친근한, 간결한)으로 추천해줘.
+    const systemPrompt = `너는 ${userName}${userCompany ? ` (${userCompany}${userPosition ? ` ${userPosition}` : ''})` : ''}의 개인 비서야.
+${userName}의 입장에서 고객에게 보낼 문자 메시지를 작성해야 해.
+
+중요한 원칙:
+1. ${userName}의 입장에서 작성 (1인칭 "저" 또는 "나" 사용)
+2. 회사 서신이 아닌 개인적인 메시지로 작성
+3. 고객과의 기존 관계와 소통 패턴을 정확히 파악하여 일관성 유지
+4. 반말을 쓰는 관계면 계속 반말로, 존댓말을 쓰는 관계면 계속 존댓말로 작성
+5. 고객의 나이, 관계, 상황을 고려하여 적절한 톤 사용
+6. 기존 대화 이력을 분석하여 상황 파악
+7. 한국 현재 시간(Asia/Seoul 기준)을 정확히 인식하여 적절한 인사 사용
 
 응답은 반드시 다음 JSON 형식으로 해줘:
 {
@@ -163,14 +228,22 @@ export async function POST(request: NextRequest) {
 
 주의사항:
 - 한국어로 작성
-- 비즈니스 톤 유지
-- 과거 대화 맥락 반영
-- 현재 시간/상황 고려
+- ${userName}의 개인적인 톤으로 작성 (회사 대표가 아닌 개인으로)
+- 과거 대화 맥락과 관계 패턴을 정확히 반영
+- 현재 시간/상황을 정확히 고려 (한국 시간 기준)
+- 고객과의 관계에 맞는 말투 사용 (반말/존댓말 일관성 유지)
 - 불필요한 이모지나 과도한 친근함 지양`
 
-    const userPrompt = `[현재 상황]
-- 날짜: ${now.toLocaleDateString('ko-KR')} ${dayOfWeek}
-- 시간: ${now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} (${timeOfDay === 'morning' ? '오전' : timeOfDay === 'afternoon' ? '오후' : timeOfDay === 'evening' ? '저녁' : '밤'})
+    const userPrompt = `[${userName}의 정보]
+${userCompany ? `- 소속: ${userCompany}` : ''}
+${userPosition ? `- 직책: ${userPosition}` : ''}
+${userBio ? `- 소개: ${userBio}` : ''}
+${userSpecialties.length > 0 ? `- 전문 분야: ${userSpecialties.join(', ')}` : ''}
+
+[현재 상황 - 한국 시간(Asia/Seoul) 기준]
+- 날짜: ${now.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })} ${dayOfWeek}
+- 시간: ${now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' })} (${timeOfDayKorean})
+- 현재는 ${timeOfDayKorean}입니다. ${timeOfDay === 'night' || hour < 5 ? '새벽 시간이므로 인사에 주의하세요.' : timeOfDay === 'morning' ? '아침 시간입니다. 좋은 아침 인사를 사용하세요.' : timeOfDay === 'afternoon' ? '오후 시간입니다.' : '저녁 시간입니다.'}
 
 [고객 정보]
 - 이름: ${customerInfo.name}
@@ -183,11 +256,20 @@ ${customerInfo.age ? `- 나이: ${customerInfo.age}세` : customerInfo.birth_yea
 ${customerInfo.birthday ? `- 생일: ${new Date(customerInfo.birthday).toLocaleDateString('ko-KR')}` : ''}
 ${customerInfo.anniversary ? `- 기념일: ${new Date(customerInfo.anniversary).toLocaleDateString('ko-KR')}` : ''}
 ${customerInfo.notes ? `- 메모: ${customerInfo.notes}` : ''}
+${relationshipInfo ? `\n[고객과의 관계 정보]\n${relationshipInfo}` : ''}
+${conversationSummary?.summary ? `- 대화 요약: ${conversationSummary.summary}` : ''}
+${conversationSummary?.next_actions && conversationSummary.next_actions.length > 0 ? `- 다음 액션: ${conversationSummary.next_actions.join(', ')}` : ''}
 
-[최근 대화 이력]
+[최근 대화 이력 - 패턴 분석]
 ${conversationHistory.length > 0 
-  ? conversationHistory.map((h, i) => `${i + 1}. (${h.date}) 나 → 고객: "${h.message}"`).join('\n')
-  : '대화 이력이 없습니다.'}
+  ? conversationHistory.map((h, i) => {
+      // 대화에서 말투 패턴 분석
+      const message = h.message
+      const usesBanmal = /(야|어|해|지|다|네|게)/.test(message) && !/(습니다|습니다|세요|세요)/.test(message)
+      const tone = usesBanmal ? '반말' : '존댓말'
+      return `${i + 1}. (${h.date}) ${userName} → ${customerInfo.name}: "${message}" [톤: ${tone}]`
+    }).join('\n')
+  : '대화 이력이 없습니다. 첫 대화일 수 있습니다.'}
 
 [의도]
 ${intent || '안부 인사 및 관계 유지'}`
