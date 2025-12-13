@@ -138,13 +138,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 사용자 이름 결정 - 반드시 full_name만 사용 (이메일 아이디 절대 사용 금지!)
-    let userName: string | null = null
     const fullName = userSettings?.full_name?.trim()
     
-    if (fullName && fullName.length > 0) {
-      userName = fullName
-      console.log(`✅ 사용자 이름 확인: "${userName}"`)
-    } else {
+    if (!fullName || fullName.length === 0) {
       // full_name이 없으면 에러 반환 (이메일 아이디를 이름으로 사용하는 것은 절대 안 됨!)
       console.error(`❌ CRITICAL: 사용자 이름(full_name)이 설정되지 않았습니다!`)
       console.error(`❌ userSettings:`, JSON.stringify(userSettings, null, 2))
@@ -160,8 +156,8 @@ export async function POST(request: NextRequest) {
     }
     
     // 최종 확인: userName이 이메일 형식이면 에러
-    if (userName.includes('@')) {
-      console.error(`❌ CRITICAL: userName에 이메일이 포함되어 있습니다! userName: "${userName}"`)
+    if (fullName.includes('@')) {
+      console.error(`❌ CRITICAL: userName에 이메일이 포함되어 있습니다! userName: "${fullName}"`)
       return NextResponse.json(
         { 
           error: '사용자 이름이 올바르지 않습니다. 설정 페이지에서 올바른 이름을 입력해주세요.',
@@ -170,6 +166,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    
+    // userName 확정 (이제 null이 아님)
+    const userName = fullName
+    console.log(`✅ 사용자 이름 확인: "${userName}"`)
 
     // 최근 발송 내역 조회 (최대 5개) - 전화번호가 있을 때만
     let recentLogs: any[] = []
