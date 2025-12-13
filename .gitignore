@@ -82,3 +82,7 @@ mobile/ios/DerivedData/
 # Metro
 mobile/.metro-health-check*
 
+# Firebase Admin SDK (private keys - NEVER commit!)
+*firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
+

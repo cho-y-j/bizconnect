@@ -44,11 +44,7 @@ class FCMService {
         await this.handleMessage(remoteMessage);
       });
 
-      // 백그라운드/종료 상태에서 메시지 수신 시
-      messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-        console.log('📩 [FCM] 백그라운드 메시지 수신:', JSON.stringify(remoteMessage, null, 2));
-        await this.handleMessage(remoteMessage);
-      });
+      // 백그라운드 메시지 핸들러는 index.js에서 등록됨 (앱 시작 전에 등록 필요)
 
       this.initialized = true;
       console.log('✅ [FCM] 초기화 완료');
