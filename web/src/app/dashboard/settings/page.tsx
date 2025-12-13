@@ -51,6 +51,7 @@ export default function SettingsPage() {
     business_card_enabled: false,
     business_card_image_url: '',
     full_name: '',
+    phone: '',
     company_name: '',
     position: '',
     department: '',
@@ -128,6 +129,7 @@ export default function SettingsPage() {
           business_card_enabled: data.business_card_enabled || false,
           business_card_image_url: data.business_card_image_url || '',
           full_name: data.full_name || '',
+          phone: data.phone || '',
           company_name: data.company_name || '',
           position: data.position || '',
           department: data.department || '',
@@ -211,6 +213,7 @@ export default function SettingsPage() {
         business_card_image_url: businessCard.business_card_image_url || null,
         // 개인정보 상세 입력 (AI가 사용자를 이해하기 위한 정보)
         full_name: trimmedFullName, // 검증된 이름 저장 (null이 아님)
+        phone: businessCard.phone?.trim() || null, // 전화번호 (관리자용)
         company_name: businessCard.company_name || null,
         position: businessCard.position || null,
         department: businessCard.department || null,
@@ -531,6 +534,25 @@ export default function SettingsPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  전화번호
+                </label>
+                <input
+                  type="tel"
+                  value={businessCard.phone}
+                  onChange={(e) => {
+                    // 숫자와 하이픈만 허용
+                    const value = e.target.value.replace(/[^\d-]/g, '')
+                    setBusinessCard(prev => ({ ...prev, phone: value }))
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="010-1234-5678"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 관리자가 전체 이용자를 관리할 때 사용됩니다.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   이메일
                 </label>
                 <input
@@ -541,18 +563,20 @@ export default function SettingsPage() {
                   placeholder="hong@example.com"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  웹사이트
-                </label>
-                <input
-                  type="url"
-                  value={businessCard.website}
-                  onChange={(e) => setBusinessCard(prev => ({ ...prev, website: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com"
-                />
-              </div>
+            </div>
+
+            {/* 웹사이트 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                웹사이트
+              </label>
+              <input
+                type="url"
+                value={businessCard.website}
+                onChange={(e) => setBusinessCard(prev => ({ ...prev, website: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com"
+              />
             </div>
 
             {/* 주소 */}
