@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { CallDetectionProvider } from './src/components/CallDetectionProvider';
 import { taskService } from './src/services/taskService';
 import LoginScreen from './src/screens/LoginScreen';
@@ -24,12 +24,16 @@ function AppContent() {
   };
   const goBack = () => setCurrentScreen('SendSMS');
 
+  const appState = useRef(AppState.currentState);
+
   // taskService 초기화 (로그인 시)
   useEffect(() => {
     const initializeTaskService = async () => {
       if (user) {
         try {
           await taskService.setUserId(user.id);
+          // 초기화 후 즉시 pending tasks 로드
+          await taskService.loadPendingTasks();
         } catch (error) {
           console.error('Error initializing taskService:', error);
         }
@@ -44,6 +48,27 @@ function AppContent() {
     };
     
     initializeTaskService();
+  }, [user]);
+
+  // 앱이 포그라운드로 돌아올 때 pending tasks 로드
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        user
+      ) {
+        console.log('📱 [App] App has come to the foreground, loading pending tasks...');
+        taskService.loadPendingTasks().catch((error) => {
+          console.error('❌ [App] Error loading pending tasks on foreground:', error);
+        });
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [user]);
 
   // 로그인 후 기본 화면을 문자 보내기 화면으로 설정

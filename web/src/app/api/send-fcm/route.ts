@@ -97,18 +97,29 @@ async function getAccessToken(): Promise<string> {
 }
 
 export async function POST(request: Request) {
+  console.log('[FCM API] ===== FCM PUSH REQUEST RECEIVED =====');
+  
   try {
-    const { userId, taskId, type = 'send_sms' } = await request.json();
+    const body = await request.json();
+    const { userId, taskId, type = 'send_sms' } = body;
+    
+    console.log('[FCM API] Request body:', { userId, taskId, type });
 
     if (!userId) {
+      console.error('[FCM API] ❌ userId is required');
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
     // 환경 변수 확인
     if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
-      console.error('[FCM] Firebase credentials not configured');
+      console.error('[FCM API] ❌ Firebase credentials not configured');
+      console.error('[FCM API] FIREBASE_CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? 'Set' : 'Missing');
+      console.error('[FCM API] FIREBASE_PRIVATE_KEY:', FIREBASE_PRIVATE_KEY ? 'Set' : 'Missing');
       return NextResponse.json({ error: 'Firebase not configured' }, { status: 500 });
     }
+
+    console.log('[FCM API] ✅ Firebase credentials configured');
+    console.log('[FCM API] Querying FCM token from user_settings...');
 
     // user_settings에서 FCM 토큰 조회
     const { data: userSettings, error: settingsError } = await supabase
@@ -117,8 +128,20 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
       .single();
 
-    if (settingsError || !userSettings?.fcm_token) {
-      console.log('[FCM] No FCM token found for user:', userId);
+    if (settingsError) {
+      console.error('[FCM API] ❌ Error querying user_settings:', settingsError);
+      console.error('[FCM API] Error code:', settingsError.code);
+      console.error('[FCM API] Error message:', settingsError.message);
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to query user settings',
+        error: settingsError
+      }, { status: 500 });
+    }
+
+    if (!userSettings?.fcm_token) {
+      console.warn('[FCM API] ⚠️ No FCM token found for user:', userId);
+      console.warn('[FCM API] User settings:', userSettings);
       return NextResponse.json({
         success: false,
         message: 'FCM token not found. App may not be registered.'
@@ -126,9 +149,38 @@ export async function POST(request: Request) {
     }
 
     const fcmToken = userSettings.fcm_token;
+    console.log('[FCM API] ✅ FCM token found (length:', fcmToken.length, ')');
+    console.log('[FCM API] Token preview:', fcmToken.substring(0, 20) + '...');
 
+    console.log('[FCM API] Getting OAuth2 access token...');
     // OAuth2 액세스 토큰 얻기
     const accessToken = await getAccessToken();
+    console.log('[FCM API] ✅ Access token obtained');
+
+    const messagePayload = {
+      message: {
+        token: fcmToken,
+        data: {
+          type: type,
+          taskId: taskId || '',
+          timestamp: new Date().toISOString(),
+        },
+        notification: {
+          title: '문자 발송 요청',
+          body: '웹에서 문자 발송 요청이 있습니다.',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            sound: 'default',
+            channelId: 'bizconnect-default',
+          },
+        },
+      },
+    };
+
+    console.log('[FCM API] Sending FCM push...');
+    console.log('[FCM API] Message payload:', JSON.stringify(messagePayload, null, 2));
 
     // FCM v1 API로 푸시 발송
     const fcmResponse = await fetch(
@@ -139,44 +191,32 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          message: {
-            token: fcmToken,
-            data: {
-              type: type,
-              taskId: taskId || '',
-              timestamp: new Date().toISOString(),
-            },
-            notification: {
-              title: '문자 발송 요청',
-              body: '웹에서 문자 발송 요청이 있습니다.',
-            },
-            android: {
-              priority: 'high',
-              notification: {
-                sound: 'default',
-                channelId: 'bizconnect-default',
-              },
-            },
-          },
-        }),
+        body: JSON.stringify(messagePayload),
       }
     );
 
     const fcmResult = await fcmResponse.json();
-    console.log('[FCM v1] Push result:', fcmResult);
+    console.log('[FCM API] FCM API response status:', fcmResponse.status);
+    console.log('[FCM API] FCM API response:', JSON.stringify(fcmResult, null, 2));
 
     if (fcmResponse.ok) {
+      console.log('[FCM API] ✅ FCM push sent successfully');
+      console.log('[FCM API] ===== FCM PUSH REQUEST COMPLETE =====');
       return NextResponse.json({ success: true, message: 'FCM push sent', result: fcmResult });
     } else {
+      console.error('[FCM API] ❌ FCM push failed');
+      console.error('[FCM API] Error response:', fcmResult);
       return NextResponse.json({
         success: false,
         message: 'FCM push failed',
         error: fcmResult
-      });
+      }, { status: fcmResponse.status });
     }
   } catch (error) {
-    console.error('[FCM] Error:', error);
+    console.error('[FCM API] ❌ Exception occurred:', error);
+    console.error('[FCM API] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('[FCM API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('[FCM API] ===== FCM PUSH REQUEST FAILED =====');
     return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }
