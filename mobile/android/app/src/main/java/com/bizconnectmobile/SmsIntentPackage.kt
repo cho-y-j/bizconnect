@@ -9,7 +9,8 @@ class SmsIntentPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
     return listOf(
       SmsIntentModule(reactContext),
-      MmsSenderModule(reactContext)
+      MmsSenderModule(reactContext),
+      SmsApprovalModule(reactContext)
     )
   }
 

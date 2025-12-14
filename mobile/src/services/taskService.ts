@@ -3,6 +3,7 @@ import { Task } from '../lib/types/task';
 import { smsQueue } from '../lib/smsQueue';
 import { sendSms } from '../lib/smsSender';
 import { checkDailyLimit, isLimitExceeded } from '../lib/dailyLimit';
+import { smsApprovalService } from '../lib/smsApproval';
 
 /**
  * 작업 서비스 - 큐와 발송을 통합 관리
@@ -15,6 +16,8 @@ class TaskService {
   private pollingTimer: NodeJS.Timeout | null = null;
   // 웹에서 보낸 작업을 처리하기 위해 자동 구독 활성화
   private disableAutoProcessing = false;
+  // 승인 대기 중인 작업 저장
+  private pendingApprovalTasks: Map<string, Task> = new Map();
 
   /**
    * 사용자 ID 설정
@@ -24,7 +27,7 @@ class TaskService {
       console.log('🔧 ===== TASK SERVICE INITIALIZATION =====');
       console.log('🔧 Setting userId:', userId);
       this.userId = userId;
-      
+
       // user_settings에서 throttle_interval 조회 및 적용
       try {
         const { data: userSettings, error: settingsError } = await supabase
@@ -44,9 +47,11 @@ class TaskService {
         console.error('❌ Error loading throttle_interval, using default:', error);
         smsQueue.setThrottleInterval(15 * 1000); // 기본값 15초
       }
-      
+
       console.log('🔧 Setting up queue...');
       this.setupQueue();
+      console.log('🔧 Setting up approval callbacks...');
+      this.setupApprovalCallbacks();
       console.log('🔧 Subscribing to tasks...');
       this.subscribeToTasks();
       console.log('🔧 ===== TASK SERVICE INITIALIZED =====');
@@ -55,6 +60,70 @@ class TaskService {
       console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
       // 에러가 발생해도 앱이 크래시되지 않도록 처리
+    }
+  }
+
+  /**
+   * 승인 콜백 설정
+   */
+  private setupApprovalCallbacks(): void {
+    smsApprovalService.setCallbacks(
+      // 승인 시
+      async (taskId: string) => {
+        console.log('✅ [TaskService] SMS Approved:', taskId);
+        const task = this.pendingApprovalTasks.get(taskId);
+        if (task) {
+          this.pendingApprovalTasks.delete(taskId);
+          await this.addTaskToQueue(task);
+        } else {
+          // 맵에 없으면 DB에서 조회
+          const { data: dbTask, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .single();
+
+          if (!error && dbTask && dbTask.status === 'pending') {
+            await this.addTaskToQueue(dbTask);
+          }
+        }
+      },
+      // 취소 시
+      async (taskId: string) => {
+        console.log('❌ [TaskService] SMS Cancelled:', taskId);
+        this.pendingApprovalTasks.delete(taskId);
+        await smsApprovalService.cancelTask(taskId);
+      }
+    );
+  }
+
+  /**
+   * 승인 알림 요청 (웹에서 보낸 작업 처리)
+   */
+  async requestApproval(task: Task): Promise<void> {
+    console.log('📱 [TaskService] Requesting approval for task:', task.id);
+
+    // 승인 대기 맵에 저장
+    this.pendingApprovalTasks.set(task.id, task);
+
+    try {
+      const result = await smsApprovalService.showApprovalNotification(
+        task.id,
+        task.customer_phone,
+        task.message_content
+      );
+
+      // 자동 승인된 경우
+      if (typeof result === 'object' && result.autoApproved) {
+        console.log('✅ [TaskService] Auto-approved, processing task:', task.id);
+        // 콜백이 이미 처리함
+      } else {
+        console.log('📱 [TaskService] Approval notification shown, ID:', result);
+      }
+    } catch (error) {
+      console.error('❌ [TaskService] Failed to show approval notification:', error);
+      // 알림 실패 시에도 맵에서 제거
+      this.pendingApprovalTasks.delete(task.id);
     }
   }
 
@@ -180,8 +249,8 @@ class TaskService {
             console.log('🔔 Now:', now.toISOString());
 
             if (!scheduledAt || scheduledAt <= now) {
-              console.log('✅ Task ready, adding to queue:', newTask.id, newTask.type);
-              await this.addTaskToQueue(newTask);
+              console.log('✅ Task ready, requesting approval:', newTask.id, newTask.type);
+              await this.requestApproval(newTask);
             } else {
               console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
             }
@@ -218,8 +287,8 @@ class TaskService {
               : null;
 
             if (!scheduledAt || scheduledAt <= now) {
-              console.log('🔄 Task status changed to pending, adding to queue:', updatedTask.id);
-              await this.addTaskToQueue(updatedTask);
+              console.log('🔄 Task status changed to pending, requesting approval:', updatedTask.id);
+              await this.requestApproval(updatedTask);
             }
           }
         }
@@ -255,6 +324,9 @@ class TaskService {
     this.subscription = channel;
     } catch (error) {
       console.error('Error in subscribeToTasks:', error);
+      // 구독 실패 시 폴링으로 대체
+      console.error('❌ Subscription setup failed, starting polling fallback...');
+      this.startPolling(1);
     }
   }
 
@@ -382,14 +454,11 @@ class TaskService {
         for (const task of filteredTasks) {
           console.log(`  - Task ${task.id}: ${task.type} to ${task.customer_phone}, status: ${task.status}, scheduled_at: ${task.scheduled_at || 'null'}`);
         }
-        console.log('✅ Adding tasks to queue...');
+        console.log('✅ Requesting approval for tasks...');
         for (const task of filteredTasks) {
-          await this.addTaskToQueue(task);
+          await this.requestApproval(task);
         }
-        // 큐 강제 시작
-        console.log('🚀 Starting queue processing for loaded tasks');
-        smsQueue.startProcessing();
-        console.log('✅ ===== PENDING TASKS LOADED =====');
+        console.log('✅ ===== PENDING TASKS PROCESSED =====');
       } else {
         console.log('ℹ️ No pending tasks found for user:', this.userId);
         console.log('ℹ️ Query returned', tasks?.length || 0, 'tasks before filtering');

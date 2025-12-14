@@ -145,12 +145,12 @@ class FCMService {
   }
 
   /**
-   * FCM 메시지 처리 (SMS 발송)
+   * FCM 메시지 처리 (SMS 발송 승인 요청)
    */
   private async handleMessage(remoteMessage: any): Promise<void> {
     console.log('📨 [FCM] ===== FOREGROUND MESSAGE RECEIVED =====');
     console.log('📨 [FCM] Full message:', JSON.stringify(remoteMessage, null, 2));
-    
+
     try {
       const data = remoteMessage.data;
       console.log('📨 [FCM] Message data:', data);
@@ -161,12 +161,12 @@ class FCMService {
       if (data?.type === 'send_sms' || data?.type === 'send_mms') {
         console.log('📤 [FCM] SMS 발송 작업 감지');
 
-        // taskId가 있으면 해당 작업을 직접 처리
+        // taskId가 있으면 해당 작업을 직접 처리 (승인 요청)
         if (data.taskId) {
-          console.log('🔍 [FCM] Processing specific task:', data.taskId);
-          await this.processTask(data.taskId);
+          console.log('🔍 [FCM] Requesting approval for task:', data.taskId);
+          await this.requestTaskApproval(data.taskId);
         } else {
-          // taskId가 없으면 대기 중인 작업 로드
+          // taskId가 없으면 대기 중인 작업 로드 (각 작업에 대해 승인 요청)
           console.log('🔍 [FCM] No taskId, loading all pending tasks');
           await taskService.loadPendingTasks();
         }
@@ -179,19 +179,17 @@ class FCMService {
       console.error('❌ [FCM] Error details:', error instanceof Error ? error.message : String(error));
       console.error('❌ [FCM] Error stack:', error instanceof Error ? error.stack : 'No stack');
     }
-    
+
     console.log('📨 [FCM] ===== FOREGROUND MESSAGE PROCESSING COMPLETE =====');
   }
 
   /**
-   * 특정 작업 처리
+   * 작업 승인 요청
    */
-  private async processTask(taskId: string): Promise<void> {
-    console.log('🔍 [FCM] ===== PROCESSING TASK =====');
-    console.log('🔍 [FCM] Task ID:', taskId);
-    
+  private async requestTaskApproval(taskId: string): Promise<void> {
+    console.log('📱 [FCM] Requesting approval for task:', taskId);
+
     try {
-      console.log('🔍 [FCM] Querying task from database...');
       const { data: task, error } = await supabase
         .from('tasks')
         .select('*')
@@ -200,9 +198,6 @@ class FCMService {
 
       if (error) {
         console.error('❌ [FCM] 작업 조회 실패:', error);
-        console.error('❌ [FCM] Error code:', error.code);
-        console.error('❌ [FCM] Error message:', error.message);
-        console.error('❌ [FCM] Error details:', JSON.stringify(error, null, 2));
         return;
       }
 
@@ -211,31 +206,20 @@ class FCMService {
         return;
       }
 
-      console.log('✅ [FCM] Task found:', {
-        id: task.id,
-        status: task.status,
-        type: task.type,
-        customer_phone: task.customer_phone,
-        created_at: task.created_at
-      });
-
       if (task.status !== 'pending') {
         console.log('ℹ️ [FCM] 작업이 pending 상태가 아님:', task.status);
-        console.log('ℹ️ [FCM] Current status:', task.status);
         return;
       }
 
-      console.log('📤 [FCM] 작업 큐에 추가 시작:', taskId);
-      await taskService.addTaskToQueue(task);
-      console.log('✅ [FCM] 작업 큐에 추가 완료:', taskId);
+      // taskService를 통해 승인 요청
+      await taskService.requestApproval(task);
+      console.log('✅ [FCM] Approval requested for task:', taskId);
     } catch (error) {
-      console.error('❌ [FCM] 작업 처리 실패:', error);
-      console.error('❌ [FCM] Error details:', error instanceof Error ? error.message : String(error));
-      console.error('❌ [FCM] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error('❌ [FCM] 승인 요청 실패:', error);
     }
-    
-    console.log('🔍 [FCM] ===== TASK PROCESSING COMPLETE =====');
   }
+
 }
+
 
 export const fcmService = new FCMService();
