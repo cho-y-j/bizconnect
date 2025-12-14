@@ -1038,7 +1038,10 @@ export default function SendSMSPage() {
         // FCM 푸시 발송 (예약 발송이 아닌 경우에만)
         if (!scheduledAt) {
           try {
-            console.log('📤 Sending FCM push to mobile app...')
+            console.log('📤 [Web] Sending FCM push to mobile app...')
+            console.log('📤 [Web] Task ID:', insertedTasks[0]?.id)
+            console.log('📤 [Web] User ID:', user.id)
+            
             const fcmResponse = await fetch('/api/send-fcm', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1048,10 +1051,26 @@ export default function SendSMSPage() {
                 type: insertedTasks[0]?.type || 'send_sms',
               }),
             })
+            
+            console.log('📤 [Web] FCM API response status:', fcmResponse.status)
+            
+            if (!fcmResponse.ok) {
+              const errorText = await fcmResponse.text()
+              console.error('❌ [Web] FCM API error response:', errorText)
+              throw new Error(`FCM API failed: ${fcmResponse.status} - ${errorText}`)
+            }
+            
             const fcmResult = await fcmResponse.json()
-            console.log('📤 FCM result:', fcmResult)
+            console.log('📤 [Web] FCM result:', JSON.stringify(fcmResult, null, 2))
+            
+            if (!fcmResult.success) {
+              console.error('❌ [Web] FCM push failed:', fcmResult.message || fcmResult.error)
+            } else {
+              console.log('✅ [Web] FCM push sent successfully')
+            }
           } catch (fcmErr) {
-            console.error('❌ FCM push failed:', fcmErr)
+            console.error('❌ [Web] FCM push exception:', fcmErr)
+            console.error('❌ [Web] FCM error details:', fcmErr instanceof Error ? fcmErr.message : String(fcmErr))
             // FCM 실패해도 Realtime/폴링으로 처리됨
           }
         }
