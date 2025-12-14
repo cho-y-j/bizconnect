@@ -2,39 +2,68 @@
  * @format
  */
 
-import {AppRegistry} from 'react-native';
+import {AppRegistry, NativeModules} from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import App from './App';
 import {name as appName} from './app.json';
-import {taskService} from './src/services/taskService';
+
+const {SmsApprovalModule} = NativeModules;
 
 // FCM 백그라운드 메시지 핸들러 등록
+// DATA-ONLY FCM이므로 앱에서 직접 알림을 표시해야 함
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('📩 [FCM Background] ===== BACKGROUND MESSAGE RECEIVED =====');
-  console.log('📩 [FCM Background] Message:', JSON.stringify(remoteMessage, null, 2));
 
   try {
     const data = remoteMessage.data;
-    console.log('📩 [FCM Background] Message data:', data);
-    
+    console.log('📩 [FCM Background] Type:', data?.type, 'Count:', data?.count);
+
+    // SMS 발송 요청인 경우 승인 알림 표시
     if (data?.type === 'send_sms' || data?.type === 'send_mms') {
-      console.log('📤 [FCM Background] SMS task detected, taskId:', data.taskId);
-      console.log('ℹ️ [FCM Background] Task will be processed when app comes to foreground');
-      // 백그라운드에서는 userId가 없어서 처리할 수 없음
-      // 앱이 포그라운드로 돌아올 때 자동으로 pending tasks를 로드하도록 함
-    } else {
-      console.log('ℹ️ [FCM Background] Message type is not send_sms/send_mms:', data?.type);
+      const taskId = data.taskId;
+      const phone = data.phone || '알 수 없음';
+      const messagePreview = data.messagePreview || '';
+
+      console.log('📤 [FCM Background] Showing approval notification');
+      console.log('📤 [FCM Background] TaskId:', taskId);
+      console.log('📤 [FCM Background] Phone:', phone);
+
+      // 네이티브 모듈로 승인 알림 표시
+      if (SmsApprovalModule && taskId) {
+        try {
+          await SmsApprovalModule.showApprovalNotification(
+            taskId,
+            phone,
+            messagePreview || '문자 내용을 확인하려면 탭하세요'
+          );
+          console.log('✅ [FCM Background] Approval notification shown');
+        } catch (error) {
+          console.error('❌ [FCM Background] Failed to show notification:', error);
+        }
+      }
+    }
+    // 배치 SMS 발송 요청인 경우
+    else if (data?.type === 'send_sms_batch') {
+      const count = parseInt(data.count || '0', 10);
+      const taskIdsJson = data.taskIds;
+
+      console.log('📤 [FCM Background] Showing batch approval notification');
+      console.log('📤 [FCM Background] Count:', count);
+
+      if (SmsApprovalModule && taskIdsJson && count > 0) {
+        try {
+          await SmsApprovalModule.showBatchApprovalNotification(taskIdsJson, count);
+          console.log('✅ [FCM Background] Batch approval notification shown');
+        } catch (error) {
+          console.error('❌ [FCM Background] Failed to show batch notification:', error);
+        }
+      }
     }
   } catch (error) {
-    console.error('❌ [FCM Background] Error processing background message:', error);
-    console.error('❌ [FCM Background] Error details:', error?.message, error?.stack);
+    console.error('❌ [FCM Background] Error:', error);
   }
-  
-  console.log('📩 [FCM Background] ===== BACKGROUND MESSAGE PROCESSING COMPLETE =====');
+
+  console.log('📩 [FCM Background] ===== PROCESSING COMPLETE =====');
 });
 
 AppRegistry.registerComponent(appName, () => App);
-
-
-
-
