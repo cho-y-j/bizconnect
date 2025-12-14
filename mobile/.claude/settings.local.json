@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.gradlew clean:*)",
+      "Bash(cmd /c \"cd /d C:\\call\\mobile\\android && gradlew clean assembleRelease\")",
+      "Bash(powershell -Command \"cd C:\\call\\mobile\\android; .\\gradlew.bat clean assembleRelease\")",
+      "Bash(powershell -Command:*)",
+      "Bash(adb install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix: 웹→앱 문자 동기화 근본 원인 수정\n\n- AuthContext에서 taskService.setUserId() 호출 추가\n- 로그인 시 taskService 초기화 (Supabase Realtime 구독 시작)\n- 로그아웃 시 taskService 구독 해제\n- 이전에는 setUserId()가 어디에서도 호출되지 않아서\n  웹에서 보낸 작업을 앱이 전혀 감지하지 못했음\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(npm install:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: FCM 푸시 기반 웹→앱 문자 동기화 구현\n\n- @react-native-firebase/app, messaging 패키지 추가\n- google-services.json 설정 (com.bizconnectmobile)\n- fcmService.ts: FCM 토큰 저장, 푸시 수신 → SMS 발송\n- AuthContext에서 FCM 서비스 초기화\n- web/api/send-fcm: FCM 푸시 발송 API\n- send/page.tsx: tasks INSERT 후 FCM 푸시 발송\n\n기존 Realtime/폴링은 백업용으로 유지\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(adb devices:*)",
+      "Bash(C:AndroidSdkplatform-toolsadb.exe devices)",
+      "Bash(if [ -f \"/c/call/WORK_LOG_2025-12-14.md\" ])",
+      "Bash(then echo \"exists\")",
+      "Bash(else echo \"not exists\")",
+      "Bash(fi)"
+    ]
+  }
+}

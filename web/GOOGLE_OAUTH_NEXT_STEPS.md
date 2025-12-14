@@ -74,3 +74,6 @@
 - Secret을 잃어버렸다면 Google Cloud Console에서 "Reset secret"으로 새로 생성해야 합니다.
 - Redirect URI는 정확히 일치해야 합니다. 공백이나 슬래시 하나라도 틀리면 작동하지 않습니다.
 
+
+
+

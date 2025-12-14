@@ -43,6 +43,7 @@ Vercel 대시보드 → **Settings** → **Environment Variables**에서 다음 
 | Name | Value | Environment |
 |------|-------|-------------|
 | `DEEPSEEK_API_KEY` | `your_deepseek_key` | Production, Preview, Development |
+| `FCM_SERVER_KEY` | `BId_vvFEd4mlHbGrpUdAqGTYQgivGFaA6ewSgXwxvbxeqgF9hV88wy-Mw3writkpdBO4YQd3HQeAdD_7KCy7f_o` | Production, Preview, Development |
 
 ---
 
@@ -97,6 +98,7 @@ Vercel 대시보드 → **Settings** → **Environment Variables**에서 다음 
 - [ ] Root Directory: `web` 설정됨
 - [ ] 환경 변수: `NEXT_PUBLIC_SUPABASE_URL` 설정됨
 - [ ] 환경 변수: `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정됨
+- [ ] 환경 변수: `FCM_SERVER_KEY` 설정됨 (푸시 알림용)
 - [ ] 빌드 성공 확인
 - [ ] 사이트 접속 및 로그인 테스트
 

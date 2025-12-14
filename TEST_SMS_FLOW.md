@@ -83,3 +83,13 @@ ADD CONSTRAINT valid_log_status CHECK (status IN ('pending', 'sent', 'failed', '
 - 모바일 앱 로그에서 에러 확인
 - RLS 정책 확인
 
+
+
+
+
+
+
+
+
+
+

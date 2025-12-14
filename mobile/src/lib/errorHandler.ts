@@ -20,24 +20,34 @@ class ErrorHandler {
    * 에러 핸들러 초기화
    */
   initialize(): void {
-    // JavaScript 에러 캐치
-    const originalHandler = ErrorUtils.getGlobalHandler();
-    ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-      this.logError(error, { isFatal });
-      if (originalHandler) {
-        originalHandler(error, isFatal);
+    try {
+      // JavaScript 에러 캐치 (ErrorUtils가 있는 경우에만)
+      if (ErrorUtils && typeof ErrorUtils.getGlobalHandler === 'function') {
+        const originalHandler = ErrorUtils.getGlobalHandler();
+        ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+          this.logError(error, { isFatal });
+          if (originalHandler) {
+            originalHandler(error, isFatal);
+          }
+        });
       }
-    });
+    } catch (e) {
+      console.warn('ErrorUtils not available:', e);
+    }
 
-    // Promise rejection 캐치
-    const originalUnhandledRejection = global.onunhandledrejection;
-    global.onunhandledrejection = (event: any) => {
-      const error = event.reason || new Error('Unhandled promise rejection');
-      this.logError(error, { type: 'promise_rejection' });
-      if (originalUnhandledRejection) {
-        originalUnhandledRejection(event);
-      }
-    };
+    try {
+      // Promise rejection 캐치
+      const originalUnhandledRejection = (global as any).onunhandledrejection;
+      (global as any).onunhandledrejection = (event: any) => {
+        const error = event?.reason || new Error('Unhandled promise rejection');
+        this.logError(error, { type: 'promise_rejection' });
+        if (originalUnhandledRejection) {
+          originalUnhandledRejection(event);
+        }
+      };
+    } catch (e) {
+      console.warn('Failed to set unhandled rejection handler:', e);
+    }
   }
 
   /**
@@ -125,6 +135,7 @@ class ErrorHandler {
 }
 
 export const errorHandler = new ErrorHandler();
+
 
 
 

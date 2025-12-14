@@ -7,3 +7,5 @@ ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT NULL;
 
 COMMENT ON COLUMN user_settings.phone IS '사용자 전화번호 (관리자용)';
 
+
+

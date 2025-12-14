@@ -19,3 +19,6 @@ ADD COLUMN IF NOT EXISTS ai_intent_samples TEXT[] DEFAULT ARRAY[
 -- 주석 추가
 COMMENT ON COLUMN user_settings.ai_intent_samples IS 'AI 메시지 추천 시 사용할 의도 샘플 목록 (사용자 커스터마이징 가능)';
 
+
+
+

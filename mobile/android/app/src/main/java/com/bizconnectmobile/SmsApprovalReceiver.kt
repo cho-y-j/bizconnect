@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import org.json.JSONArray
+import com.facebook.react.ReactApplication
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
  * SMS 승인/취소 버튼 클릭을 처리하는 BroadcastReceiver
@@ -63,6 +65,18 @@ class SmsApprovalReceiver : BroadcastReceiver() {
                 lastApprovedBatchTaskIds = null
                 lastCancelledBatchTaskIds = null
 
+                // 즉시 이벤트 발송 시도 (앱이 실행 중이면)
+                try {
+                    val reactContext = context.applicationContext as? com.facebook.react.ReactApplication
+                    reactContext?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
+                        val deviceEventManagerModule = reactContext.getNativeModule(com.facebook.react.modules.core.DeviceEventManagerModule::class.java)
+                        deviceEventManagerModule?.emit("onSmsApproved", taskIdOrJson)
+                        Log.d(TAG, "Event sent immediately from receiver")
+                    } ?: Log.d(TAG, "React context not available, will send on resume")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to send event immediately", e)
+                }
+
                 // 앱을 포그라운드로 가져오기
                 bringAppToForeground(context, taskIdOrJson, isApproved = true)
             }
@@ -85,6 +99,20 @@ class SmsApprovalReceiver : BroadcastReceiver() {
                 lastCancelledBatchTaskIds = null
                 lastApprovedTaskId = null
                 lastCancelledTaskId = null
+
+                // 즉시 이벤트 발송 시도 (앱이 실행 중이면)
+                try {
+                    val reactContext = context.applicationContext as? com.facebook.react.ReactApplication
+                    reactContext?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
+                        val deviceEventManagerModule = reactContext.getNativeModule(com.facebook.react.modules.core.DeviceEventManagerModule::class.java)
+                        taskIds.forEach { taskId ->
+                            deviceEventManagerModule?.emit("onSmsApproved", taskId)
+                        }
+                        Log.d(TAG, "Batch events sent immediately from receiver")
+                    } ?: Log.d(TAG, "React context not available, will send on resume")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to send batch events immediately", e)
+                }
 
                 // 앱을 포그라운드로 가져오기
                 bringAppToForeground(context, taskIdOrJson, isApproved = true, isBatch = true)

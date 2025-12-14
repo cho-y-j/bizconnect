@@ -24,14 +24,20 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
 
-    setLoading(true);
-    const { error } = await signIn(email, password);
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('로그인 실패', error.message);
+    try {
+      setLoading(true);
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        Alert.alert('로그인 실패', error.message || '로그인에 실패했습니다.');
+      }
+      // 성공하면 AuthContext가 자동으로 상태를 업데이트하고 네비게이션이 변경됨
+    } catch (err: any) {
+      console.error('Login error:', err);
+      Alert.alert('오류', err?.message || '로그인 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
     }
-    // 성공하면 AuthContext가 자동으로 상태를 업데이트하고 네비게이션이 변경됨
   };
 
   return (
@@ -47,6 +53,7 @@ export default function LoginScreen({ navigation }: any) {
           <TextInput
             style={styles.input}
             placeholder="이메일"
+            placeholderTextColor="#9CA3AF"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -57,6 +64,7 @@ export default function LoginScreen({ navigation }: any) {
           <TextInput
             style={styles.input}
             placeholder="비밀번호"
+            placeholderTextColor="#9CA3AF"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -121,6 +129,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    color: '#1F2937', // 입력 텍스트 색상 추가
   },
   button: {
     backgroundColor: '#2563EB',
@@ -146,6 +155,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 
 
 

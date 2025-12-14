@@ -237,3 +237,4 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 **검토 완료**: 2025년 1월 27일
 
+

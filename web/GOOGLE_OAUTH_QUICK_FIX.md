@@ -106,3 +106,6 @@ GET https://hdeebyhwoogxawjkwufx.supabase.co/auth/v1/authorize?provider=google&r
    - OAuth 동의 화면이 설정되어 있는지 확인
    - 테스트 사용자로 본인 이메일 추가 (앱이 검증되지 않은 경우)
 
+
+
+

@@ -47,3 +47,6 @@
 - ✅ Supabase Client ID: 입력됨
 - ⚠️ **Supabase Client Secret: 입력 필요** ← 이것만 하면 됩니다!
 
+
+
+

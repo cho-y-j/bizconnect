@@ -25,7 +25,10 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
 
     init {
         reactContext.addLifecycleEventListener(this)
-        Log.d(TAG, "SmsApprovalModule initialized")
+        // 초기화 시 자동 승인 설정 로드
+        val prefs = reactContext.getSharedPreferences("bizconnect_prefs", Context.MODE_PRIVATE)
+        autoApproveEnabled = prefs.getBoolean("auto_approve_sms", false)
+        Log.d(TAG, "SmsApprovalModule initialized, autoApproveEnabled: $autoApproveEnabled")
     }
 
     override fun getName(): String = "SmsApprovalModule"
@@ -80,6 +83,31 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             .emit(eventName, taskId)
     }
 
+    /**
+     * 정보 알림 표시 (자동 승인 시 사용)
+     * 버튼 없음, 탭 불가, 확인용
+     */
+    private fun showInfoNotification(context: Context, title: String, message: String) {
+        try {
+            val notificationId = notificationIdCounter++
+            val notification = NotificationCompat.Builder(context, "sms-info")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setCategory(NotificationCompat.CATEGORY_STATUS)
+                .setAutoCancel(true)
+                .setTimeoutAfter(5000) // 5초 후 자동 사라짐
+                .build()
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(notificationId, notification)
+            Log.d(TAG, "Info notification shown: $title")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show info notification", e)
+        }
+    }
+
     @ReactMethod
     fun showApprovalNotification(taskId: String, phoneNumber: String, message: String, promise: Promise) {
         Log.d(TAG, "showApprovalNotification called: taskId=$taskId, phone=$phoneNumber")
@@ -88,8 +116,20 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             // 자동 승인이 활성화되어 있으면 바로 승인 이벤트 발송
             if (autoApproveEnabled) {
                 Log.d(TAG, "Auto-approve enabled, sending approval event directly")
+                
+                // 정보 알림 표시
+                val context = reactApplicationContext
+                showInfoNotification(
+                    context,
+                    "자동 승인되어 문자 발송",
+                    "$phoneNumber에게 문자를 발송했습니다"
+                )
+                
                 sendEventToJS("onSmsApproved", taskId)
-                promise.resolve(mapOf("autoApproved" to true))
+                // WritableMap으로 변환하여 Promise 해결
+                val result = Arguments.createMap()
+                result.putBoolean("autoApproved", true)
+                promise.resolve(result)
                 return
             }
 
@@ -190,6 +230,15 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             // 자동 승인이 활성화되어 있으면 바로 승인 이벤트 발송
             if (autoApproveEnabled) {
                 Log.d(TAG, "Auto-approve enabled, sending batch approval events directly")
+                
+                // 정보 알림 표시
+                val context = reactApplicationContext
+                showInfoNotification(
+                    context,
+                    "자동 승인되어 문자 발송",
+                    "${count}건의 문자를 발송했습니다"
+                )
+                
                 // taskIds 파싱해서 각각 승인 이벤트 발송
                 try {
                     val taskIds = org.json.JSONArray(taskIdsJson)
@@ -200,7 +249,10 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to parse taskIds for auto-approve", e)
                 }
-                promise.resolve(mapOf("autoApproved" to true))
+                // WritableMap으로 변환하여 Promise 해결
+                val result = Arguments.createMap()
+                result.putBoolean("autoApproved", true)
+                promise.resolve(result)
                 return
             }
 

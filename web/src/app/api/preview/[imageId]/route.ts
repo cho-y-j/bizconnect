@@ -120,6 +120,13 @@ export async function GET(
       max-height: 100%;
       object-fit: contain;
     }
+    /* 이미지 하단 텍스트 숨김 */
+    .image-container::after {
+      display: none;
+    }
+    img::after {
+      display: none;
+    }
   </style>
 </head>
 <body>

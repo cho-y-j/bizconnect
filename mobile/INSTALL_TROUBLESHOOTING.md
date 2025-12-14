@@ -204,3 +204,4 @@ cd mobile\android
 2. `adb logcat`으로 상세 로그 확인
 3. 기기 모델 및 Android 버전 확인
 
+

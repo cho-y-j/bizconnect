@@ -79,6 +79,18 @@ class MainApplication : Application(), ReactApplication {
         setShowBadge(true)
       }
       notificationManager.createNotificationChannel(smsApprovalChannel)
+
+      // SMS 정보 알림 채널 (자동 승인 시 사용)
+      val smsInfoChannel = NotificationChannel(
+        "sms-info",
+        "문자 발송 정보",
+        NotificationManager.IMPORTANCE_DEFAULT
+      ).apply {
+        description = "자동 승인되어 문자 발송된 정보 알림"
+        enableVibration(false)
+        setShowBadge(false)
+      }
+      notificationManager.createNotificationChannel(smsInfoChannel)
     }
   }
 }

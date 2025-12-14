@@ -35,3 +35,4 @@ Android Studio에서 새 프로젝트를 만들거나, React Native CLI를 사�
 
 
 
+

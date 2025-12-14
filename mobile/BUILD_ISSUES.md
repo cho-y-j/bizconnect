@@ -63,3 +63,4 @@ org.gradle.java.home=C:\\Program Files\\Android\\Android Studio\\jbr
 Java 17 또는 21을 설치한 후 다시 빌드를 시도하세요.
 
 
+

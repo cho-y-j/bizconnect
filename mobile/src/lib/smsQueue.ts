@@ -20,6 +20,15 @@ class SmsQueue {
    * 큐에 작업 추가
    */
   async add(task: Task, priority: number = 0): Promise<void> {
+    // 중복 체크: 이미 큐에 있거나 처리 중인 작업은 추가하지 않음
+    const isDuplicate = this.queue.some(item => item.task.id === task.id) ||
+                        (this.processing?.task.id === task.id);
+
+    if (isDuplicate) {
+      console.log('⏭️ Task already in queue, skipping:', task.id);
+      return;
+    }
+
     const queueItem: QueueItem = {
       task: { ...task, priority },
       retryCount: 0,
@@ -31,9 +40,9 @@ class SmsQueue {
     this.queue.sort((a, b) => (b.task.priority || 0) - (a.task.priority || 0));
 
     await this.saveQueue();
-    
-    console.log('Task added to queue:', task.id, 'Queue length:', this.queue.length);
-    
+
+    console.log('✅ Task added to queue:', task.id, 'Queue length:', this.queue.length);
+
     // 큐 처리 시작 (이미 처리 중이면 자동으로 다음 작업 처리됨)
     this.startProcessing();
   }
@@ -152,25 +161,35 @@ class SmsQueue {
         .eq('id', nextItem.task.id);
     }
 
-    // 스로틀링: 첫 번째 작업은 즉시, 이후 작업은 5초 대기
+    // 스로틀링 로직 개선:
+    // - 단일 건 발송: 즉시 처리 (딜레이 없음)
+    // - 대량 발송 (큐에 2개 이상): 스팸 방지를 위해 딜레이 적용
     const hasMore = this.queue.length > 0;
-    const delay = this.isFirstTask ? 0 : this.throttleInterval;
+    // 큐에 남은 작업이 있을 때만 딜레이 (대량 발송 시)
+    // 첫 번째 작업이거나 단일 건이면 즉시 처리
+    const isBulkSend = hasMore; // 큐에 더 있으면 대량 발송
+    const delay = (this.isFirstTask || !isBulkSend) ? 0 : this.throttleInterval;
     this.isFirstTask = false; // 첫 번째 작업 처리 후 플래그 해제
-    
+
+    console.log(`📊 Queue status: hasMore=${hasMore}, delay=${delay}ms, isFirstTask=${this.isFirstTask}`);
+
     if (hasMore) {
       if (delay > 0) {
+        console.log(`⏱️ Waiting ${delay}ms before next task (bulk send throttling)`);
         this.processTimer = setTimeout(() => {
           this.processing = null;
           this.saveProcessing();
           this.processNext();
         }, delay);
       } else {
-        // 첫 번째 작업은 즉시 처리
+        // 단일 건 또는 첫 번째 작업은 즉시 처리
+        console.log('⚡ Processing next task immediately');
         this.processing = null;
         this.saveProcessing();
         this.processNext();
       }
     } else {
+      console.log('✅ Queue empty, all tasks processed');
       this.processing = null;
       this.isProcessing = false;
       this.processTimer = null;
@@ -228,6 +247,13 @@ class SmsQueue {
       isProcessing: this.isProcessing || this.processing !== null,
       currentTask: this.processing?.task || null,
     };
+  }
+
+  /**
+   * 현재 큐 가져오기
+   */
+  getQueue(): QueueItem[] {
+    return [...this.queue];
   }
 
   /**
