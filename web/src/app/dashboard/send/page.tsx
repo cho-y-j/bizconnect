@@ -1038,31 +1038,41 @@ export default function SendSMSPage() {
         // FCM 푸시 발송 (예약 발송이 아닌 경우에만)
         if (!scheduledAt) {
           try {
+            const taskIds = insertedTasks.map(t => t.id)
+            const firstTask = insertedTasks[0]
+            const hasImageAttachment = selectedImages.length > 0
+
             console.log('📤 [Web] Sending FCM push to mobile app...')
-            console.log('📤 [Web] Task ID:', insertedTasks[0]?.id)
-            console.log('📤 [Web] User ID:', user.id)
-            
+            console.log('📤 [Web] Task count:', taskIds.length)
+            console.log('📤 [Web] Has image:', hasImageAttachment)
+
             const fcmResponse = await fetch('/api/send-fcm', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 userId: user.id,
-                taskId: insertedTasks[0]?.id,
-                type: insertedTasks[0]?.type || 'send_sms',
+                // 단일 문자면 taskId, 다량이면 taskIds
+                taskId: taskIds.length === 1 ? taskIds[0] : undefined,
+                taskIds: taskIds.length > 1 ? taskIds : undefined,
+                type: firstTask?.type || 'send_sms',
+                // 추가 정보 (앱에서 알림 표시용)
+                phone: firstTask?.customer_phone,
+                message: firstTask?.message_content?.substring(0, 50),
+                hasImage: hasImageAttachment,
               }),
             })
-            
+
             console.log('📤 [Web] FCM API response status:', fcmResponse.status)
-            
+
             if (!fcmResponse.ok) {
               const errorText = await fcmResponse.text()
               console.error('❌ [Web] FCM API error response:', errorText)
               throw new Error(`FCM API failed: ${fcmResponse.status} - ${errorText}`)
             }
-            
+
             const fcmResult = await fcmResponse.json()
-            console.log('📤 [Web] FCM result:', JSON.stringify(fcmResult, null, 2))
-            
+            console.log('📤 [Web] FCM result:', fcmResult.success ? 'OK' : fcmResult)
+
             if (!fcmResult.success) {
               console.error('❌ [Web] FCM push failed:', fcmResult.message || fcmResult.error)
             } else {
@@ -1070,7 +1080,6 @@ export default function SendSMSPage() {
             }
           } catch (fcmErr) {
             console.error('❌ [Web] FCM push exception:', fcmErr)
-            console.error('❌ [Web] FCM error details:', fcmErr instanceof Error ? fcmErr.message : String(fcmErr))
             // FCM 실패해도 Realtime/폴링으로 처리됨
           }
         }

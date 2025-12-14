@@ -40,18 +40,36 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
     override fun onHostDestroy() {}
 
     private fun checkPendingApprovals() {
-        // 승인된 작업 확인
+        // 단일 승인된 작업 확인
         SmsApprovalReceiver.lastApprovedTaskId?.let { taskId ->
             Log.d(TAG, "Found pending approved task: $taskId")
             sendEventToJS("onSmsApproved", taskId)
             SmsApprovalReceiver.lastApprovedTaskId = null
         }
 
-        // 취소된 작업 확인
+        // 단일 취소된 작업 확인
         SmsApprovalReceiver.lastCancelledTaskId?.let { taskId ->
             Log.d(TAG, "Found pending cancelled task: $taskId")
             sendEventToJS("onSmsCancelled", taskId)
             SmsApprovalReceiver.lastCancelledTaskId = null
+        }
+
+        // 배치 승인된 작업 확인
+        SmsApprovalReceiver.lastApprovedBatchTaskIds?.let { taskIds ->
+            Log.d(TAG, "Found pending approved batch tasks: ${taskIds.size}")
+            taskIds.forEach { taskId ->
+                sendEventToJS("onSmsApproved", taskId)
+            }
+            SmsApprovalReceiver.lastApprovedBatchTaskIds = null
+        }
+
+        // 배치 취소된 작업 확인
+        SmsApprovalReceiver.lastCancelledBatchTaskIds?.let { taskIds ->
+            Log.d(TAG, "Found pending cancelled batch tasks: ${taskIds.size}")
+            taskIds.forEach { taskId ->
+                sendEventToJS("onSmsCancelled", taskId)
+            }
+            SmsApprovalReceiver.lastCancelledBatchTaskIds = null
         }
     }
 
@@ -157,6 +175,87 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("CANCEL_ERROR", e.message)
+        }
+    }
+
+    /**
+     * 배치 승인 알림 표시 (다량 SMS)
+     * "N건의 문자 발송 요청" 형태로 1개 알림
+     */
+    @ReactMethod
+    fun showBatchApprovalNotification(taskIdsJson: String, count: Int, promise: Promise) {
+        Log.d(TAG, "showBatchApprovalNotification called: count=$count")
+
+        try {
+            // 자동 승인이 활성화되어 있으면 바로 승인 이벤트 발송
+            if (autoApproveEnabled) {
+                Log.d(TAG, "Auto-approve enabled, sending batch approval events directly")
+                // taskIds 파싱해서 각각 승인 이벤트 발송
+                try {
+                    val taskIds = org.json.JSONArray(taskIdsJson)
+                    for (i in 0 until taskIds.length()) {
+                        val taskId = taskIds.getString(i)
+                        sendEventToJS("onSmsApproved", taskId)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse taskIds for auto-approve", e)
+                }
+                promise.resolve(mapOf("autoApproved" to true))
+                return
+            }
+
+            val context = reactApplicationContext
+            val notificationId = notificationIdCounter++
+
+            // 승인 버튼 인텐트 (배치 승인)
+            val approveIntent = Intent(context, SmsApprovalReceiver::class.java).apply {
+                action = SmsApprovalReceiver.ACTION_APPROVE_BATCH
+                putExtra(EXTRA_TASK_ID, taskIdsJson)  // JSON 문자열로 전달
+                putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            }
+            val approvePendingIntent = PendingIntent.getBroadcast(
+                context,
+                notificationId * 2,
+                approveIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // 취소 버튼 인텐트 (배치 취소)
+            val cancelIntent = Intent(context, SmsApprovalReceiver::class.java).apply {
+                action = SmsApprovalReceiver.ACTION_CANCEL_BATCH
+                putExtra(EXTRA_TASK_ID, taskIdsJson)  // JSON 문자열로 전달
+                putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            }
+            val cancelPendingIntent = PendingIntent.getBroadcast(
+                context,
+                notificationId * 2 + 1,
+                cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // 알림 생성
+            val notification = NotificationCompat.Builder(context, "sms-approval")
+                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setContentTitle("📱 ${count}건의 문자 발송 요청")
+                .setContentText("웹에서 ${count}건의 문자 발송 요청이 있습니다.")
+                .setStyle(NotificationCompat.BigTextStyle()
+                    .bigText("웹에서 ${count}건의 문자 발송 요청이 있습니다.\n\n승인 버튼을 누르면 모든 문자가 순차적으로 발송됩니다."))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setAutoCancel(true)
+                .addAction(android.R.drawable.ic_menu_send, "✅ 모두 승인", approvePendingIntent)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "❌ 취소", cancelPendingIntent)
+                .setVibrate(longArrayOf(0, 500, 200, 500))
+                .build()
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(notificationId, notification)
+
+            Log.d(TAG, "Batch notification shown with ID: $notificationId, count: $count")
+            promise.resolve(notificationId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show batch notification", e)
+            promise.reject("NOTIFICATION_ERROR", e.message)
         }
     }
 

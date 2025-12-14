@@ -23,13 +23,12 @@ function formatPrivateKey(key: string | undefined): string | undefined {
   let formatted = key.replace(/\\n/g, '\n');
 
   // 공백으로 구분된 경우 (BEGIN/END 사이의 base64 부분)
-  // "-----BEGIN PRIVATE KEY----- MIIE... -----END PRIVATE KEY-----" 형식 처리
   if (!formatted.includes('\n')) {
     formatted = formatted
       .replace('-----BEGIN PRIVATE KEY----- ', '-----BEGIN PRIVATE KEY-----\n')
       .replace(' -----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
-      .replace(/(.{64})/g, '$1\n')  // 64자마다 줄바꿈
-      .replace(/\n\n/g, '\n');  // 중복 줄바꿈 제거
+      .replace(/(.{64})/g, '$1\n')
+      .replace(/\n\n/g, '\n');
   }
 
   return formatted;
@@ -60,7 +59,6 @@ async function createJWT(): Promise<string> {
   const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signatureInput = `${base64Header}.${base64Payload}`;
 
-  // Node.js crypto로 서명
   const crypto = await import('crypto');
   const sign = crypto.createSign('RSA-SHA256');
   sign.update(signatureInput);
@@ -96,30 +94,38 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+/**
+ * FCM 푸시 발송 API
+ *
+ * DATA-ONLY 방식: notification 필드 없이 data만 전송
+ * 앱에서 직접 승인/취소 버튼이 있는 알림을 표시함
+ *
+ * 단일 문자: { userId, taskId, type, phone, message, hasImage }
+ * 다량 문자: { userId, taskIds[], type }
+ */
 export async function POST(request: Request) {
-  console.log('[FCM API] ===== FCM PUSH REQUEST RECEIVED =====');
-  
+  console.log('[FCM API] ===== FCM PUSH REQUEST =====');
+
   try {
     const body = await request.json();
-    const { userId, taskId, type = 'send_sms' } = body;
-    
-    console.log('[FCM API] Request body:', { userId, taskId, type });
+    const { userId, taskId, taskIds, type = 'send_sms', phone, message, hasImage } = body;
+
+    // 다량 문자인지 확인
+    const isBatch = taskIds && taskIds.length > 1;
+    const count = isBatch ? taskIds.length : 1;
+    const finalTaskIds = isBatch ? taskIds : (taskId ? [taskId] : []);
+
+    console.log('[FCM API] Request:', { userId, isBatch, count, type, hasImage });
 
     if (!userId) {
-      console.error('[FCM API] ❌ userId is required');
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
     // 환경 변수 확인
     if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
-      console.error('[FCM API] ❌ Firebase credentials not configured');
-      console.error('[FCM API] FIREBASE_CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? 'Set' : 'Missing');
-      console.error('[FCM API] FIREBASE_PRIVATE_KEY:', FIREBASE_PRIVATE_KEY ? 'Set' : 'Missing');
+      console.error('[FCM API] Firebase credentials not configured');
       return NextResponse.json({ error: 'Firebase not configured' }, { status: 500 });
     }
-
-    console.log('[FCM API] ✅ Firebase credentials configured');
-    console.log('[FCM API] Querying FCM token from user_settings...');
 
     // user_settings에서 FCM 토큰 조회
     const { data: userSettings, error: settingsError } = await supabase
@@ -128,20 +134,8 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
       .single();
 
-    if (settingsError) {
-      console.error('[FCM API] ❌ Error querying user_settings:', settingsError);
-      console.error('[FCM API] Error code:', settingsError.code);
-      console.error('[FCM API] Error message:', settingsError.message);
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to query user settings',
-        error: settingsError
-      }, { status: 500 });
-    }
-
-    if (!userSettings?.fcm_token) {
-      console.warn('[FCM API] ⚠️ No FCM token found for user:', userId);
-      console.warn('[FCM API] User settings:', userSettings);
+    if (settingsError || !userSettings?.fcm_token) {
+      console.warn('[FCM API] No FCM token found for user:', userId);
       return NextResponse.json({
         success: false,
         message: 'FCM token not found. App may not be registered.'
@@ -149,50 +143,47 @@ export async function POST(request: Request) {
     }
 
     const fcmToken = userSettings.fcm_token;
-    console.log('[FCM API] ✅ FCM token found (length:', fcmToken.length, ')');
-    console.log('[FCM API] Token preview:', fcmToken.substring(0, 20) + '...');
+    console.log('[FCM API] FCM token found');
 
-    console.log('[FCM API] Getting OAuth2 access token...');
     // OAuth2 액세스 토큰 얻기
     const accessToken = await getAccessToken();
-    console.log('[FCM API] ✅ Access token obtained');
 
+    // DATA-ONLY FCM 메시지
+    // notification 필드 제거 - 앱에서 직접 승인 알림 표시
     const messagePayload = {
       message: {
         token: fcmToken,
+        // DATA ONLY - 시스템 알림 없음, 앱에서 직접 처리
         data: {
-          type: type,
+          type: isBatch ? 'send_sms_batch' : type,
           taskId: taskId || '',
+          taskIds: JSON.stringify(finalTaskIds),
+          count: String(count),
+          phone: phone || '',
+          messagePreview: message ? message.substring(0, 50) : '',
+          hasImage: hasImage ? 'true' : 'false',
           timestamp: new Date().toISOString(),
         },
-        notification: {
-          title: '문자 발송 요청',
-          body: '웹에서 문자 발송 요청이 있습니다.',
-        },
+        // Android: 높은 우선순위, notification 없음
         android: {
           priority: 'high',
-          notification: {
-            sound: 'default',
-            channelId: 'bizconnect-default',
-            clickAction: 'FLUTTER_NOTIFICATION_CLICK', // 앱을 깨우기 위한 클릭 액션
-          },
         },
+        // iOS: background fetch로 앱 깨우기
         apns: {
           headers: {
-            'apns-priority': '10', // 높은 우선순위로 앱 깨우기
+            'apns-priority': '10',
+            'apns-push-type': 'background',
           },
           payload: {
             aps: {
-              sound: 'default',
-              contentAvailable: 1, // 백그라운드에서 앱 깨우기
+              'content-available': 1,
             },
           },
         },
       },
     };
 
-    console.log('[FCM API] Sending FCM push...');
-    console.log('[FCM API] Message payload:', JSON.stringify(messagePayload, null, 2));
+    console.log('[FCM API] Sending DATA-ONLY push (no system notification)');
 
     // FCM v1 API로 푸시 발송
     const fcmResponse = await fetch(
@@ -208,16 +199,11 @@ export async function POST(request: Request) {
     );
 
     const fcmResult = await fcmResponse.json();
-    console.log('[FCM API] FCM API response status:', fcmResponse.status);
-    console.log('[FCM API] FCM API response:', JSON.stringify(fcmResult, null, 2));
+    console.log('[FCM API] Response:', fcmResponse.status, fcmResult.name ? 'OK' : fcmResult);
 
     if (fcmResponse.ok) {
-      console.log('[FCM API] ✅ FCM push sent successfully');
-      console.log('[FCM API] ===== FCM PUSH REQUEST COMPLETE =====');
       return NextResponse.json({ success: true, message: 'FCM push sent', result: fcmResult });
     } else {
-      console.error('[FCM API] ❌ FCM push failed');
-      console.error('[FCM API] Error response:', fcmResult);
       return NextResponse.json({
         success: false,
         message: 'FCM push failed',
@@ -225,10 +211,7 @@ export async function POST(request: Request) {
       }, { status: fcmResponse.status });
     }
   } catch (error) {
-    console.error('[FCM API] ❌ Exception occurred:', error);
-    console.error('[FCM API] Error details:', error instanceof Error ? error.message : String(error));
-    console.error('[FCM API] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('[FCM API] ===== FCM PUSH REQUEST FAILED =====');
+    console.error('[FCM API] Error:', error);
     return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }

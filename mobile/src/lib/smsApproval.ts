@@ -161,6 +161,33 @@ class SmsApprovalService {
   }
 
   /**
+   * 배치 승인 알림 표시 (다량 SMS)
+   * "N건의 문자 발송 요청" 형태로 1개 알림
+   */
+  async showBatchApprovalNotification(
+    taskIds: string[],
+    count: number
+  ): Promise<number | { autoApproved: boolean }> {
+    if (Platform.OS !== 'android' || !SmsApprovalModule) {
+      console.warn('[SmsApproval] Not available on this platform');
+      return -1;
+    }
+
+    try {
+      console.log('📱 [SmsApproval] Showing batch notification:', { count, taskIds: taskIds.length });
+
+      // taskIds를 JSON 문자열로 전달
+      const taskIdsJson = JSON.stringify(taskIds);
+      const result = await SmsApprovalModule.showBatchApprovalNotification(taskIdsJson, count);
+      console.log('📱 [SmsApproval] Batch notification result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [SmsApproval] Failed to show batch notification:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 정리
    */
   cleanup() {
