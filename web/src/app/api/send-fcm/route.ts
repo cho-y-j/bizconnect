@@ -174,6 +174,18 @@ export async function POST(request: Request) {
           notification: {
             sound: 'default',
             channelId: 'bizconnect-default',
+            clickAction: 'FLUTTER_NOTIFICATION_CLICK', // 앱을 깨우기 위한 클릭 액션
+          },
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10', // 높은 우선순위로 앱 깨우기
+          },
+          payload: {
+            aps: {
+              sound: 'default',
+              contentAvailable: 1, // 백그라운드에서 앱 깨우기
+            },
           },
         },
       },

@@ -44,6 +44,22 @@ class FCMService {
         await this.handleMessage(remoteMessage);
       });
 
+      // 알림 탭 이벤트 (앱이 백그라운드에서 알림을 탭해서 열릴 때)
+      messaging().onNotificationOpenedApp(async (remoteMessage) => {
+        console.log('📩 [FCM] 알림 탭으로 앱 열림:', JSON.stringify(remoteMessage, null, 2));
+        await this.handleMessage(remoteMessage);
+      });
+
+      // 앱이 종료된 상태에서 알림 탭으로 앱이 열릴 때
+      messaging()
+        .getInitialNotification()
+        .then(async (remoteMessage) => {
+          if (remoteMessage) {
+            console.log('📩 [FCM] 종료 상태에서 알림 탭으로 앱 열림:', JSON.stringify(remoteMessage, null, 2));
+            await this.handleMessage(remoteMessage);
+          }
+        });
+
       // 백그라운드 메시지 핸들러는 index.js에서 등록됨 (앱 시작 전에 등록 필요)
 
       this.initialized = true;

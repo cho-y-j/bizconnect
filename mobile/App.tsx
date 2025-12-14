@@ -50,23 +50,38 @@ function AppContent() {
     initializeTaskService();
   }, [user]);
 
-  // 앱이 포그라운드로 돌아올 때 pending tasks 로드
+  // 앱이 포그라운드로 돌아올 때 pending tasks 로드 (배터리 절약: 이벤트 기반만 처리)
   useEffect(() => {
+    if (!user) return;
+
+    console.log('📱 [App] Setting up AppState listener for user:', user.id);
+    console.log('📱 [App] Initial AppState:', appState.current);
+
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      const previousState = appState.current;
+      console.log('📱 [App] AppState changed:', previousState, '->', nextAppState);
+      
+      // 포그라운드로 돌아올 때 (백그라운드/비활성 -> 활성)
       if (
-        appState.current.match(/inactive|background/) &&
+        (previousState === 'background' || previousState === 'inactive') &&
         nextAppState === 'active' &&
         user
       ) {
-        console.log('📱 [App] App has come to the foreground, loading pending tasks...');
+        console.log('📱 [App] ===== APP CAME TO FOREGROUND =====');
+        console.log('📱 [App] Previous state:', previousState);
+        console.log('📱 [App] Current state:', nextAppState);
+        console.log('📱 [App] Loading pending tasks...');
+        
         taskService.loadPendingTasks().catch((error) => {
           console.error('❌ [App] Error loading pending tasks on foreground:', error);
         });
       }
+      
       appState.current = nextAppState;
     });
 
     return () => {
+      console.log('📱 [App] Removing AppState listener');
       subscription.remove();
     };
   }, [user]);
