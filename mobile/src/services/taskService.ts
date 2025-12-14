@@ -18,6 +18,8 @@ class TaskService {
   private disableAutoProcessing = false;
   // 승인 대기 중인 작업 저장
   private pendingApprovalTasks: Map<string, Task> = new Map();
+  // 이미 알림을 보낸 작업 ID (중복 알림 방지)
+  private notifiedTaskIds: Set<string> = new Set();
 
   /**
    * 사용자 ID 설정
@@ -71,26 +73,32 @@ class TaskService {
       // 승인 시
       async (taskId: string) => {
         console.log('✅ [TaskService] SMS Approved:', taskId);
+        this.notifiedTaskIds.delete(taskId);
         const task = this.pendingApprovalTasks.get(taskId);
         if (task) {
           this.pendingApprovalTasks.delete(taskId);
           await this.addTaskToQueue(task);
         } else {
-          // 맵에 없으면 DB에서 조회
+          // 맵에 없으면 DB에서 조회 (앱 재시작 등의 경우)
           const { data: dbTask, error } = await supabase
             .from('tasks')
             .select('*')
             .eq('id', taskId)
             .single();
 
-          if (!error && dbTask && dbTask.status === 'pending') {
+          // pending 또는 queued 상태인 경우 처리 (queued = 승인 대기 중)
+          if (!error && dbTask && (dbTask.status === 'pending' || dbTask.status === 'queued')) {
+            console.log('✅ [TaskService] Found task from DB, processing:', dbTask.id, 'status:', dbTask.status);
             await this.addTaskToQueue(dbTask);
+          } else {
+            console.warn('⚠️ [TaskService] Task not found or invalid status:', taskId, dbTask?.status);
           }
         }
       },
       // 취소 시
       async (taskId: string) => {
         console.log('❌ [TaskService] SMS Cancelled:', taskId);
+        this.notifiedTaskIds.delete(taskId);
         this.pendingApprovalTasks.delete(taskId);
         await smsApprovalService.cancelTask(taskId);
       }
@@ -101,9 +109,16 @@ class TaskService {
    * 승인 알림 요청 (웹에서 보낸 작업 처리)
    */
   async requestApproval(task: Task): Promise<void> {
+    // 이미 알림을 보낸 작업이면 무시 (중복 알림 방지)
+    if (this.notifiedTaskIds.has(task.id)) {
+      console.log('ℹ️ [TaskService] Already notified for task, skipping:', task.id);
+      return;
+    }
+
     console.log('📱 [TaskService] Requesting approval for task:', task.id);
 
-    // 승인 대기 맵에 저장
+    // 먼저 메모리에 등록하여 중복 방지 (네트워크 실패해도 중복 안 됨)
+    this.notifiedTaskIds.add(task.id);
     this.pendingApprovalTasks.set(task.id, task);
 
     try {
@@ -120,11 +135,33 @@ class TaskService {
       } else {
         console.log('📱 [TaskService] Approval notification shown, ID:', result);
       }
+
+      // 알림 표시 성공 후 DB 상태 업데이트 시도 (실패해도 OK)
+      supabase
+        .from('tasks')
+        .update({ status: 'queued', updated_at: new Date().toISOString() })
+        .eq('id', task.id)
+        .eq('status', 'pending')
+        .then(({ error }) => {
+          if (error) {
+            console.warn('⚠️ [TaskService] Failed to update status to queued (non-critical):', error.message);
+          }
+        });
     } catch (error) {
       console.error('❌ [TaskService] Failed to show approval notification:', error);
-      // 알림 실패 시에도 맵에서 제거
+      // 알림 실패 시 메모리에서 제거 (다음 폴링에서 재시도)
       this.pendingApprovalTasks.delete(task.id);
+      this.notifiedTaskIds.delete(task.id);
     }
+  }
+
+  /**
+   * 작업을 알림 처리됨으로 표시 (FCM에서 호출)
+   * 폴링에서 중복 처리 방지용
+   */
+  markAsNotified(taskId: string): void {
+    this.notifiedTaskIds.add(taskId);
+    console.log('✅ [TaskService] Task marked as notified:', taskId);
   }
 
   /**
@@ -307,14 +344,14 @@ class TaskService {
             console.error('❌ Error loading pending tasks after subscription:', error);
           });
           // 구독 성공해도 백업으로 빠른 폴링 시작 (1초 간격) - 웹에서 보낸 작업 즉시 처리
-          this.startPolling(1);
+          this.startPolling(30); // 30초 간격 폴링 (FCM이 메인, 폴링은 백업)
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.error('❌ ===== SUBSCRIPTION FAILED =====');
           console.error('❌ Status:', status);
           console.error('❌ This means realtime is not working!');
           console.error('❌ Starting polling fallback every 1 second...');
           // 구독 실패 시 빠른 폴링으로 보완 (1초 간격) - 웹에서 보낸 작업 즉시 처리
-          this.startPolling(1);
+          this.startPolling(30); // 30초 간격 폴링 (FCM이 메인, 폴링은 백업)
         } else {
           console.log('📡 Subscription status:', status);
         }
@@ -326,7 +363,7 @@ class TaskService {
       console.error('Error in subscribeToTasks:', error);
       // 구독 실패 시 폴링으로 대체
       console.error('❌ Subscription setup failed, starting polling fallback...');
-      this.startPolling(1);
+      this.startPolling(30); // 30초 간격 폴링 (FCM이 메인, 폴링은 백업)
     }
   }
 

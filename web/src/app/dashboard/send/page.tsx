@@ -1642,22 +1642,13 @@ export default function SendSMSPage() {
                       } else {
                         // 명함 이미지가 있으면 Open Graph URL로 변환하여 배열에 추가
                         const previewUrl = await getPreviewUrl(userSettings.business_card_image_url)
-                        const businessCardImage = { 
+                        const businessCardImage = {
                           url: userSettings.business_card_image_url, // 미리보기용 원본 URL
                           name: '명함',
                           previewUrl: previewUrl // 발송용 Open Graph URL
                         }
                         setSelectedImages([...selectedImages, businessCardImage])
-                        // 메시지에 Open Graph URL 자동 추가
-                        if (previewUrl) {
-                          const currentMessage = message.trim()
-                          const previewUrls = selectedImages
-                            .map(img => img.previewUrl)
-                            .filter(url => url)
-                            .concat([previewUrl])
-                            .join('\n\n')
-                          setMessage(currentMessage ? `${currentMessage}\n\n${previewUrls}` : previewUrls)
-                        }
+                        // 메시지에는 추가하지 않음 - 발송 시 자동 포함됨
                       }
                     } else {
                       // 명함 이미지가 없으면 업로드 화면 표시

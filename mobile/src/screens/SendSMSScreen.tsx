@@ -16,6 +16,7 @@ import {
   SafeAreaView,
   Image,
   PermissionsAndroid,
+  Switch,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -32,7 +33,7 @@ interface MessageTemplate {
 }
 
 export default function SendSMSScreen({ navigation, route }: any) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -53,6 +54,8 @@ export default function SendSMSScreen({ navigation, route }: any) {
   const [savedImages, setSavedImages] = useState<any[]>([]); // user_images 테이블에서 불러온 이미지들
   const [showImagePicker, setShowImagePicker] = useState(false); // 이미지 선택 모달 표시 여부
   const [loadingSavedImages, setLoadingSavedImages] = useState(false);
+  const [businessCardImageUrl, setBusinessCardImageUrl] = useState<string | null>(null); // 명함 이미지 URL
+  const [attachBusinessCard, setAttachBusinessCard] = useState(false); // 명함 첨부 체크박스
   const messageInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
       loadCustomers();
       loadTemplates();
       loadSavedImages();
+      loadBusinessCard();
     } else {
       console.log('⚠️ User not yet loaded, waiting...');
       setCustomersLoading(true);
@@ -164,6 +168,71 @@ export default function SendSMSScreen({ navigation, route }: any) {
       console.error('Error in loadSavedImages:', error);
     } finally {
       setLoadingSavedImages(false);
+    }
+  };
+
+  const loadBusinessCard = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('business_card_image_url')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading business card:', error);
+        return;
+      }
+
+      if (data?.business_card_image_url) {
+        console.log('✅ Loaded business card:', data.business_card_image_url);
+        setBusinessCardImageUrl(data.business_card_image_url);
+      }
+    } catch (error) {
+      console.error('Error in loadBusinessCard:', error);
+    }
+  };
+
+  const handleSelectBusinessCard = async () => {
+    if (!businessCardImageUrl) {
+      Alert.alert('알림', '명함 이미지가 설정되지 않았습니다.');
+      return;
+    }
+
+    try {
+      // user_images에서 명함 이미지 찾기
+      const { data: image, error } = await supabase
+        .from('user_images')
+        .select('id')
+        .eq('image_url', businessCardImageUrl)
+        .eq('category', 'business_card')
+        .single();
+
+      if (error || !image) {
+        // user_images에 없으면 직접 URL 사용
+        const baseUrl = 'https://bizconnect-ten.vercel.app';
+        // user_settings의 business_card_image_url을 직접 사용
+        setSelectedImage(businessCardImageUrl);
+        // Open Graph URL 생성 시도 (user_images에 없으면 원본 URL 사용)
+        setSelectedImagePreviewUrl(businessCardImageUrl);
+        setShowImagePicker(false);
+        console.log('✅ Business card selected (direct URL)');
+        return;
+      }
+
+      // Open Graph URL 생성
+      const baseUrl = 'https://bizconnect-ten.vercel.app';
+      const previewUrl = `${baseUrl}/api/preview/${image.id}`;
+      
+      setSelectedImage(businessCardImageUrl);
+      setSelectedImagePreviewUrl(previewUrl);
+      setShowImagePicker(false);
+      
+      console.log('✅ Business card selected, preview URL:', previewUrl);
+    } catch (error: any) {
+      console.error('Error selecting business card:', error);
+      Alert.alert('오류', '명함 이미지 선택 중 오류가 발생했습니다.');
     }
   };
 
@@ -474,6 +543,7 @@ export default function SendSMSScreen({ navigation, route }: any) {
   const handleRemoveImage = () => {
     setSelectedImage(null);
     setSelectedImagePreviewUrl(null);
+    setAttachBusinessCard(false); // 명함 첨부도 해제
   };
 
   const handleSend = async () => {
@@ -652,11 +722,16 @@ export default function SendSMSScreen({ navigation, route }: any) {
           <View style={styles.container}>
             {/* 헤더 */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.backButton}>← 뒤로</Text>
-              </TouchableOpacity>
+              <View style={styles.headerLeft}>
+                <Text style={styles.welcomeText}>{user?.email?.split('@')[0]}님</Text>
+              </View>
               <Text style={styles.headerTitle}>문자 보내기</Text>
-              <View style={styles.headerRight} />
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <Text style={styles.settingsButtonText}>⚙️</Text>
+              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -758,6 +833,34 @@ export default function SendSMSScreen({ navigation, route }: any) {
                 onChangeText={setMessage}
                 textAlignVertical="top"
               />
+              {/* 명함 첨부 체크박스 */}
+              {businessCardImageUrl && (
+                <View style={styles.businessCardRow}>
+                  <View style={styles.businessCardCheckbox}>
+                    <Switch
+                      value={attachBusinessCard}
+                      onValueChange={(value) => {
+                        setAttachBusinessCard(value);
+                        if (value) {
+                          // 명함 첨부 시 자동으로 명함 이미지 선택
+                          handleSelectBusinessCard();
+                        } else {
+                          // 명함 해제 시 이미지 제거
+                          setSelectedImage(null);
+                          setSelectedImagePreviewUrl(null);
+                        }
+                      }}
+                      trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                      thumbColor="#fff"
+                    />
+                    <Text style={styles.businessCardLabel}>📇 명함 첨부</Text>
+                  </View>
+                  {attachBusinessCard && (
+                    <Text style={styles.businessCardHint}>✓ 명함이 메시지와 함께 발송됩니다</Text>
+                  )}
+                </View>
+              )}
+
               {/* 이미지 첨부 */}
               <View style={styles.imageRow}>
                 {selectedImage ? (
@@ -848,6 +951,17 @@ export default function SendSMSScreen({ navigation, route }: any) {
                   </View>
                   
                   <ScrollView style={styles.modalScrollView}>
+                    {/* 명함 사용 버튼 */}
+                    {businessCardImageUrl && (
+                      <TouchableOpacity 
+                        style={[styles.newImageButton, { backgroundColor: '#10B981' }]}
+                        onPress={handleSelectBusinessCard}
+                      >
+                        <Text style={styles.newImageButtonIcon}>📇</Text>
+                        <Text style={[styles.newImageButtonText, { color: '#fff' }]}>명함 사용</Text>
+                      </TouchableOpacity>
+                    )}
+                    
                     {/* 새 이미지 선택 버튼 */}
                     <TouchableOpacity 
                       style={styles.newImageButton}
@@ -965,6 +1079,19 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     width: 60,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  settingsButtonText: {
+    fontSize: 24,
   },
   scrollView: {
     flex: 1,
@@ -1411,6 +1538,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  businessCardRow: {
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  businessCardCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  businessCardLabel: {
+    marginLeft: 8,
+    fontSize: 15,
+    color: '#1F2937',
+    fontWeight: '600',
+  },
+  businessCardHint: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '500',
   },
   imageRow: {
     marginTop: 8,

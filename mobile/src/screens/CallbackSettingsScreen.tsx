@@ -345,110 +345,81 @@ export default function CallbackSettingsScreen({ navigation }: any) {
       console.log('📷 Image type:', asset.type);
       console.log('📷 Image file size:', asset.fileSize);
 
-      // 파일 이름 생성
-      const fileName = `business_card_${user.id}_${Date.now()}.jpg`;
-      const filePath = `business-cards/${fileName}`;
-
-      // 파일을 blob으로 변환
-      // Android에서는 file:// URI를 직접 fetch할 수 없으므로 react-native-fs + Buffer 사용
-      let blob: Blob;
-
-      const makeBlobFromBase64 = (base64: string, mime: string) => {
-        const buffer = Buffer.from(base64, 'base64');
-        return new Blob([buffer], { type: mime });
-      };
-
-      if (asset.uri.startsWith('file://') || asset.uri.startsWith('/')) {
-        // 로컬 파일 경로인 경우 react-native-fs로 읽기
-        console.log('📥 Reading local file using react-native-fs...');
-        const RNFS = require('react-native-fs').default;
-
-        // file:// 제거
-        const filePathLocal = asset.uri.replace('file://', '');
-        console.log('📥 File path:', filePathLocal);
-
-        // 파일 존재 확인
-        const fileExists = await RNFS.exists(filePathLocal);
-        if (!fileExists) {
-          throw new Error('선택한 이미지 파일을 찾을 수 없습니다.');
-        }
-
-        // base64로 읽기
-        const base64 = await RNFS.readFile(filePathLocal, 'base64');
-        console.log('✅ File read successfully, size:', base64.length);
-
-        // base64를 blob으로 변환
-        blob = makeBlobFromBase64(base64, asset.type || 'image/jpeg');
-        console.log('✅ Blob created, size:', blob.size);
-      } else if (asset.uri.startsWith('http://') || asset.uri.startsWith('https://')) {
-        // HTTP URL인 경우 fetch 사용
-        console.log('📥 Fetching image from URL...');
-      const response = await fetch(asset.uri);
-        if (!response.ok) {
-          throw new Error('이미지를 다운로드할 수 없습니다.');
-        }
-        blob = await response.blob();
-        console.log('✅ Image fetched, size:', blob.size);
-      } else {
-        // content:// URI인 경우도 react-native-fs로 처리 시도
-        console.log('📥 Reading content URI using react-native-fs...');
-        const RNFS = require('react-native-fs').default;
-        const base64 = await RNFS.readFile(asset.uri, 'base64');
-        blob = makeBlobFromBase64(base64, asset.type || 'image/jpeg');
-        console.log('✅ Content URI read successfully');
-      }
-
-      // Supabase Storage에 업로드 (웹과 동일한 bucket 사용)
-      const { data, error } = await supabase.storage
-        .from('user-images')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        Alert.alert('오류', '이미지 업로드에 실패했습니다: ' + (error.message || '알 수 없는 오류'));
+      // 세션 토큰 가져오기
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        Alert.alert('오류', '세션이 만료되었습니다.');
         return;
       }
 
-      // Public URL 가져오기
-      const { data: urlData } = supabase.storage
-        .from('user-images')
-        .getPublicUrl(filePath);
+      // React Native FormData 생성 (일반 이미지 업로드와 동일한 방식)
+      const formData = new FormData();
+      
+      // 파일 이름 생성
+      const fileName = `business_card_${user.id}_${Date.now()}.jpg`;
+      
+      // React Native에서는 uri를 직접 사용
+      formData.append('file', {
+        uri: asset.uri,
+        type: asset.type || 'image/jpeg',
+        name: fileName,
+      } as any);
+      
+      formData.append('category', 'business_card');
 
-      if (urlData?.publicUrl) {
-        const imageUrl = urlData.publicUrl;
-        
-        // user_settings에 저장
-        const { error: settingsError } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: user.id,
-            business_card_image_url: imageUrl,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id',
-          });
+      // 웹 API를 사용하여 업로드 (일반 이미지 업로드와 동일)
+      const response = await fetch('https://bizconnect-ten.vercel.app/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
 
-        if (settingsError) {
-          console.error('Error saving image URL to settings:', settingsError);
-          Alert.alert('경고', '이미지는 업로드되었지만 설정 저장에 실패했습니다.');
-        }
-
-        setSettings((prev) => ({
-          ...prev,
-          business_card_image_url: imageUrl,
-        }));
-        
-        // 설정 다시 로드하여 최신 상태 확인
-        await loadSettings();
-        
-        Alert.alert('성공', '명함 이미지가 업로드되었습니다.');
-      } else {
-        throw new Error('Failed to get public URL');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '이미지 업로드에 실패했습니다.');
       }
+
+      const data = await response.json();
+      console.log('📷 Upload response:', data);
+
+      // API 응답 구조: { success: true, image: { image_url, preview_url, ... } }
+      const imageUrl = data.image?.image_url;
+      const previewUrl = data.image?.preview_url;
+
+      if (!imageUrl) {
+        throw new Error('업로드된 이미지 URL을 받을 수 없습니다.');
+      }
+
+      console.log('✅ Business card uploaded:', imageUrl);
+      console.log('✅ Preview URL:', previewUrl);
+
+      // user_settings에 저장
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          business_card_image_url: imageUrl,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (settingsError) {
+        console.error('Error saving image URL to settings:', settingsError);
+        Alert.alert('경고', '이미지는 업로드되었지만 설정 저장에 실패했습니다.');
+      }
+
+      setSettings((prev) => ({
+        ...prev,
+        business_card_image_url: imageUrl,
+      }));
+      
+      // 설정 다시 로드하여 최신 상태 확인
+      await loadSettings();
+      
+      Alert.alert('성공', '명함 이미지가 업로드되었습니다.');
     } catch (error: any) {
       console.error('Error picking/uploading image:', error);
       Alert.alert('오류', '이미지 선택/업로드 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));

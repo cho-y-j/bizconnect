@@ -189,6 +189,9 @@ class FCMService {
   private async requestTaskApproval(taskId: string): Promise<void> {
     console.log('📱 [FCM] Requesting approval for task:', taskId);
 
+    // 즉시 notifiedTaskIds에 등록하여 폴링에서 중복 처리 방지
+    taskService.markAsNotified(taskId);
+
     try {
       const { data: task, error } = await supabase
         .from('tasks')
@@ -206,8 +209,9 @@ class FCMService {
         return;
       }
 
-      if (task.status !== 'pending') {
-        console.log('ℹ️ [FCM] 작업이 pending 상태가 아님:', task.status);
+      // pending 또는 queued 상태인 경우에만 처리
+      if (task.status !== 'pending' && task.status !== 'queued') {
+        console.log('ℹ️ [FCM] 작업이 처리 가능한 상태가 아님:', task.status);
         return;
       }
 

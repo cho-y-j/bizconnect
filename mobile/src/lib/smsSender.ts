@@ -208,10 +208,9 @@ export async function sendSms(
   onFailure?: (error: string) => void
 ): Promise<boolean> {
   try {
-    // MMS인 경우 별도 처리
-    if (task.is_mms) {
-      return sendMms(task, onSuccess, onFailure);
-    }
+    // MMS 플래그는 무시하고 항상 SMS로 발송 (이미지는 URL로 첨부)
+    // 이미지가 있으면 메시지에 URL 포함하여 발송
+    console.log('📤 sendSms called, task.id:', task.id, 'has image_url:', !!task.image_url);
 
     // 권한 확인
     const hasPermission = await checkSmsPermission();
@@ -234,8 +233,14 @@ export async function sendSms(
       return false;
     }
 
+    // 웹에서 이미 message_content에 이미지 URL을 포함하여 보냄
+    // 앱에서는 별도로 image_url을 추가하지 않음 (중복 방지)
+    let finalMessage = task.message_content;
+    console.log('📤 Message content:', finalMessage.substring(0, 100) + (finalMessage.length > 100 ? '...' : ''));
+    console.log('📤 Task has image_url field:', task.image_url ? 'Yes' : 'No');
+
     // 메시지 길이 체크
-    const messageCheck = checkMessageLength(task.message_content);
+    const messageCheck = checkMessageLength(finalMessage);
     if (!messageCheck.isValid) {
       const error = `메시지가 너무 깁니다. (${messageCheck.length}/${messageCheck.maxLength}자)`;
       await updateTaskStatus(task.id, 'failed', error);
@@ -246,7 +251,7 @@ export async function sendSms(
     // 작업 상태를 'processing'으로 업데이트
     await updateTaskStatus(task.id, 'processing');
 
-    console.log('📱 Calling SmsAndroid.autoSend:', normalizedPhone, task.message_content.substring(0, 20) + '...');
+    console.log('📱 Calling SmsAndroid.autoSend:', normalizedPhone, finalMessage.substring(0, 20) + '...');
 
     // SMS 발송 (타임아웃 추가)
     return new Promise((resolve) => {
@@ -275,7 +280,7 @@ export async function sendSms(
         console.log('📱 SmsAndroid.autoSend called, waiting for callback...');
         SmsAndroid.autoSend(
           normalizedPhone,
-          task.message_content,
+          finalMessage,
           (fail: any) => {
             if (resolved) {
               console.warn('⚠️ SMS fail callback called after timeout');
@@ -307,7 +312,8 @@ export async function sendSms(
             console.log('📝 Task details:', {
               id: task.id,
               phone: normalizedPhone,
-              message_length: task.message_content.length
+              message_length: finalMessage.length,
+              has_image_url: !!task.image_url
             });
 
             try {
@@ -650,8 +656,8 @@ export async function sendMmsDirectly(
       
       // Open Graph URL을 메시지에 포함하여 SMS 발송
       // 수신자의 메시지 앱이 Open Graph 메타 태그를 읽어서 이미지 미리보기 표시
-      // URL을 최대한 아래로 밀어내기 위해 여러 줄바꿈 추가 (5줄)
-      const messageWithPreview = `${message}\n\n\n\n\n${previewUrl}`;
+      // URL을 아래로 밀어내기 위해 줄바꿈 추가 (2줄)
+      const messageWithPreview = `${message}\n\n${previewUrl}`;
       
     return new Promise((resolve, reject) => {
         SmsAndroid.autoSend(

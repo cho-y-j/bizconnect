@@ -2,17 +2,14 @@ package com.bizconnectmobile
 
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
-class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
 
     companion object {
         private const val TAG = "SmsApprovalModule"
@@ -26,48 +23,37 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
         private var autoApproveEnabled = false
     }
 
-    private val approvalReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "BroadcastReceiver onReceive: ${intent?.action}")
-
-            val taskId = intent?.getStringExtra(EXTRA_TASK_ID) ?: return
-            val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
-
-            Log.d(TAG, "Task ID: $taskId, Notification ID: $notificationId")
-
-            // 알림 제거
-            if (notificationId != -1) {
-                val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                notificationManager?.cancel(notificationId)
-            }
-
-            when (intent.action) {
-                ACTION_APPROVE -> {
-                    Log.d(TAG, "SMS Approved: $taskId")
-                    sendEventToJS("onSmsApproved", taskId)
-                }
-                ACTION_CANCEL -> {
-                    Log.d(TAG, "SMS Cancelled: $taskId")
-                    sendEventToJS("onSmsCancelled", taskId)
-                }
-            }
-        }
-    }
-
     init {
-        val filter = IntentFilter().apply {
-            addAction(ACTION_APPROVE)
-            addAction(ACTION_CANCEL)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            reactContext.registerReceiver(approvalReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            reactContext.registerReceiver(approvalReceiver, filter)
-        }
+        reactContext.addLifecycleEventListener(this)
         Log.d(TAG, "SmsApprovalModule initialized")
     }
 
     override fun getName(): String = "SmsApprovalModule"
+
+    // 앱이 포그라운드로 돌아올 때 pending approval 확인
+    override fun onHostResume() {
+        Log.d(TAG, "onHostResume - checking for pending approvals")
+        checkPendingApprovals()
+    }
+
+    override fun onHostPause() {}
+    override fun onHostDestroy() {}
+
+    private fun checkPendingApprovals() {
+        // 승인된 작업 확인
+        SmsApprovalReceiver.lastApprovedTaskId?.let { taskId ->
+            Log.d(TAG, "Found pending approved task: $taskId")
+            sendEventToJS("onSmsApproved", taskId)
+            SmsApprovalReceiver.lastApprovedTaskId = null
+        }
+
+        // 취소된 작업 확인
+        SmsApprovalReceiver.lastCancelledTaskId?.let { taskId ->
+            Log.d(TAG, "Found pending cancelled task: $taskId")
+            sendEventToJS("onSmsCancelled", taskId)
+            SmsApprovalReceiver.lastCancelledTaskId = null
+        }
+    }
 
     private fun sendEventToJS(eventName: String, taskId: String) {
         Log.d(TAG, "Sending event to JS: $eventName, taskId: $taskId")
@@ -92,9 +78,9 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             val context = reactApplicationContext
             val notificationId = notificationIdCounter++
 
-            // 승인 버튼 인텐트
-            val approveIntent = Intent(ACTION_APPROVE).apply {
-                setPackage(context.packageName)
+            // 승인 버튼 인텐트 (명시적 Intent로 BroadcastReceiver 타겟팅)
+            val approveIntent = Intent(context, SmsApprovalReceiver::class.java).apply {
+                action = SmsApprovalReceiver.ACTION_APPROVE
                 putExtra(EXTRA_TASK_ID, taskId)
                 putExtra(EXTRA_NOTIFICATION_ID, notificationId)
             }
@@ -105,9 +91,9 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // 취소 버튼 인텐트
-            val cancelIntent = Intent(ACTION_CANCEL).apply {
-                setPackage(context.packageName)
+            // 취소 버튼 인텐트 (명시적 Intent로 BroadcastReceiver 타겟팅)
+            val cancelIntent = Intent(context, SmsApprovalReceiver::class.java).apply {
+                action = SmsApprovalReceiver.ACTION_CANCEL
                 putExtra(EXTRA_TASK_ID, taskId)
                 putExtra(EXTRA_NOTIFICATION_ID, notificationId)
             }
