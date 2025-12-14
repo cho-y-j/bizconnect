@@ -122,7 +122,7 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
                 showInfoNotification(
                     context,
                     "자동 승인되어 문자 발송",
-                    "$phoneNumber에게 문자를 발송했습니다"
+                    "${phoneNumber}에게 문자를 발송했습니다"
                 )
                 
                 sendEventToJS("onSmsApproved", taskId)

@@ -67,10 +67,11 @@ class SmsApprovalReceiver : BroadcastReceiver() {
 
                 // 즉시 이벤트 발송 시도 (앱이 실행 중이면)
                 try {
-                    val reactContext = context.applicationContext as? com.facebook.react.ReactApplication
-                    reactContext?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
-                        val deviceEventManagerModule = reactContext.getNativeModule(com.facebook.react.modules.core.DeviceEventManagerModule::class.java)
-                        deviceEventManagerModule?.emit("onSmsApproved", taskIdOrJson)
+                    val reactApp = context.applicationContext as? ReactApplication
+                    reactApp?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
+                        reactContext
+                            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                            .emit("onSmsApproved", taskIdOrJson)
                         Log.d(TAG, "Event sent immediately from receiver")
                     } ?: Log.d(TAG, "React context not available, will send on resume")
                 } catch (e: Exception) {
@@ -102,11 +103,11 @@ class SmsApprovalReceiver : BroadcastReceiver() {
 
                 // 즉시 이벤트 발송 시도 (앱이 실행 중이면)
                 try {
-                    val reactContext = context.applicationContext as? com.facebook.react.ReactApplication
-                    reactContext?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
-                        val deviceEventManagerModule = reactContext.getNativeModule(com.facebook.react.modules.core.DeviceEventManagerModule::class.java)
+                    val reactApp = context.applicationContext as? ReactApplication
+                    reactApp?.reactNativeHost?.reactInstanceManager?.currentReactContext?.let { reactContext ->
+                        val eventEmitter = reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                         taskIds.forEach { taskId ->
-                            deviceEventManagerModule?.emit("onSmsApproved", taskId)
+                            eventEmitter.emit("onSmsApproved", taskId)
                         }
                         Log.d(TAG, "Batch events sent immediately from receiver")
                     } ?: Log.d(TAG, "React context not available, will send on resume")
