@@ -204,15 +204,15 @@ export default function UploadCustomersPage() {
           </div>
 
           {/* CSV 형식 안내 */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-2">CSV 파일 형식</h3>
-            <p className="text-sm text-blue-800 mb-2">
-              필수 컬럼: <code className="bg-blue-100 px-1 rounded">name</code>, <code className="bg-blue-100 px-1 rounded">phone</code>
+          <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+            <h3 className="font-semibold text-slate-900 mb-2">CSV 파일 형식</h3>
+            <p className="text-sm text-slate-700 mb-2">
+              필수 컬럼: <code className="bg-slate-100 px-1 rounded">name</code>, <code className="bg-slate-100 px-1 rounded">phone</code>
             </p>
-            <p className="text-sm text-blue-800 mb-2">
-              선택 컬럼: <code className="bg-blue-100 px-1 rounded">birthday</code>, <code className="bg-blue-100 px-1 rounded">anniversary</code>, <code className="bg-blue-100 px-1 rounded">industry_type</code>, <code className="bg-blue-100 px-1 rounded">notes</code>
+            <p className="text-sm text-slate-700 mb-2">
+              선택 컬럼: <code className="bg-slate-100 px-1 rounded">birthday</code>, <code className="bg-slate-100 px-1 rounded">anniversary</code>, <code className="bg-slate-100 px-1 rounded">industry_type</code>, <code className="bg-slate-100 px-1 rounded">notes</code>
             </p>
-            <div className="mt-3 text-xs text-blue-700 bg-white p-2 rounded font-mono">
+            <div className="mt-3 text-xs text-slate-700 bg-white p-2 rounded font-mono">
               name,phone,birthday,anniversary,industry_type,notes<br />
               홍길동,01012345678,1990-01-01,2020-01-01,general,메모
             </div>

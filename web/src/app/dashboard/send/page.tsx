@@ -1377,7 +1377,7 @@ export default function SendSMSPage() {
                     type="file"
                     accept=".csv,.xlsx,.xls"
                     onChange={handleCsvFileChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     CSV 형식: name,phone,message (선택) 또는 엑셀 파일 (.xlsx, .xls)
@@ -1729,7 +1729,7 @@ export default function SendSMSPage() {
 
               {/* 명함 이미지 업로드 */}
               {showBusinessCardUpload && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                   <div className="flex justify-between items-center mb-3">
                     <h4 className="font-semibold text-gray-900">명함 이미지 업로드</h4>
                     <button
@@ -1855,7 +1855,7 @@ export default function SendSMSPage() {
                         }
                       }}
                       disabled={uploadingBusinessCard}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
                     />
                     {uploadingBusinessCard && (
                       <p className="text-xs text-gray-500 mt-1">업로드 중...</p>
@@ -1941,7 +1941,7 @@ export default function SendSMSPage() {
                         }
                       }}
                       disabled={uploadingImage}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
                     />
                     {uploadingImage && (
                       <p className="text-xs text-gray-500 mt-1">업로드 중...</p>
@@ -2018,8 +2018,8 @@ export default function SendSMSPage() {
                 </div>
               )}
               {isScheduled && scheduledDate && scheduledTime && (
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <p className="text-sm text-slate-700">
                     📅 예약 시간: {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('ko-KR')}
                   </p>
                 </div>
@@ -2028,11 +2028,11 @@ export default function SendSMSPage() {
 
             {/* 미리보기 */}
             {preview && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                <label className="block text-sm font-medium text-slate-900 mb-2">
                   미리보기
                 </label>
-                <div className="text-sm text-blue-800 whitespace-pre-wrap">
+                <div className="text-sm text-slate-700 whitespace-pre-wrap">
                   {preview}
                 </div>
               </div>

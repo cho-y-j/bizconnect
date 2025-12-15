@@ -270,7 +270,7 @@ export default function DashboardPage() {
                 </p>
                 <Link
                   href="/dashboard/settings"
-                  className="inline-block px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-block px-6 py-3 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition-all font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   개인 설정 바로가기 →
                 </Link>

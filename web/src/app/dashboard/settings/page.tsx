@@ -474,7 +474,7 @@ export default function SettingsPage() {
                   }
                 }}
                 disabled={uploadingProfile}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
               />
             </div>
 
@@ -805,7 +805,7 @@ export default function SettingsPage() {
 
           <div className="space-y-6">
             {/* 콜백 활성화 */}
-            <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 p-4 bg-slate-50 border border-slate-200 rounded-lg">
               <input
                 type="checkbox"
                 id="autoCallbackEnabled"
@@ -986,7 +986,7 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             {/* 푸시 알림 활성화 */}
-            <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 p-4 bg-slate-50 border border-slate-200 rounded-lg">
               <input
                 type="checkbox"
                 id="pushNotificationsEnabled"
@@ -1249,7 +1249,7 @@ export default function SettingsPage() {
                   }
                 }}
                 disabled={uploadingCard}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
               />
             </div>
 

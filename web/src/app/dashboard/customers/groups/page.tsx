@@ -269,9 +269,9 @@ export default function GroupsPage() {
           )}
 
           {/* 안내 */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              💡 <strong>팁:</strong> 그룹은 고객의 주된 소속을 나타냅니다. 각 고객은 반드시 하나의 그룹에 속해야 합니다.
+          <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+            <p className="text-sm text-slate-700">
+              <strong>팁:</strong> 그룹은 고객의 주된 소속을 나타냅니다. 각 고객은 반드시 하나의 그룹에 속해야 합니다.
               태그는 여러 개를 사용할 수 있어 더 세밀한 분류가 가능합니다.
             </p>
           </div>
