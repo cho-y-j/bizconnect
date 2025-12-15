@@ -76,7 +76,7 @@ function HomeContent() {
       </header>
 
       <main>
-        <section className="border-b border-slate-800/60 pb-20 pt-16">
+        <section className="border-b border-slate-800/60 pb-20 pt-16 bg-[#020617]">
           <div className="tw-container grid gap-12 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs text-slate-300">
@@ -159,8 +159,6 @@ function HomeContent() {
             </div>
 
             <div className="relative">
-              <div className="pointer-events-none absolute -left-16 -top-10 h-44 w-44 rounded-full bg-rose-500/40 blur-3xl" />
-              <div className="pointer-events-none absolute -right-10 -bottom-16 h-40 w-40 rounded-full bg-sky-500/30 blur-3xl" />
               <Card className="relative z-10 p-5 sm:p-6">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   {lang === 'ko' ? '실시간 사용 현황' : "Today's overview"}
