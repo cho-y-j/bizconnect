@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
-  subsets: ["korean"],
+  // Next.js 16 타입 정의 상 지원되는 subset만 명시
+  subsets: ["latin"],
   weight: ["400", "500", "700"],
 });
 
