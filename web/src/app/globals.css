@@ -24,8 +24,8 @@ body {
   margin: 0;
   background: #020617;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family: var(--font-noto-sans-kr), var(--font-geist-sans),
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 a {
@@ -43,10 +43,6 @@ a {
   max-width: 1120px;
   margin: 0 auto;
   padding: 0 1.5rem;
-}
-
-.tw-gradient-pill {
-  background: linear-gradient(90deg, #f97373, #fb7185, #60a5fa);
 }
 
 html {

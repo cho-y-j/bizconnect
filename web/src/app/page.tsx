@@ -31,7 +31,7 @@ function HomeContent() {
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="tw-container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-xl tw-gradient-pill" />
+            <div className="h-7 w-7 rounded-xl bg-slate-900" />
             <div className="flex flex-col">
               <span className="text-sm font-semibold tracking-wide text-slate-900">
                 BizConnect
@@ -85,12 +85,12 @@ function HomeContent() {
                   ? '1개월 프리미엄 무료 · 모바일 영업인을 위한 문자 자동화'
                   : '1-month premium free · SMS automation for mobile closers'}
               </div>
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.25rem]">
+              <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.25rem] text-slate-900">
                 {lang === 'ko' ? (
                   <>
                     내 휴대폰 요금제를
                     <br />
-                    <span className="bg-gradient-to-r from-rose-400 via-pink-500 to-sky-400 bg-clip-text text-transparent">
+                    <span className="text-slate-900">
                       0원 문자 발송 엔진
                     </span>
                     으로 바꾸세요.
@@ -99,11 +99,7 @@ function HomeContent() {
                   <>
                     Turn your phone bill
                     <br />
-                    into a{' '}
-                    <span className="bg-gradient-to-r from-rose-400 via-pink-500 to-sky-400 bg-clip-text text-transparent">
-                      zero-cost SMS engine
-                    </span>
-                    .
+                    into a <span className="text-slate-900">zero-cost SMS engine</span>.
                   </>
                 )}
               </h1>
@@ -159,7 +155,7 @@ function HomeContent() {
             </div>
 
             <div className="relative">
-              <Card className="relative z-10 p-5 sm:p-6 bg-white border border-slate-200 shadow-2xl shadow-slate-200/60 rounded-2xl">
+              <Card className="relative z-10 p-5 sm:p-6 bg-white border border-slate-100 shadow-lg rounded-2xl">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   {lang === 'ko' ? '실시간 사용 현황' : "Today's overview"}
                 </div>
@@ -180,7 +176,7 @@ function HomeContent() {
                           : 'Sends a card and thank-you text after every call.'}
                       </div>
                     </div>
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
                       {lang === 'ko' ? '실행 중' : 'Active'}
                     </span>
                   </div>
@@ -259,8 +255,11 @@ function HomeContent() {
                     'One place for customer history, tags, and campaigns — synced with every SMS you send.',
                 },
               ].map((item) => (
-                <Card key={item.key} className="h-full p-5 bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/40 hover:-translate-y-1 transition-all duration-300 rounded-2xl">
-                  <div className="mb-3 h-8 w-8 rounded-full bg-slate-100 text-center text-[10px] font-semibold uppercase leading-8 text-slate-600">
+                <Card
+                  key={item.key}
+                  className="h-full p-5 bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <div className="mb-3 h-8 w-8 rounded-full bg-slate-900/5 text-center text-[10px] font-semibold uppercase leading-8 text-slate-700">
                     {item.key}
                   </div>
                   <h3 className="text-sm font-semibold text-slate-900">
@@ -343,7 +342,7 @@ function HomeContent() {
               </div>
             </div>
 
-            <Card className="p-5 sm:p-6 bg-white border border-slate-200 shadow-xl shadow-slate-200/50 rounded-2xl">
+            <Card className="p-5 sm:p-6 bg-slate-50 border border-slate-100 shadow-md rounded-2xl">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 {lang === 'ko' ? 'SAMPLE FLOW' : 'SAMPLE FLOW'}
               </div>
@@ -417,7 +416,7 @@ function HomeContent() {
             </p>
 
             <div className="mt-10 grid gap-6 md:grid-cols-3">
-              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   {lang === 'ko' ? 'Free' : 'Free'}
                 </div>
@@ -449,11 +448,14 @@ function HomeContent() {
                 </ul>
               </Card>
 
-              <Card highlight className="p-6 text-left relative overflow-hidden bg-white border-2 border-rose-500 shadow-2xl shadow-rose-100 rounded-2xl md:-mt-4 md:mb-4">
-                <div className="absolute right-4 top-4 rounded-full bg-rose-500/90 px-3 py-1 text-[11px] font-semibold text-white">
+              <Card
+                highlight
+                className="p-6 text-left relative overflow-hidden bg-slate-50 border border-slate-900/10 shadow-lg rounded-2xl md:-mt-4 md:mb-4 hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
+              >
+                <div className="absolute right-4 top-4 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white">
                   {lang === 'ko' ? '가장 인기' : 'Most popular'}
                 </div>
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-300">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   {lang === 'ko' ? 'Premium' : 'Premium'}
                 </div>
                 <h3 className="mt-2 text-lg font-semibold text-slate-900">
@@ -507,7 +509,7 @@ function HomeContent() {
                 </div>
               </Card>
 
-              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   {lang === 'ko' ? 'Lite' : 'Lite'}
                 </div>
