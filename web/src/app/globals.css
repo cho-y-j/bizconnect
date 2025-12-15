@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f9fafb;
-  --foreground: #020617;
+  --background: #ffffff;
+  --foreground: #0f172a;
   --accent: #f97373;
   --accent-soft: #fb7185;
   --muted: #6b7280;
@@ -22,10 +22,7 @@
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at top left, rgba(248, 113, 113, 0.16), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 55%),
-    #f9fafb;
+  background: #ffffff;
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
