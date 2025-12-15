@@ -461,7 +461,7 @@ function HomeContent() {
                 <h3 className="mt-2 text-lg font-semibold text-slate-900">
                   {lang === 'ko' ? '프리미엄 플랜' : 'Premium plan'}
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-700">
                   {lang === 'ko'
                     ? '매일 문자 발송이 필요하고, AI의 도움으로 응대 품질을 유지하고 싶은 팀을 위한 플랜입니다.'
                     : 'For teams that run SMS every day and rely on AI to keep up.'}
@@ -470,16 +470,16 @@ function HomeContent() {
                   <span className="text-3xl font-semibold text-slate-900">
                     ₩9,800
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-600">
                     {lang === 'ko' ? '/ 월' : '/ month'}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-700">
                   {lang === 'ko'
                     ? '하루 500건까지 내 기기에서 문자 발송.'
                     : 'Up to 500 SMS per day from your device.'}
                 </p>
-                <ul className="mt-5 space-y-2 text-xs text-slate-600">
+                <ul className="mt-5 space-y-2 text-xs text-slate-700">
                   <li>
                     •{' '}
                     {lang === 'ko'
@@ -573,19 +573,19 @@ function HomeContent() {
                   ? '빠르게 개선하고, 문의에는 직접 답합니다.'
                   : 'We ship quickly, and we answer when you call.'}
               </h2>
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-slate-800">
                 {lang === 'ko'
                   ? '비즈커넥트는 한국 영업팀을 위해 만들어졌습니다. 온보딩, 고객 데이터 이전, 플로우 설계까지 실제로 응답을 받는 세팅을 함께 만들어 드립니다.'
                   : 'BizConnect is built for Korean sales teams, with support that understands your day-to-day. We help you onboard, import customers, and design flows that actually get replies.'}
               </p>
             </div>
-            <Card className="p-6 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl">
-              <p className="text-xs text-slate-600">
+            <Card className="p-6 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-2xl">
+              <p className="text-xs text-slate-800">
                 {lang === 'ko'
                   ? '“비즈커넥트 덕분에 후속 문자는 저절로 나갑니다. 팀원들은 다음에 누구에게 연락해야 할지 고민하지 않고, 답장을 확인하는 데 집중해요.”'
                   : "“With BizConnect, follow-up texts just happen. My team doesn't worry about who to call next — the next reply is already in the inbox.”"}
               </p>
-              <p className="mt-4 text-xs text-slate-500">
+              <p className="mt-4 text-xs text-slate-700">
                 {lang === 'ko'
                   ? '— 금융 서비스 영업 리더 (서울)'
                   : '— Sales lead, financial services (Seoul)'}
