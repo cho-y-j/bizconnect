@@ -204,6 +204,9 @@ class FCMService {
 
     // 모든 taskId를 미리 등록 (중복 방지)
     taskIds.forEach(id => taskService.markAsNotified(id));
+    
+    // 배치 승인 시작 (모든 taskId를 batchApprovalInProgress에 추가)
+    taskService.startBatchApproval(taskIds);
 
     try {
       // 배치 승인 알림 표시

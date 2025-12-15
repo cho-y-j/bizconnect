@@ -15,6 +15,9 @@ class SmsApprovalService {
   private approveCallback: ((taskId: string) => void) | null = null;
   private cancelCallback: ((taskId: string) => void) | null = null;
   private subscriptions: any[] = [];
+  // 콜백이 설정되기 전에 받은 이벤트를 저장
+  private pendingApprovedTasks: string[] = [];
+  private pendingCancelledTasks: string[] = [];
 
   constructor() {
     this.setupEventListeners();
@@ -31,17 +34,27 @@ class SmsApprovalService {
 
     // 승인 이벤트
     const approveSubscription = eventEmitter.addListener('onSmsApproved', (taskId: string) => {
-      console.log('📱 [SmsApproval] SMS Approved:', taskId);
+      console.log('📱 [SmsApproval] SMS Approved event received:', taskId);
       if (this.approveCallback) {
+        console.log('📱 [SmsApproval] Callback available, calling immediately');
         this.approveCallback(taskId);
+      } else {
+        console.log('⚠️ [SmsApproval] Callback not set yet, storing for later:', taskId);
+        // 콜백이 없으면 나중을 위해 저장
+        this.pendingApprovedTasks.push(taskId);
       }
     });
 
     // 취소 이벤트
     const cancelSubscription = eventEmitter.addListener('onSmsCancelled', (taskId: string) => {
-      console.log('📱 [SmsApproval] SMS Cancelled:', taskId);
+      console.log('📱 [SmsApproval] SMS Cancelled event received:', taskId);
       if (this.cancelCallback) {
+        console.log('📱 [SmsApproval] Callback available, calling immediately');
         this.cancelCallback(taskId);
+      } else {
+        console.log('⚠️ [SmsApproval] Callback not set yet, storing for later:', taskId);
+        // 콜백이 없으면 나중을 위해 저장
+        this.pendingCancelledTasks.push(taskId);
       }
     });
 
@@ -56,8 +69,30 @@ class SmsApprovalService {
     onApprove: (taskId: string) => void,
     onCancel: (taskId: string) => void
   ) {
+    console.log('📱 [SmsApproval] Setting callbacks');
     this.approveCallback = onApprove;
     this.cancelCallback = onCancel;
+
+    // 콜백이 설정되기 전에 받은 이벤트들을 처리
+    if (this.pendingApprovedTasks.length > 0) {
+      console.log(`📱 [SmsApproval] Processing ${this.pendingApprovedTasks.length} pending approved tasks`);
+      const tasks = [...this.pendingApprovedTasks];
+      this.pendingApprovedTasks = [];
+      tasks.forEach(taskId => {
+        console.log('📱 [SmsApproval] Processing pending approved task:', taskId);
+        this.approveCallback?.(taskId);
+      });
+    }
+
+    if (this.pendingCancelledTasks.length > 0) {
+      console.log(`📱 [SmsApproval] Processing ${this.pendingCancelledTasks.length} pending cancelled tasks`);
+      const tasks = [...this.pendingCancelledTasks];
+      this.pendingCancelledTasks = [];
+      tasks.forEach(taskId => {
+        console.log('📱 [SmsApproval] Processing pending cancelled task:', taskId);
+        this.cancelCallback?.(taskId);
+      });
+    }
   }
 
   /**
@@ -184,6 +219,25 @@ class SmsApprovalService {
     } catch (error) {
       console.error('❌ [SmsApproval] Failed to show batch notification:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 발송 완료 정보 알림 표시 (자동 승인 시 사용)
+   */
+  async showInfoNotification(title: string, message: string): Promise<void> {
+    if (Platform.OS !== 'android' || !SmsApprovalModule) {
+      return;
+    }
+
+    try {
+      // 네이티브 모듈의 showInfoNotification 메서드 호출
+      // 이 메서드는 Kotlin에서 구현되어야 함
+      if (SmsApprovalModule.showInfoNotification) {
+        await SmsApprovalModule.showInfoNotification(title, message);
+      }
+    } catch (error) {
+      console.error('❌ [SmsApproval] Failed to show info notification:', error);
     }
   }
 

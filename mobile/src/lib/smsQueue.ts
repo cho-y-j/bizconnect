@@ -35,25 +35,44 @@ class SmsQueue {
       addedAt: Date.now(),
     };
 
-    // 우선순위에 따라 정렬하여 추가
+    // 우선순위와 시간 순서에 따라 정렬하여 추가
     this.queue.push(queueItem);
-    this.queue.sort((a, b) => (b.task.priority || 0) - (a.task.priority || 0));
+    // 우선순위가 높은 순서대로, 같은 우선순위면 먼저 추가된 순서대로
+    this.queue.sort((a, b) => {
+      const priorityDiff = (b.task.priority || 0) - (a.task.priority || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+      // 같은 우선순위면 먼저 추가된 순서대로 (addedAt이 작을수록 먼저)
+      return a.addedAt - b.addedAt;
+    });
 
     await this.saveQueue();
 
-    console.log('✅ Task added to queue:', task.id, 'Queue length:', this.queue.length);
+    console.log('✅ Task added to queue:', task.id, 'Queue length:', this.queue.length, 'Priority:', task.priority || 0);
 
+    // 높은 우선순위 작업(승인된 작업)이면 즉시 처리 시도
     // 큐 처리 시작 (이미 처리 중이면 자동으로 다음 작업 처리됨)
-    this.startProcessing();
+    if (task.priority && task.priority >= 100) {
+      console.log('⚡ High priority task added, starting processing immediately');
+      // 현재 처리 중인 작업이 없으면 즉시 처리
+      if (!this.isProcessing && !this.processing) {
+        this.startProcessing();
+      } else {
+        console.log('⏳ Another task is processing, will process after completion');
+        this.startProcessing(); // 다음 작업으로 처리되도록 시작
+      }
+    } else {
+      this.startProcessing();
+    }
   }
 
   /**
    * 큐에서 다음 작업 가져오기
+   * 우선순위가 높은 작업부터 처리
    */
   private getNext(): QueueItem | null {
     if (this.queue.length === 0) return null;
 
-    // 예약 발송 확인
+    // 예약 발송 확인 및 우선순위 정렬
     const now = Date.now();
     const scheduledItems = this.queue.filter((item) => {
       if (!item.task.scheduled_at) return true;
@@ -62,12 +81,18 @@ class SmsQueue {
     });
 
     if (scheduledItems.length > 0) {
+      // 우선순위가 높은 순서로 정렬, 같은 우선순위면 먼저 추가된 순서대로
+      scheduledItems.sort((a, b) => {
+        const priorityDiff = (b.task.priority || 0) - (a.task.priority || 0);
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.addedAt - b.addedAt;
+      });
       const item = scheduledItems[0];
       this.queue = this.queue.filter((i) => i.task.id !== item.task.id);
       return item;
     }
 
-    // 예약이 아닌 경우 첫 번째 항목 반환
+    // 예약이 아닌 경우 우선순위가 높은 첫 번째 항목 반환 (큐는 이미 우선순위로 정렬되어 있음)
     return this.queue.shift() || null;
   }
 
@@ -168,10 +193,11 @@ class SmsQueue {
     // 큐에 남은 작업이 있을 때만 딜레이 (대량 발송 시)
     // 첫 번째 작업이거나 단일 건이면 즉시 처리
     const isBulkSend = hasMore; // 큐에 더 있으면 대량 발송
-    const delay = (this.isFirstTask || !isBulkSend) ? 0 : this.throttleInterval;
+    // 단건일 때는 항상 delay = 0 (hasMore가 false이면 단건)
+    const delay = (!hasMore || this.isFirstTask) ? 0 : this.throttleInterval;
     this.isFirstTask = false; // 첫 번째 작업 처리 후 플래그 해제
 
-    console.log(`📊 Queue status: hasMore=${hasMore}, delay=${delay}ms, isFirstTask=${this.isFirstTask}`);
+    console.log(`📊 Queue status: hasMore=${hasMore}, delay=${delay}ms, isFirstTask=${this.isFirstTask}, isBulkSend=${isBulkSend}`);
 
     if (hasMore) {
       if (delay > 0) {
@@ -183,7 +209,7 @@ class SmsQueue {
         }, delay);
       } else {
         // 단일 건 또는 첫 번째 작업은 즉시 처리
-        console.log('⚡ Processing next task immediately');
+        console.log('⚡ Processing next task immediately (single task or first task)');
         this.processing = null;
         this.saveProcessing();
         this.processNext();
@@ -302,21 +328,41 @@ class SmsQueue {
 
   /**
    * 큐 로드 (앱 재시작 시 복구)
+   * 오래된 작업은 제외 (최근 10분 이내만)
    */
   private async loadQueue(): Promise<void> {
     try {
+      const now = Date.now();
+      const MAX_AGE = 10 * 60 * 1000; // 10분
+
       const queueData = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
       if (queueData) {
-        this.queue = JSON.parse(queueData);
+        const loadedQueue = JSON.parse(queueData) as QueueItem[];
+        // 오래된 작업 필터링
+        this.queue = loadedQueue.filter(item => {
+          const age = now - item.addedAt;
+          if (age > MAX_AGE) {
+            console.log('⏭️ [SmsQueue] Removing old task from queue:', item.task.id, 'age:', Math.round(age / 1000), 'seconds');
+            return false;
+          }
+          return true;
+        });
+        console.log(`📦 [SmsQueue] Loaded ${this.queue.length} tasks from storage (filtered ${loadedQueue.length - this.queue.length} old tasks)`);
       }
 
       const processingData = await AsyncStorage.getItem(PROCESSING_STORAGE_KEY);
       if (processingData) {
-        this.processing = JSON.parse(processingData);
-        // 처리 중이던 작업을 큐 앞에 다시 추가
-        if (this.processing) {
-          this.queue.unshift(this.processing);
-          this.processing = null;
+        const loadedProcessing = JSON.parse(processingData) as QueueItem;
+        const age = now - loadedProcessing.addedAt;
+        if (age <= MAX_AGE) {
+          this.processing = loadedProcessing;
+          // 처리 중이던 작업을 큐 앞에 다시 추가
+          if (this.processing) {
+            this.queue.unshift(this.processing);
+            this.processing = null;
+          }
+        } else {
+          console.log('⏭️ [SmsQueue] Removing old processing task:', loadedProcessing.task.id, 'age:', Math.round(age / 1000), 'seconds');
         }
       }
     } catch (error) {

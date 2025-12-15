@@ -72,9 +72,12 @@ function AppContent() {
         console.log('📱 [App] Current state:', nextAppState);
         console.log('📱 [App] Loading pending tasks...');
         
-        taskService.loadPendingTasks().catch((error) => {
-          console.error('❌ [App] Error loading pending tasks on foreground:', error);
-        });
+        // 약간의 딜레이를 주어 이벤트 리스너가 설정될 시간을 줌
+        setTimeout(() => {
+          taskService.loadPendingTasks().catch((error) => {
+            console.error('❌ [App] Error loading pending tasks on foreground:', error);
+          });
+        }, 500); // 500ms 딜레이
       }
       
       appState.current = nextAppState;

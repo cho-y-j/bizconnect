@@ -8,7 +8,8 @@ import { smsApprovalService } from '../lib/smsApproval';
 /**
  * 작업 서비스 - 큐와 발송을 통합 관리
  */
-const RECENT_MINUTES = 30; // 최근 30분 내 생성된 작업만 자동 처리 (웹에서 보낸 작업 처리 보장)
+const RECENT_MINUTES = 2; // 최근 2분 내 생성된 작업만 자동 처리 (FCM으로 온 작업은 이미 처리되므로 짧은 시간만 확인)
+const MAX_TASK_AGE_MINUTES = 10; // 최대 10분 이내 작업만 처리 (오래된 작업 방지)
 
 class TaskService {
   private userId: string | null = null;
@@ -20,6 +21,10 @@ class TaskService {
   private pendingApprovalTasks: Map<string, Task> = new Map();
   // 이미 알림을 보낸 작업 ID (중복 알림 방지)
   private notifiedTaskIds: Set<string> = new Set();
+  // 자동 승인된 작업 ID (중복 처리 방지)
+  private autoApprovedTaskIds: Set<string> = new Set();
+  // 배치 승인 처리 중인 작업 그룹 (배치 승인 시 여러 taskId가 연속으로 올 수 있음)
+  private batchApprovalInProgress: Set<string> = new Set();
 
   /**
    * 사용자 ID 설정
@@ -74,24 +79,179 @@ class TaskService {
       async (taskId: string) => {
         console.log('✅ [TaskService] SMS Approved:', taskId);
         this.notifiedTaskIds.delete(taskId);
-        const task = this.pendingApprovalTasks.get(taskId);
+        
+        // 이미 자동 승인된 작업이면 무시 (중복 처리 방지)
+        if (this.autoApprovedTaskIds.has(taskId)) {
+          console.log('⏭️ [TaskService] Task already auto-approved, skipping:', taskId);
+          return;
+        }
+
+        let task = this.pendingApprovalTasks.get(taskId);
+        
         if (task) {
+          // 맵에 있으면 바로 사용
           this.pendingApprovalTasks.delete(taskId);
-          await this.addTaskToQueue(task);
+          console.log('✅ [TaskService] Task found in pendingApprovalTasks, processing:', task.id);
         } else {
-          // 맵에 없으면 DB에서 조회 (앱 재시작 등의 경우)
+          // 맵에 없으면 DB에서 조회 (백그라운드 승인 시나 앱 재시작 등의 경우)
+          console.log('⚠️ [TaskService] Task not in pendingApprovalTasks, querying DB:', taskId);
           const { data: dbTask, error } = await supabase
             .from('tasks')
             .select('*')
             .eq('id', taskId)
             .single();
 
-          // pending 또는 queued 상태인 경우 처리 (queued = 승인 대기 중)
-          if (!error && dbTask && (dbTask.status === 'pending' || dbTask.status === 'queued')) {
+          if (error || !dbTask) {
+            console.error('❌ [TaskService] Task not found in DB:', taskId, error?.message);
+            return;
+          }
+
+          // pending, queued, 또는 processing 상태인 경우 처리
+          // (queued = 승인 대기 중, processing = 이미 큐에 추가되었지만 아직 발송 전)
+          if (dbTask.status === 'pending' || dbTask.status === 'queued' || dbTask.status === 'processing') {
             console.log('✅ [TaskService] Found task from DB, processing:', dbTask.id, 'status:', dbTask.status);
-            await this.addTaskToQueue(dbTask);
+            task = dbTask;
           } else {
-            console.warn('⚠️ [TaskService] Task not found or invalid status:', taskId, dbTask?.status);
+            console.warn('⚠️ [TaskService] Task status is not processable:', taskId, dbTask.status);
+            return;
+          }
+        }
+
+        // DB 상태 재확인 (중복 발송 방지)
+        const { data: currentTask, error: checkError } = await supabase
+          .from('tasks')
+          .select('status')
+          .eq('id', task.id)
+          .single();
+
+        if (checkError || !currentTask) {
+          console.error('❌ [TaskService] Cannot verify task status:', taskId);
+          return;
+        }
+
+        // 이미 완료되었거나 실패한 작업은 무시
+        if (currentTask.status === 'completed' || currentTask.status === 'failed') {
+          console.log('⏭️ [TaskService] Task already processed, skipping:', taskId, 'status:', currentTask.status);
+          return;
+        }
+
+        // 배치 승인인지 확인 (batchApprovalInProgress에 있으면 배치)
+        const isBatch = this.batchApprovalInProgress.has(taskId);
+        
+        if (isBatch) {
+          // 배치 승인: 큐를 통해 시간차를 두고 발송
+          console.log('📦 [TaskService] Batch approval detected, adding to queue:', task.id);
+          
+          // 상태를 'processing'으로 업데이트
+          await supabase
+            .from('tasks')
+            .update({ status: 'processing', updated_at: new Date().toISOString() })
+            .eq('id', task.id);
+          
+          // 큐에 추가 (우선순위 100, 옵션의 지연시간에 맞춰 순차적으로 발송)
+          task.priority = 100;
+          await this.addTaskToQueue(task);
+          console.log('✅ [TaskService] Task added to queue for batch processing:', task.id);
+        } else {
+          // 단건 승인: 항상 즉시 발송 (수동/자동 모두)
+          console.log('⚡ [TaskService] Single task approved - sending immediately (bypassing queue):', task.id);
+          this.autoApprovedTaskIds.add(taskId);
+          
+          // 타임아웃 설정 (1분)
+          const timeoutId = setTimeout(async () => {
+            const { data: timeoutTask } = await supabase
+              .from('tasks')
+              .select('status')
+              .eq('id', task.id)
+              .single();
+            
+            if (timeoutTask && timeoutTask.status !== 'completed' && timeoutTask.status !== 'failed') {
+              console.error('❌ [TaskService] Task timeout (1min) - marking as failed:', task.id);
+              await supabase
+                .from('tasks')
+                .update({ 
+                  status: 'failed', 
+                  error_message: '1분 이내 발송되지 않아 실패 처리되었습니다.',
+                  updated_at: new Date().toISOString() 
+                })
+                .eq('id', task.id);
+              this.autoApprovedTaskIds.delete(taskId);
+            }
+          }, 60000); // 1분
+
+          try {
+            // 한도 체크
+            if (this.userId) {
+              const limitExceeded = await isLimitExceeded(this.userId);
+              if (limitExceeded) {
+                clearTimeout(timeoutId);
+                console.error('❌ Daily limit exceeded for user:', this.userId);
+                await supabase
+                  .from('tasks')
+                  .update({ 
+                    status: 'failed', 
+                    error_message: '일일 한도가 초과되었습니다.',
+                    updated_at: new Date().toISOString() 
+                  })
+                  .eq('id', task.id);
+                this.autoApprovedTaskIds.delete(taskId);
+                return;
+              }
+            }
+
+            // 상태를 'processing'으로 업데이트
+            await supabase
+              .from('tasks')
+              .update({ status: 'processing', updated_at: new Date().toISOString() })
+              .eq('id', task.id);
+
+              // 즉시 SMS 발송 (큐 우회)
+              const result = await sendSms(
+                task,
+                async () => {
+                  clearTimeout(timeoutId);
+                  console.log('✅ [TaskService] Approved SMS sent successfully:', task.id);
+                  this.autoApprovedTaskIds.delete(taskId);
+                  
+                  // 자동 승인 시 발송 완료 알림 표시
+                  // 배치 승인 중이면 개별 알림 표시하지 않음 (배치 승인 시 이미 표시됨)
+                  const isBatchApproval = this.batchApprovalInProgress.has(taskId);
+                  if (!isBatchApproval) {
+                    try {
+                      await smsApprovalService.showInfoNotification(
+                        '문자 발송 완료',
+                        `${task.customer_phone}에게 문자를 발송했습니다`
+                      );
+                    } catch (error) {
+                      console.error('❌ [TaskService] Failed to show completion notification:', error);
+                    }
+                  } else {
+                    console.log('📦 [TaskService] Batch approval in progress, skipping individual notification:', taskId);
+                  }
+                },
+                (error) => {
+                  clearTimeout(timeoutId);
+                  console.error('❌ [TaskService] Approved SMS send failed:', error);
+                  this.autoApprovedTaskIds.delete(taskId);
+                }
+              );
+
+            if (!result) {
+              clearTimeout(timeoutId);
+              console.error('❌ [TaskService] Approved SMS send returned false');
+              // 실패 시 큐에 추가
+              task.priority = 100;
+              await this.addTaskToQueue(task);
+              this.autoApprovedTaskIds.delete(taskId);
+            }
+          } catch (error: any) {
+            clearTimeout(timeoutId);
+            console.error('❌ [TaskService] Error sending approved SMS:', error);
+            // 실패 시 큐에 추가하여 재시도
+            console.log('⚠️ [TaskService] Adding to queue for retry:', task.id);
+            task.priority = 100;
+            await this.addTaskToQueue(task);
+            this.autoApprovedTaskIds.delete(taskId);
           }
         }
       },
@@ -100,6 +260,8 @@ class TaskService {
         console.log('❌ [TaskService] SMS Cancelled:', taskId);
         this.notifiedTaskIds.delete(taskId);
         this.pendingApprovalTasks.delete(taskId);
+        this.autoApprovedTaskIds.delete(taskId);
+        this.batchApprovalInProgress.delete(taskId);
         await smsApprovalService.cancelTask(taskId);
       }
     );
@@ -162,6 +324,18 @@ class TaskService {
   markAsNotified(taskId: string): void {
     this.notifiedTaskIds.add(taskId);
     console.log('✅ [TaskService] Task marked as notified:', taskId);
+  }
+
+  /**
+   * 배치 승인 시작 (FCM에서 호출)
+   * 배치 승인 시 모든 taskId를 batchApprovalInProgress에 추가
+   */
+  startBatchApproval(taskIds: string[]): void {
+    taskIds.forEach(id => {
+      this.batchApprovalInProgress.add(id);
+      console.log('📦 [TaskService] Task added to batch approval:', id);
+    });
+    console.log('📦 [TaskService] Batch approval started for', taskIds.length, 'tasks');
   }
 
   /**
@@ -278,6 +452,12 @@ class TaskService {
           }
 
           if (newTask.status === 'pending' && createdAt > thresholdTime) {
+            // 이미 알림을 보낸 작업은 스킵 (FCM 배치 메시지로 이미 처리됨)
+            if (this.notifiedTaskIds.has(newTask.id)) {
+              console.log('⏭️ [Realtime] Task already notified (batch), skipping:', newTask.id);
+              return;
+            }
+
             const scheduledAt = newTask.scheduled_at
               ? new Date(newTask.scheduled_at)
               : null;
@@ -371,6 +551,28 @@ class TaskService {
    * 작업을 큐에 추가
    */
   async addTaskToQueue(task: Task): Promise<void> {
+    // 중복 체크: 이미 큐에 있거나 처리 중인 작업은 추가하지 않음
+    const queueStatus = smsQueue.getStatus();
+    const queue = smsQueue.getQueue();
+    const isInQueue = queue.some(item => item.task.id === task.id);
+    const isProcessing = queueStatus.currentTask?.id === task.id;
+    
+    if (isInQueue || isProcessing) {
+      console.log('⏭️ [TaskService] Task already in queue or processing, skipping:', task.id);
+      return;
+    }
+
+    // DB 상태 확인 (이미 완료되었거나 실패한 작업은 큐에 추가하지 않음)
+    const { data: dbTask } = await supabase
+      .from('tasks')
+      .select('status')
+      .eq('id', task.id)
+      .single();
+
+    if (dbTask && (dbTask.status === 'completed' || dbTask.status === 'failed')) {
+      console.log('⏭️ [TaskService] Task already processed, skipping:', task.id, 'status:', dbTask.status);
+      return;
+    }
     if (!this.userId) {
       console.error('Cannot add task to queue: userId not set');
       return;
@@ -466,11 +668,44 @@ class TaskService {
       // Supabase의 or() 조건이 복잡하므로 필터링을 두 단계로 나눔
       const { data: tasks, error } = await query;
       
-      // 클라이언트 측에서 scheduled_at 필터링
+      // 클라이언트 측에서 scheduled_at 필터링 및 이미 알림 보낸 작업 제외
       const filteredTasks = tasks?.filter(task => {
+        // 이미 알림을 보낸 작업은 제외 (FCM으로 이미 처리된 작업)
+        if (this.notifiedTaskIds.has(task.id)) {
+          console.log('⏭️ [loadPendingTasks] Task already notified, skipping:', task.id);
+          return false;
+        }
+        // 자동 승인된 작업은 제외 (중복 처리 방지)
+        if (this.autoApprovedTaskIds.has(task.id)) {
+          console.log('⏭️ [loadPendingTasks] Task already auto-approved, skipping:', task.id);
+          return false;
+        }
+        
+        // 오래된 작업 필터링 (created_at 기준)
+        const createdAt = new Date(task.created_at);
+        const taskAge = nowDate.getTime() - createdAt.getTime();
+        const maxAge = MAX_TASK_AGE_MINUTES * 60 * 1000;
+        if (taskAge > maxAge) {
+          console.log('⏭️ [loadPendingTasks] Task too old, skipping:', task.id, 'age:', Math.round(taskAge / 1000), 'seconds');
+          return false;
+        }
+        
+        // scheduled_at 필터링
         if (!task.scheduled_at) return true;
         const scheduledAt = new Date(task.scheduled_at);
-        return scheduledAt <= nowDate;
+        // scheduled_at이 현재 시간보다 미래면 제외
+        if (scheduledAt > nowDate) {
+          console.log('⏭️ [loadPendingTasks] Task scheduled for future, skipping:', task.id, 'scheduled_at:', task.scheduled_at);
+          return false;
+        }
+        // scheduled_at이 너무 오래 전이면 제외 (24시간 이상)
+        const scheduledAge = nowDate.getTime() - scheduledAt.getTime();
+        const maxScheduledAge = 24 * 60 * 60 * 1000; // 24시간
+        if (scheduledAge > maxScheduledAge) {
+          console.log('⏭️ [loadPendingTasks] Scheduled task too old, skipping:', task.id, 'scheduled_age:', Math.round(scheduledAge / 1000), 'seconds');
+          return false;
+        }
+        return true;
       }) || [];
 
       if (error) {
@@ -484,7 +719,7 @@ class TaskService {
       }
 
       console.log('🔍 Query result:', tasks?.length || 0, 'tasks found (before filtering)');
-      console.log('🔍 Filtered result:', filteredTasks.length, 'tasks found (after scheduled_at filter)');
+      console.log('🔍 Filtered result:', filteredTasks.length, 'tasks found (after scheduled_at and notified filter)');
 
       if (filteredTasks && filteredTasks.length > 0) {
         console.log(`✅ ===== FOUND ${filteredTasks.length} PENDING TASKS =====`);

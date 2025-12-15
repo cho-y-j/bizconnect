@@ -36,7 +36,10 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
     // 앱이 포그라운드로 돌아올 때 pending approval 확인
     override fun onHostResume() {
         Log.d(TAG, "onHostResume - checking for pending approvals")
-        checkPendingApprovals()
+        // 약간의 딜레이를 주어 이벤트 리스너가 설정될 시간을 줌
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            checkPendingApprovals()
+        }, 1000) // 1초 딜레이
     }
 
     override fun onHostPause() {}
@@ -105,6 +108,22 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             Log.d(TAG, "Info notification shown: $title")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to show info notification", e)
+        }
+    }
+
+    /**
+     * ReactMethod: 정보 알림 표시 (자동 승인 시 발송 완료 알림)
+     */
+    @ReactMethod
+    fun showInfoNotification(title: String, message: String, promise: Promise) {
+        Log.d(TAG, "showInfoNotification called: $title")
+        try {
+            val context = reactApplicationContext
+            showInfoNotification(context, title, message)
+            promise.resolve(null)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show info notification", e)
+            promise.reject("ERROR", "Failed to show info notification", e)
         }
     }
 
@@ -231,7 +250,7 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
             if (autoApproveEnabled) {
                 Log.d(TAG, "Auto-approve enabled, sending batch approval events directly")
                 
-                // 정보 알림 표시
+                // 배치 승인은 정보 알림 1번만 표시 (개별 알림 없음)
                 val context = reactApplicationContext
                 showInfoNotification(
                     context,
@@ -239,7 +258,7 @@ class SmsApprovalModule(reactContext: ReactApplicationContext) : ReactContextBas
                     "${count}건의 문자를 발송했습니다"
                 )
                 
-                // taskIds 파싱해서 각각 승인 이벤트 발송
+                // taskIds 파싱해서 각각 승인 이벤트 발송 (알림은 1번만 표시됨)
                 try {
                     val taskIds = org.json.JSONArray(taskIdsJson)
                     for (i in 0 until taskIds.length()) {
