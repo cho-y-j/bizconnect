@@ -88,7 +88,7 @@ function HomeContent() {
               <h1 className="mt-6 text-4xl font-semibold sm:text-5xl lg:text-[3.25rem] leading-tight text-slate-900">
                 {lang === 'ko' ? (
                   <>
-                    내 휴대폰 문자를 이용한
+                    내 휴대폰을 이용한
                     <br />
                     <span className="text-slate-900">
                       0원 문자 발송 엔진
@@ -159,7 +159,7 @@ function HomeContent() {
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   {lang === 'ko' ? '실시간 사용 현황' : "Today's overview"}
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-slate-700">
                   {lang === 'ko'
                     ? '안드로이드 기기와 대시보드가 실시간으로 동기화되어, 어떤 자동 발송이 실행 중인지 한눈에 확인할 수 있습니다.'
                     : 'Your Android device and web dashboard stay in sync so you can see which automations are running at a glance.'}
