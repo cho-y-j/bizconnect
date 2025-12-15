@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { isAuthenticated } from '@/lib/auth'
@@ -507,5 +507,15 @@ function HomeContent() {
 }
 
 export default function Home() {
-  return <HomeContent />
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-slate-300">
+          Loading BizConnect...
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
+  )
 }
