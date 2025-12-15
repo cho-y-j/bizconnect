@@ -265,10 +265,10 @@ function HomeContent() {
                   <div className="mb-3 h-8 w-8 rounded-full bg-slate-900/90 text-center text-[10px] font-semibold uppercase leading-8 text-slate-100">
                     {item.key}
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-sm font-semibold text-slate-50">
                     {lang === 'ko' ? item.titleKo : item.titleEn}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                  <p className="mt-2 text-xs leading-relaxed text-slate-300">
                     {lang === 'ko' ? item.bodyKo : item.bodyEn}
                   </p>
                 </Card>
