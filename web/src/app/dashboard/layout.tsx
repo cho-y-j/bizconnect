@@ -163,7 +163,7 @@ export default function DashboardLayout({
                   href={item.href}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
                     active
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                   title={!sidebarOpen ? item.name : ''}

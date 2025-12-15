@@ -85,10 +85,10 @@ function HomeContent() {
                   ? '1개월 프리미엄 무료 · 모바일 영업인을 위한 문자 자동화'
                   : '1-month premium free · SMS automation for mobile closers'}
               </div>
-              <h1 className="mt-6 text-4xl font-semibold sm:text-5xl lg:text-[3.25rem] leading-snug text-slate-900">
+              <h1 className="mt-6 text-4xl font-semibold sm:text-5xl lg:text-[3.25rem] leading-tight text-slate-900">
                 {lang === 'ko' ? (
                   <>
-                    내 휴대폰 요금제를
+                    내 휴대폰 문자를 이용한
                     <br />
                     <span className="text-slate-900">
                       0원 문자 발송 엔진
