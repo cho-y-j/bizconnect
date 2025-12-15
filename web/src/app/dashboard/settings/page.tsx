@@ -445,7 +445,7 @@ export default function SettingsPage() {
         {/* 개인정보 상세 입력 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            📋 개인정보 상세 입력
+            개인정보 상세 입력
           </h2>
           <p className="text-sm text-gray-600 mb-6">
             상세한 개인정보를 입력하면 AI가 더 정확한 메시지를 추천할 수 있습니다.
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                   placeholder="010-1234-5678"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  💡 관리자가 전체 이용자를 관리할 때 사용됩니다.
+                  관리자가 전체 이용자를 관리할 때 사용될 수 있습니다.
                 </p>
               </div>
               <div>
@@ -710,7 +710,7 @@ export default function SettingsPage() {
         {/* 기본 설정 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            ⚙️ 기본 설정
+            기본 설정
           </h2>
 
           <div className="space-y-4">
@@ -797,7 +797,7 @@ export default function SettingsPage() {
         {/* 콜백 서비스 설정 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            📞 콜백 서비스 설정
+            콜백 서비스 설정
           </h2>
           <p className="text-sm text-gray-600 mb-6">
             통화 종료 후 자동으로 고객에게 문자를 발송하는 기능입니다. 상황별로 다른 메시지를 보낼 수 있습니다.
@@ -968,7 +968,7 @@ export default function SettingsPage() {
             {/* 안내 */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                💡 <strong>안내:</strong> 콜백 서비스는 모바일 앱에서 통화 종료를 감지한 후 자동으로 발송됩니다.
+                <strong>안내:</strong> 콜백 서비스는 모바일 앱에서 통화 종료를 감지한 후 자동으로 발송됩니다.
                 상황별 메시지는 통화 상태(종료/부재중/통화중)에 따라 자동으로 선택됩니다.
               </p>
             </div>
@@ -978,7 +978,7 @@ export default function SettingsPage() {
         {/* 알림 설정 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            🔔 알림 설정
+            알림 설정
           </h2>
           <p className="text-sm text-gray-600 mb-6">
             푸시 알림을 통해 중요한 일정과 작업 완료를 알려드립니다.
@@ -1032,7 +1032,7 @@ export default function SettingsPage() {
                     className="rounded"
                   />
                   <label htmlFor="birthdayNotificationsEnabled" className="text-sm font-medium text-gray-700 cursor-pointer">
-                    🎂 생일 알림
+                    생일 알림
                   </label>
                 </div>
                 {notifications.birthday_notifications_enabled && (
@@ -1067,7 +1067,7 @@ export default function SettingsPage() {
                     className="rounded"
                   />
                   <label htmlFor="anniversaryNotificationsEnabled" className="text-sm font-medium text-gray-700 cursor-pointer">
-                    💝 기념일 알림
+                    기념일 알림
                   </label>
                 </div>
                 {notifications.anniversary_notifications_enabled && (
@@ -1101,7 +1101,7 @@ export default function SettingsPage() {
                   className="rounded"
                 />
                 <label htmlFor="taskNotificationsEnabled" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  📤 작업 완료 알림
+                  작업 완료 알림
                 </label>
               </div>
             )}
@@ -1109,7 +1109,7 @@ export default function SettingsPage() {
             {/* 안내 */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                💡 <strong>안내:</strong> 푸시 알림은 모바일 앱에서만 작동합니다. 
+                <strong>안내:</strong> 푸시 알림은 모바일 앱에서만 작동합니다. 
                 웹에서는 브라우저 알림을 사용할 수 있습니다.
               </p>
             </div>
@@ -1119,7 +1119,7 @@ export default function SettingsPage() {
         {/* AI 의도 샘플 관리 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            🤖 AI 메시지 추천 의도 샘플 관리
+            AI 메시지 추천 의도 샘플 관리
           </h2>
           <p className="text-sm text-gray-600 mb-6">
             AI 메시지 추천 시 사용할 의도 샘플을 관리합니다. 자주 사용하는 의도를 추가하거나 수정할 수 있습니다.
@@ -1223,7 +1223,7 @@ export default function SettingsPage() {
         {/* 명함 설정 */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            💼 명함 설정
+            명함 설정
           </h2>
 
           <div className="space-y-4">

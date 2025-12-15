@@ -85,7 +85,7 @@ function HomeContent() {
                   ? '1개월 프리미엄 무료 · 모바일 영업인을 위한 문자 자동화'
                   : '1-month premium free · SMS automation for mobile closers'}
               </div>
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.25rem] text-slate-900">
+              <h1 className="mt-6 text-4xl font-semibold sm:text-5xl lg:text-[3.25rem] leading-snug text-slate-900">
                 {lang === 'ko' ? (
                   <>
                     내 휴대폰 요금제를
@@ -103,7 +103,7 @@ function HomeContent() {
                   </>
                 )}
               </h1>
-              <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-700 sm:text-base">
                 {lang === 'ko'
                   ? '비즈커넥트는 영업인을 위한 가장 쉬운 문자 자동화 서비스입니다. PC에서 메시지를 입력하면, 내 안드로이드 폰이 고객별 맞춤 문자를 자동으로 발송합니다.'
                   : 'BizConnect is the fastest way for salespeople to automate follow-up: type on desktop, your Android phone sends personalized texts automatically — with AI that remembers every customer touchpoint.'}
@@ -211,7 +211,7 @@ function HomeContent() {
                 ? '모바일로 움직이는 영업팀을 위해 설계했습니다.'
                 : 'Built for sales teams who live on mobile.'}
             </h2>
-            <p className="mt-3 max-w-2xl text-sm text-slate-600">
+            <p className="mt-3 max-w-2xl text-sm text-slate-700 leading-relaxed">
               {lang === 'ko'
                 ? '매번 복붙하는 수고를 줄이세요. 비즈커넥트는 내 휴대폰 요금제를 활용해, 개발자 없이도 프로그램처럼 움직이는 문자 채널을 만들어 줍니다.'
                 : 'Stop copy-pasting every message. BizConnect turns your mobile plan into a programmable channel — without gateways, spreadsheets, or engineering.'}
@@ -265,7 +265,7 @@ function HomeContent() {
                   <h3 className="text-sm font-semibold text-slate-900">
                     {lang === 'ko' ? item.titleKo : item.titleEn}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                  <p className="mt-2 text-xs leading-relaxed text-slate-700">
                     {lang === 'ko' ? item.bodyKo : item.bodyEn}
                   </p>
                 </Card>
@@ -288,7 +288,7 @@ function HomeContent() {
                   ? '회원가입부터 첫 자동 문자 발송까지, 10분 안에 끝냅니다.'
                   : 'From sign-up to first automated SMS in under 10 minutes.'}
               </h2>
-              <p className="mt-3 max-w-xl text-sm text-slate-600">
+              <p className="mt-3 max-w-xl text-sm text-slate-700 leading-relaxed">
                 {lang === 'ko'
                   ? '웹 대시보드와 안드로이드 앱을 함께 사용해, 고객에게는 항상 본인 전화번호로 문자가 발송되도록 설계했습니다.'
                   : 'We pair your web dashboard with a lightweight Android app so every SMS is sent from your own number — fully carrier-compliant.'}
@@ -349,7 +349,7 @@ function HomeContent() {
               <h3 className="mt-3 text-sm font-semibold text-slate-900">
                 {lang === 'ko' ? '통화 이후 후속 문자' : 'Post-call follow-up'}
               </h3>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-slate-600">
                 {lang === 'ko'
                   ? '30초 이상 통화가 끝나면, 명함과 다음 스텝을 담은 맞춤 문자를 자동으로 보냅니다.'
                   : 'After every outgoing call longer than 30 seconds, send a personalized message with your card and next steps.'}
@@ -361,7 +361,7 @@ function HomeContent() {
                     <div className="font-medium text-slate-900">
                       {lang === 'ko' ? '트리거: 통화 종료' : 'Trigger: Call ended'}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600">
                       {lang === 'ko'
                         ? '안드로이드 통화가 끝나면, 비즈커넥트가 번호를 인식하고 CRM 고객 정보와 자동으로 연결합니다.'
                         : 'When your Android call ends, BizConnect captures the number and matches it with your CRM record.'}
@@ -374,7 +374,7 @@ function HomeContent() {
                     <div className="font-medium text-slate-900">
                       {lang === 'ko' ? 'AI 메시지 제안' : 'AI message suggestion'}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600">
                       {lang === 'ko'
                         ? '최근 메모와 태그를 바탕으로 후속 문자를 제안합니다. 한 번의 클릭으로 승인·수정할 수 있습니다.'
                         : 'We generate a follow-up text using recent notes and tags; you approve or edit in one click.'}
@@ -387,7 +387,7 @@ function HomeContent() {
                     <div className="font-medium text-slate-900">
                       {lang === 'ko' ? '내 번호로 발송' : 'Send from your number'}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600">
                       {lang === 'ko'
                         ? '문자는 항상 내 안드로이드 기기를 통해 발송되기 때문에, 고객은 익숙한 번호만 보게 됩니다.'
                         : 'The SMS is sent through your own Android device, so your customers always see the number they recognise.'}

@@ -451,7 +451,7 @@ export default function CustomersPage() {
                 onClick={handleBulkSend}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
               >
-                📤 선택한 고객에게 문자 보내기
+                선택한 고객에게 문자 보내기
               </button>
               {/* 일괄 그룹 변경 */}
               <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ export default function CustomersPage() {
             {/* 생일 필터 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                🎂 생일 필터
+                생일 필터
               </label>
               <select
                 value={filterBirthday}
@@ -605,7 +605,7 @@ export default function CustomersPage() {
               href="/dashboard/customers/upload"
               className="text-sm text-blue-600 hover:text-blue-700"
             >
-              📄 CSV 파일로 일괄 등록하기
+              CSV 파일로 일괄 등록하기
             </Link>
           </div>
         </div>
@@ -692,7 +692,7 @@ export default function CustomersPage() {
                         <div className="text-sm font-medium text-blue-600 hover:text-blue-900">
                           {customer.name}
                           {isTodayBirthday(customer.birthday) && (
-                            <span className="ml-2 text-xs text-pink-600 font-semibold">🎂 오늘 생일!</span>
+                            <span className="ml-2 text-xs text-pink-600 font-semibold">오늘 생일</span>
                           )}
                         </div>
                       </td>
@@ -767,7 +767,7 @@ export default function CustomersPage() {
                             href={`/dashboard/send?customerId=${customer.id}`}
                             className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
                           >
-                            📤 문자
+                            문자
                           </Link>
                           <Link
                             href={`/dashboard/customers/${customer.id}/edit`}

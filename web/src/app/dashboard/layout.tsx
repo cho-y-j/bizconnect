@@ -14,7 +14,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
@@ -119,10 +119,10 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-slate-50">
       {/* 사이드바 */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-white/90 backdrop-blur-md shadow-xl z-40 transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-full bg-white border-r border-slate-200 shadow-sm z-40 transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-20'
         }`}
       >
@@ -130,7 +130,7 @@ export default function DashboardLayout({
           {/* 로고 및 토글 버튼 */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             {sidebarOpen && (
-              <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <Link href="/dashboard" className="text-xl font-bold text-slate-900">
                 비즈커넥트
               </Link>
             )}
@@ -161,10 +161,10 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
                     active
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-100'
                   }`}
                   title={!sidebarOpen ? item.name : ''}
                 >
