@@ -156,8 +156,8 @@ export async function POST(request: Request) {
         // DATA ONLY - 시스템 알림 없음, 앱에서 직접 처리
         data: {
           type: isBatch ? 'send_sms_batch' : type,
-          taskId: taskId || '',
-          taskIds: JSON.stringify(finalTaskIds),
+          taskId: isBatch ? '' : (taskId || ''), // 배치가 아닐 때만 taskId 전송
+          taskIds: isBatch ? JSON.stringify(finalTaskIds) : '', // 배치일 때만 taskIds 전송
           count: String(count),
           phone: phone || '',
           messagePreview: message ? message.substring(0, 50) : '',

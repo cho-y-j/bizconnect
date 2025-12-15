@@ -327,6 +327,13 @@ class TaskService {
   }
 
   /**
+   * 이미 알림을 보낸 작업인지 확인
+   */
+  isNotified(taskId: string): boolean {
+    return this.notifiedTaskIds.has(taskId);
+  }
+
+  /**
    * 배치 승인 시작 (FCM에서 호출)
    * 배치 승인 시 모든 taskId를 batchApprovalInProgress에 추가
    */
@@ -452,11 +459,20 @@ class TaskService {
           }
 
           if (newTask.status === 'pending' && createdAt > thresholdTime) {
-            // 이미 알림을 보낸 작업은 스킵 (FCM 배치 메시지로 이미 처리됨)
+            // 이미 알림을 보낸 작업은 스킵 (FCM으로 이미 처리됨)
             if (this.notifiedTaskIds.has(newTask.id)) {
-              console.log('⏭️ [Realtime] Task already notified (batch), skipping:', newTask.id);
+              console.log('⏭️ [Realtime] Task already notified (FCM), skipping:', newTask.id);
               return;
             }
+
+            // 중복 방지: 표시 직전에 마킹 (FCM과의 경쟁 조건 방지)
+            if (this.notifiedTaskIds.has(newTask.id)) {
+              console.log('⏭️ [Realtime] Task already notified (race condition), skipping:', newTask.id);
+              return;
+            }
+
+            // 먼저 마킹하여 중복 방지
+            this.notifiedTaskIds.add(newTask.id);
 
             const scheduledAt = newTask.scheduled_at
               ? new Date(newTask.scheduled_at)
@@ -470,6 +486,8 @@ class TaskService {
               await this.requestApproval(newTask);
             } else {
               console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
+              // 예약된 작업은 마킹 해제 (나중에 처리해야 함)
+              this.notifiedTaskIds.delete(newTask.id);
             }
           } else {
             console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);

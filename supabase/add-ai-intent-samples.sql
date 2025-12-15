@@ -22,3 +22,5 @@ COMMENT ON COLUMN user_settings.ai_intent_samples IS 'AI 메시지 추천 시 �
 
 
 
+
+

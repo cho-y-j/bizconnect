@@ -77,3 +77,5 @@ Supabase Dashboard > Table Editor > `sms_logs` 테이블:
 
 
 
+
+

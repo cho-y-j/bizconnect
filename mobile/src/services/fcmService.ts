@@ -134,8 +134,23 @@ class FCMService {
       // 단일 SMS
       if (messageType === 'send_sms' || messageType === 'send_mms') {
         const taskId = data.taskId;
-        if (taskId) {
+        // taskId가 있고, taskIds가 비어있을 때만 단일 처리 (배치와 구분)
+        if (taskId && (!data.taskIds || data.taskIds === '')) {
           await this.showApprovalFromData(taskId, data);
+        } else if (!taskId && data.taskIds) {
+          // taskId가 없고 taskIds가 있으면 배치로 처리 (단일이지만 taskIds로 온 경우)
+          console.log('⚠️ [FCM] Single task but taskIds provided, treating as batch');
+          try {
+            const taskIds = JSON.parse(data.taskIds) as string[];
+            if (taskIds.length === 1) {
+              // 단일이지만 taskIds로 온 경우
+              await this.showApprovalFromData(taskIds[0], data);
+            } else {
+              await this.showBatchApproval(taskIds, taskIds.length);
+            }
+          } catch (e) {
+            console.error('❌ [FCM] taskIds 파싱 실패:', e);
+          }
         }
       }
       // 다량 SMS (배치)
@@ -165,8 +180,11 @@ class FCMService {
   private async showApprovalFromData(taskId: string, data: any): Promise<void> {
     console.log('📱 [FCM] Showing approval for task:', taskId);
 
-    // 중복 방지
-    taskService.markAsNotified(taskId);
+    // 중복 방지: 먼저 체크하고 표시
+    if (taskService.isNotified(taskId)) {
+      console.log('⏭️ [FCM] Task already notified, skipping:', taskId);
+      return;
+    }
 
     // DB에서 전체 task 정보 가져오기
     try {
@@ -186,6 +204,15 @@ class FCMService {
         console.log('ℹ️ [FCM] 작업이 처리 가능한 상태가 아님:', task.status);
         return;
       }
+
+      // 중복 방지: 표시 전에 다시 한 번 체크 (Realtime과의 경쟁 조건 방지)
+      if (taskService.isNotified(taskId)) {
+        console.log('⏭️ [FCM] Task already notified (race condition), skipping:', taskId);
+        return;
+      }
+
+      // 중복 방지: 표시 직전에 마킹
+      taskService.markAsNotified(taskId);
 
       // 승인 알림 표시
       await taskService.requestApproval(task);

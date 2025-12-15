@@ -67,3 +67,5 @@ adb shell am start -n com.bizconnectmobile/.MainActivity
 
 
 
+
+
