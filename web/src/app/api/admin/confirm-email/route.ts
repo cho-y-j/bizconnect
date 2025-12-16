@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getCurrentUser } from '@/lib/auth'
-import { isSuperAdmin } from '@/lib/admin'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -19,14 +17,22 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 관리자 권한 확인
-    const user = await getCurrentUser()
-    if (!user) {
+    // 클라이언트에서 전달된 사용자 ID 확인
+    const userIdFromHeader = request.headers.get('x-user-id')
+    
+    if (!userIdFromHeader) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
     }
 
-    const superAdmin = await isSuperAdmin()
-    if (!superAdmin) {
+    // 슈퍼 관리자 권한 확인
+    const { data: adminUser, error: adminError } = await supabaseAdmin
+      .from('admin_users')
+      .select('role')
+      .eq('user_id', userIdFromHeader)
+      .eq('role', 'super_admin')
+      .maybeSingle()
+
+    if (adminError || !adminUser) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
     }
 
@@ -68,14 +74,22 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    // 관리자 권한 확인
-    const user = await getCurrentUser()
-    if (!user) {
+    // 클라이언트에서 전달된 사용자 ID 확인
+    const userIdFromHeader = request.headers.get('x-user-id')
+    
+    if (!userIdFromHeader) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
     }
 
-    const superAdmin = await isSuperAdmin()
-    if (!superAdmin) {
+    // 슈퍼 관리자 권한 확인
+    const { data: adminUser, error: adminError } = await supabaseAdmin
+      .from('admin_users')
+      .select('role')
+      .eq('user_id', userIdFromHeader)
+      .eq('role', 'super_admin')
+      .maybeSingle()
+
+    if (adminError || !adminUser) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
     }
 

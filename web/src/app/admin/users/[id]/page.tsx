@@ -60,6 +60,7 @@ export default function UserDetailPage() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-id': user.id, // 사용자 ID를 헤더로 전달
         },
       })
 
@@ -96,6 +97,7 @@ export default function UserDetailPage() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-id': user.id, // 사용자 ID를 헤더로 전달
         },
       })
 
