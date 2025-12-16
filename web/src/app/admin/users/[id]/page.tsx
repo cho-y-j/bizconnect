@@ -91,16 +91,24 @@ export default function UserDetailPage() {
 
   const loadRecentSMS = async () => {
     try {
-      const { data } = await supabase
-        .from('sms_logs')
-        .select('id, phone_number, message, status, sent_at')
-        .eq('user_id', userId)
-        .order('sent_at', { ascending: false })
-        .limit(10)
+      // API를 통해 최근 SMS 로드
+      const response = await fetch(`/api/admin/users/${userId}/sms`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      setRecentSMS(data || [])
+      if (response.ok) {
+        const data = await response.json()
+        setRecentSMS(data.sms || [])
+      } else {
+        console.error('Error loading recent SMS:', response.statusText)
+        setRecentSMS([])
+      }
     } catch (error) {
       console.error('Error loading recent SMS:', error)
+      setRecentSMS([])
     }
   }
 
