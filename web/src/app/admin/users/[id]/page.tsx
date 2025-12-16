@@ -92,6 +92,13 @@ export default function UserDetailPage() {
 
   const loadRecentSMS = async () => {
     try {
+      // 현재 사용자 정보 가져오기
+      const user = await getCurrentUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
       // API를 통해 최근 SMS 로드
       const response = await fetch(`/api/admin/users/${userId}/sms`, {
         method: 'GET',
