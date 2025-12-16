@@ -28,14 +28,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Service Role Key로 auth.users 테이블 조회
-    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000, // 최대 1000명까지 조회
+    })
 
     if (authError) {
       console.error('Error fetching auth.users:', authError)
       return NextResponse.json(
-        { error: '사용자 목록을 가져오는데 실패했습니다.' },
+        { error: '사용자 목록을 가져오는데 실패했습니다.', details: authError.message },
         { status: 500 }
       )
+    }
+
+    if (!authUsers || !authUsers.users) {
+      console.warn('No users found in auth.users')
+      return NextResponse.json({ users: [] })
     }
 
     // 각 사용자별 통계 수집
@@ -58,7 +66,7 @@ export async function GET(request: NextRequest) {
           .from('subscriptions')
           .select('plan_type, status')
           .eq('user_id', authUser.id)
-          .single()
+          .maybeSingle()
 
         // 첫 번째 고객의 created_at을 사용자 가입일로 사용 (없으면 auth.users의 created_at 사용)
         const { data: firstCustomer } = await supabaseAdmin

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
 import { getCurrentUser } from '@/lib/auth'
 
 interface UserDetail {
@@ -56,58 +55,35 @@ export default function UserDetailPage() {
         return
       }
 
-      // 고객 수
-      const { count: customerCount } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-
-      // SMS 통계
-      const { data: smsLogs } = await supabase
-        .from('sms_logs')
-        .select('status')
-        .eq('user_id', userId)
-
-      const totalSmsSent = smsLogs?.length || 0
-      const totalSmsFailed =
-        smsLogs?.filter((log) => log.status === 'failed').length || 0
-
-      // 구독 정보
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      // 첫 번째 고객의 created_at을 사용자 가입일로 사용
-      const { data: firstCustomer } = await supabase
-        .from('customers')
-        .select('created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .single()
-
-      setUserDetail({
-        id: userId,
-        email: `user-${userId.substring(0, 8)}@example.com`, // 실제로는 auth.users에서 가져와야 함
-        created_at: firstCustomer?.created_at || new Date().toISOString(),
-        customer_count: customerCount || 0,
-        sms_count: totalSmsSent,
-        total_sms_sent: totalSmsSent,
-        total_sms_failed: totalSmsFailed,
-        subscription: subscription
-          ? {
-              plan_type: subscription.plan_type,
-              status: subscription.status,
-              start_date: subscription.start_date,
-              end_date: subscription.end_date,
-              billing_amount: Number(subscription.billing_amount) || 0,
-            }
-          : undefined,
+      // API 엔드포인트를 통해 사용자 상세 정보 로드 (auth.users에서 실제 이메일 가져오기)
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error loading user detail:', errorData)
+        if (response.status === 401 || response.status === 403) {
+          router.push('/auth/login')
+          return
+        }
+        if (response.status === 404) {
+          // 사용자를 찾을 수 없음
+          setUserDetail(null)
+          setLoading(false)
+          return
+        }
+        throw new Error(errorData.error || '사용자 정보를 불러오는데 실패했습니다.')
+      }
+
+      const data = await response.json()
+      setUserDetail(data.user)
     } catch (error) {
       console.error('Error loading user detail:', error)
+      setUserDetail(null)
     } finally {
       setLoading(false)
     }
