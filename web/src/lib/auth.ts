@@ -200,12 +200,21 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 }
 
 /**
- * 모바일 기기 감지
+ * 모바일 기기 감지 (더 정확한 감지)
  */
 function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
-  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+  const ua = userAgent.toLowerCase()
+  
+  // 모바일 기기 감지
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+  
+  // WebView 감지 (Android WebView, iOS WKWebView 등)
+  const isWebView = /wv|webview/i.test(ua) || 
+                    (isMobile && !/chrome|safari|firefox|samsung|edge/i.test(ua))
+  
+  return isMobile || isWebView
 }
 
 /**
@@ -216,7 +225,10 @@ export async function signInWithGoogle() {
     const isMobile = isMobileDevice()
     
     console.log('[Google OAuth] Device type:', isMobile ? 'mobile' : 'desktop')
+    console.log('[Google OAuth] User-Agent:', typeof window !== 'undefined' ? navigator.userAgent : 'N/A')
     
+    // 모바일에서는 항상 skipBrowserRedirect: true로 설정
+    // 데스크톱에서도 skipBrowserRedirect: true로 설정하여 일관성 유지
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -225,9 +237,8 @@ export async function signInWithGoogle() {
           prompt: 'select_account',
           access_type: 'offline',
         },
-        // 모바일에서는 skipBrowserRedirect: true로 설정하여 data.url을 받아 직접 리다이렉트
-        // 이렇게 하면 WebView가 아닌 실제 브라우저로 리다이렉트됨
-        skipBrowserRedirect: isMobile,
+        // 모든 환경에서 skipBrowserRedirect: true로 설정하여 직접 제어
+        skipBrowserRedirect: true,
       }
     })
     
@@ -236,15 +247,19 @@ export async function signInWithGoogle() {
       return { data, error }
     }
     
-    // 모바일에서는 data.url을 받아서 직접 리다이렉트 (WebView 방지)
-    if (isMobile && data?.url) {
-      console.log('[Google OAuth] Mobile redirect to:', data.url)
-      window.location.href = data.url
+    // data.url을 받아서 직접 리다이렉트
+    if (data?.url) {
+      console.log('[Google OAuth] Redirecting to:', data.url)
+      
+      // 모든 환경에서 window.location.replace 사용 (히스토리 스택에 남지 않음)
+      // 모바일 브라우저에서도 동일한 방식으로 처리
+      // Google OAuth는 리다이렉트 URL을 통해 콜백을 처리하므로 문제없음
+      window.location.replace(data.url)
+      
       // 리다이렉트 후 함수가 계속 실행되지 않도록 빈 객체 반환
       return { data: null, error: null }
     }
     
-    // 데스크톱에서는 Supabase가 자동으로 리다이렉트 처리
     return { data, error }
   } catch (err) {
     console.error('[Google OAuth] Exception:', err)
