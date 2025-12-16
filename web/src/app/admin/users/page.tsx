@@ -25,6 +25,7 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [isSuper, setIsSuper] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -32,19 +33,25 @@ export default function AdminUsersPage() {
   }, [])
 
   const checkAuth = async () => {
-    const user = await getCurrentUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
+    try {
+      const user = await getCurrentUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-    const superAdmin = await isSuperAdmin()
-    setIsSuper(superAdmin)
+      const superAdmin = await isSuperAdmin()
+      setIsSuper(superAdmin)
+    } catch (err) {
+      console.error('Error checking auth:', err)
+      router.push('/auth/login')
+    }
   }
 
   const loadUsers = async () => {
     try {
       setLoading(true)
+      setError(null)
 
       // API 엔드포인트를 통해 사용자 목록 로드 (auth.users에서 실제 이메일 가져오기)
       const response = await fetch('/api/admin/users', {
@@ -55,19 +62,40 @@ export default function AdminUsersPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        
         console.error('Error loading users:', errorData)
+        
         if (response.status === 401 || response.status === 403) {
+          setError('관리자 권한이 필요합니다.')
           router.push('/auth/login')
           return
         }
-        throw new Error(errorData.error || '사용자 목록을 불러오는데 실패했습니다.')
+        
+        setError(errorData.error || '사용자 목록을 불러오는데 실패했습니다.')
+        setUsers([])
+        return
       }
 
       const data = await response.json()
+      
+      // 데이터 구조 검증
+      if (!data || !Array.isArray(data.users)) {
+        console.error('Invalid data structure:', data)
+        setError('서버에서 잘못된 데이터를 받았습니다.')
+        setUsers([])
+        return
+      }
+      
       setUsers(data.users || [])
     } catch (error) {
       console.error('Error loading users:', error)
+      setError(error instanceof Error ? error.message : '사용자 목록을 불러오는데 실패했습니다.')
       // 에러 발생 시 빈 배열로 설정하여 UI가 깨지지 않도록 함
       setUsers([])
     } finally {
@@ -97,6 +125,19 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={loadUsers}
+            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+      
       {/* 헤더 및 검색 */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

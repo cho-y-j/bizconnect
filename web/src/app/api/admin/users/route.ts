@@ -46,55 +46,74 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: [] })
     }
 
-    // 각 사용자별 통계 수집
-    const usersWithStats = await Promise.all(
+    // 각 사용자별 통계 수집 (에러가 발생해도 계속 진행)
+    const usersWithStats = await Promise.allSettled(
       (authUsers?.users || []).map(async (authUser) => {
-        // 고객 수
-        const { count: customerCount } = await supabaseAdmin
-          .from('customers')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', authUser.id)
+        try {
+          // 고객 수
+          const { count: customerCount } = await supabaseAdmin
+            .from('customers')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', authUser.id)
 
-        // SMS 발송 수
-        const { count: smsCount } = await supabaseAdmin
-          .from('sms_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', authUser.id)
+          // SMS 발송 수
+          const { count: smsCount } = await supabaseAdmin
+            .from('sms_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', authUser.id)
 
-        // 구독 정보
-        const { data: subscription } = await supabaseAdmin
-          .from('subscriptions')
-          .select('plan_type, status')
-          .eq('user_id', authUser.id)
-          .maybeSingle()
+          // 구독 정보
+          const { data: subscription } = await supabaseAdmin
+            .from('subscriptions')
+            .select('plan_type, status')
+            .eq('user_id', authUser.id)
+            .maybeSingle()
 
-        // 첫 번째 고객의 created_at을 사용자 가입일로 사용 (없으면 auth.users의 created_at 사용)
-        const { data: firstCustomer } = await supabaseAdmin
-          .from('customers')
-          .select('created_at')
-          .eq('user_id', authUser.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle()
+          // 첫 번째 고객의 created_at을 사용자 가입일로 사용 (없으면 auth.users의 created_at 사용)
+          const { data: firstCustomer } = await supabaseAdmin
+            .from('customers')
+            .select('created_at')
+            .eq('user_id', authUser.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle()
 
-        return {
-          id: authUser.id,
-          email: authUser.email || `user-${authUser.id.substring(0, 8)}@unknown.com`,
-          created_at: firstCustomer?.created_at || authUser.created_at || new Date().toISOString(),
-          customer_count: customerCount || 0,
-          sms_count: smsCount || 0,
-          subscription: subscription || undefined,
-          email_confirmed: authUser.email_confirmed_at !== null,
+          return {
+            id: authUser.id,
+            email: authUser.email || `user-${authUser.id.substring(0, 8)}@unknown.com`,
+            created_at: firstCustomer?.created_at || authUser.created_at || new Date().toISOString(),
+            customer_count: customerCount || 0,
+            sms_count: smsCount || 0,
+            subscription: subscription || undefined,
+            email_confirmed: authUser.email_confirmed_at !== null,
+          }
+        } catch (err) {
+          console.error(`Error processing user ${authUser.id}:`, err)
+          // 에러가 발생해도 기본 정보는 반환
+          return {
+            id: authUser.id,
+            email: authUser.email || `user-${authUser.id.substring(0, 8)}@unknown.com`,
+            created_at: authUser.created_at || new Date().toISOString(),
+            customer_count: 0,
+            sms_count: 0,
+            subscription: undefined,
+            email_confirmed: authUser.email_confirmed_at !== null,
+          }
         }
       })
     )
 
+    // Promise.allSettled 결과를 처리
+    const validUsers = usersWithStats
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map((result) => result.value)
+
     // 생성일 기준 내림차순 정렬
-    usersWithStats.sort((a, b) => {
+    validUsers.sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
 
-    return NextResponse.json({ users: usersWithStats })
+    return NextResponse.json({ users: validUsers })
   } catch (error: any) {
     console.error('Error in admin/users API:', error)
     return NextResponse.json(
