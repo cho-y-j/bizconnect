@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getCurrentUser } from '@/lib/auth'
-import { isSuperAdmin } from '@/lib/admin'
+import { cookies } from 'next/headers'
+import { checkSuperAdminAccess } from '@/lib/admin'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -16,16 +16,89 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function GET(request: NextRequest) {
   try {
-    // 관리자 권한 확인
-    const user = await getCurrentUser()
+    // 클라이언트에서 전달된 사용자 ID 확인 (쿠키나 헤더에서)
+    // 먼저 헤더에서 사용자 ID 확인 시도
+    const userIdFromHeader = request.headers.get('x-user-id')
+    
+    // 쿠키에서 세션 토큰 읽기 시도
+    const cookieStore = await cookies()
+    let user: any = null
+    
+    // 모든 쿠키에서 Supabase 관련 쿠키 찾기
+    const allCookies = cookieStore.getAll()
+    let accessToken: string | undefined
+    
+    for (const cookie of allCookies) {
+      if (cookie.name.includes('supabase') || cookie.name.includes('sb-')) {
+        try {
+          const cookieValue = JSON.parse(cookie.value)
+          if (cookieValue.access_token) {
+            accessToken = cookieValue.access_token
+            break
+          }
+        } catch {
+          // JSON이 아니면 그냥 값으로 사용
+          if (cookie.name.includes('token')) {
+            accessToken = cookie.value
+            break
+          }
+        }
+      }
+    }
+    
+    // 토큰이 있으면 사용자 확인
+    if (accessToken) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      })
+      
+      const { data: { user: authUser }, error: authError } = await supabaseServer.auth.getUser(accessToken)
+      if (!authError && authUser) {
+        user = authUser
+      }
+    }
+    
+    // 사용자 ID가 헤더에 있으면 직접 확인
+    if (!user && userIdFromHeader) {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userIdFromHeader)
+      if (authUser?.user) {
+        user = authUser.user
+      }
+    }
+    
     if (!user) {
+      console.error('[Admin Users API] No user found')
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
     }
 
-    const superAdmin = await isSuperAdmin()
-    if (!superAdmin) {
+    // 슈퍼 관리자 권한 확인 (Service Role Key 사용)
+    const { data: adminUser, error: adminError } = await supabaseAdmin
+      .from('admin_users')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'super_admin')
+      .maybeSingle()
+
+    if (adminError) {
+      console.error('[Admin Users API] Error checking admin:', adminError)
+    }
+
+    if (!adminUser) {
+      console.error('[Admin Users API] Not a super admin for user:', user.id)
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
     }
+
+    console.log('[Admin Users API] Authorized super admin:', user.id)
 
     // Service Role Key로 auth.users 테이블 조회
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
