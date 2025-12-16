@@ -53,11 +53,20 @@ export default function AdminUsersPage() {
       setLoading(true)
       setError(null)
 
+      // 현재 사용자 정보 가져오기
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        setError('로그인이 필요합니다.')
+        router.push('/auth/login')
+        return
+      }
+
       // API 엔드포인트를 통해 사용자 목록 로드 (auth.users에서 실제 이메일 가져오기)
       const response = await fetch('/api/admin/users', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-id': currentUser.id, // 사용자 ID를 헤더로 전달
         },
       })
 
