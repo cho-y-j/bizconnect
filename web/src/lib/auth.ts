@@ -200,21 +200,62 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 }
 
 /**
- * 모바일 기기 감지 (더 정확한 감지)
+ * 인앱 브라우저 감지 (카카오톡, 네이버, 라인 등)
+ */
+function isInAppBrowser(): boolean {
+  if (typeof window === 'undefined') return false
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+  const ua = userAgent.toLowerCase()
+  
+  // 카카오톡, 네이버, 라인 등 인앱 브라우저 감지
+  const inAppBrowsers = [
+    'kakaotalk',      // 카카오톡
+    'naver',          // 네이버
+    'line',           // 라인
+    'daum',           // 다음
+    'wv',             // Android WebView
+    'webview',        // WebView
+    'wv',             // Chrome WebView
+  ]
+  
+  return inAppBrowsers.some(browser => ua.includes(browser))
+}
+
+/**
+ * 모바일 기기 감지
  */
 function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
   const ua = userAgent.toLowerCase()
   
-  // 모바일 기기 감지
-  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+}
+
+/**
+ * 외부 브라우저로 열기 (Android Intent 또는 일반 URL)
+ */
+function openInExternalBrowser(url: string): void {
+  const userAgent = navigator.userAgent.toLowerCase()
   
-  // WebView 감지 (Android WebView, iOS WKWebView 등)
-  const isWebView = /wv|webview/i.test(ua) || 
-                    (isMobile && !/chrome|safari|firefox|samsung|edge/i.test(ua))
-  
-  return isMobile || isWebView
+  // Android에서 카카오톡 인앱 브라우저인 경우
+  if (userAgent.includes('android') && userAgent.includes('kakaotalk')) {
+    // Android Intent를 사용하여 외부 브라우저로 열기 시도
+    const intentUrl = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`
+    
+    // Intent URL로 먼저 시도
+    const intentWindow = window.open(intentUrl, '_blank')
+    
+    // Intent가 작동하지 않으면 일반 URL로 폴백
+    setTimeout(() => {
+      if (!intentWindow || intentWindow.closed) {
+        window.location.href = url
+      }
+    }, 500)
+  } else {
+    // iOS 또는 다른 경우 일반 URL로 리다이렉트
+    window.location.href = url
+  }
 }
 
 /**
@@ -223,12 +264,31 @@ function isMobileDevice(): boolean {
 export async function signInWithGoogle() {
   try {
     const isMobile = isMobileDevice()
+    const isInApp = isInAppBrowser()
     
     console.log('[Google OAuth] Device type:', isMobile ? 'mobile' : 'desktop')
+    console.log('[Google OAuth] In-app browser:', isInApp)
     console.log('[Google OAuth] User-Agent:', typeof window !== 'undefined' ? navigator.userAgent : 'N/A')
     
-    // 모바일에서는 항상 skipBrowserRedirect: true로 설정
-    // 데스크톱에서도 skipBrowserRedirect: true로 설정하여 일관성 유지
+    // 인앱 브라우저인 경우 사용자에게 안내
+    if (isInApp) {
+      const confirmMessage = '카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n외부 브라우저(Chrome, Safari)로 열어주세요.\n\n링크를 복사하여 외부 브라우저에서 열거나, 브라우저에서 직접 접속해주세요.'
+      
+      if (window.confirm(confirmMessage)) {
+        // 사용자가 확인하면 외부 브라우저로 열기 시도
+        // 하지만 인앱 브라우저에서는 제한적이므로, 사용자에게 직접 브라우저에서 열도록 안내
+        return {
+          data: null,
+          error: {
+            message: '카카오톡 인앱 브라우저에서는 Google 로그인을 지원하지 않습니다. Chrome 또는 Safari 브라우저에서 직접 접속해주세요.'
+          }
+        }
+      } else {
+        return { data: null, error: null }
+      }
+    }
+    
+    // 모든 환경에서 skipBrowserRedirect: true로 설정하여 직접 제어
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -237,7 +297,6 @@ export async function signInWithGoogle() {
           prompt: 'select_account',
           access_type: 'offline',
         },
-        // 모든 환경에서 skipBrowserRedirect: true로 설정하여 직접 제어
         skipBrowserRedirect: true,
       }
     })
@@ -251,10 +310,13 @@ export async function signInWithGoogle() {
     if (data?.url) {
       console.log('[Google OAuth] Redirecting to:', data.url)
       
-      // 모든 환경에서 window.location.replace 사용 (히스토리 스택에 남지 않음)
-      // 모바일 브라우저에서도 동일한 방식으로 처리
-      // Google OAuth는 리다이렉트 URL을 통해 콜백을 처리하므로 문제없음
-      window.location.replace(data.url)
+      // 인앱 브라우저가 아닌 경우에만 리다이렉트
+      if (!isInApp) {
+        window.location.replace(data.url)
+      } else {
+        // 인앱 브라우저인 경우 외부 브라우저로 열기 시도
+        openInExternalBrowser(data.url)
+      }
       
       // 리다이렉트 후 함수가 계속 실행되지 않도록 빈 객체 반환
       return { data: null, error: null }
