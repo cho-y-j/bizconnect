@@ -200,10 +200,23 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 }
 
 /**
+ * 모바일 기기 감지
+ */
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+}
+
+/**
  * 구글 로그인
  */
 export async function signInWithGoogle() {
   try {
+    const isMobile = isMobileDevice()
+    
+    console.log('[Google OAuth] Device type:', isMobile ? 'mobile' : 'desktop')
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -212,14 +225,26 @@ export async function signInWithGoogle() {
           prompt: 'select_account',
           access_type: 'offline',
         },
-        skipBrowserRedirect: false, // 명시적으로 브라우저 리다이렉트 사용 (모바일 WebView 방지)
+        // 모바일에서는 skipBrowserRedirect: true로 설정하여 data.url을 받아 직접 리다이렉트
+        // 이렇게 하면 WebView가 아닌 실제 브라우저로 리다이렉트됨
+        skipBrowserRedirect: isMobile,
       }
     })
     
     if (error) {
       console.error('[Google OAuth] Error:', error)
+      return { data, error }
     }
     
+    // 모바일에서는 data.url을 받아서 직접 리다이렉트 (WebView 방지)
+    if (isMobile && data?.url) {
+      console.log('[Google OAuth] Mobile redirect to:', data.url)
+      window.location.href = data.url
+      // 리다이렉트 후 함수가 계속 실행되지 않도록 빈 객체 반환
+      return { data: null, error: null }
+    }
+    
+    // 데스크톱에서는 Supabase가 자동으로 리다이렉트 처리
     return { data, error }
   } catch (err) {
     console.error('[Google OAuth] Exception:', err)
