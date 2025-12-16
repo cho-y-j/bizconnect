@@ -16,7 +16,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 관리자 권한 확인
@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
     }
 
-    const userId = params.id
+    const { id: userId } = await params
 
     // Service Role Key로 auth.users에서 사용자 정보 조회
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId)
