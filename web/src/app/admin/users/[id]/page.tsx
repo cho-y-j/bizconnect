@@ -5,6 +5,21 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 
+interface UserProfile {
+  full_name?: string
+  phone?: string
+  company_name?: string
+  position?: string
+  department?: string
+  email?: string
+  website?: string
+  address?: string
+  bio?: string
+  specialties?: string[]
+  social_links?: Record<string, string>
+  profile_image_url?: string
+}
+
 interface UserDetail {
   id: string
   email: string
@@ -20,6 +35,7 @@ interface UserDetail {
     end_date: string | null
     billing_amount: number
   }
+  profile?: UserProfile | null
 }
 
 interface RecentSMS {
@@ -184,6 +200,125 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 프로필 정보 카드 */}
+      {userDetail.profile && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">프로필 정보</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {userDetail.profile.full_name && (
+              <div>
+                <label className="text-sm text-gray-500">이름</label>
+                <p className="text-gray-900 font-medium">{userDetail.profile.full_name}</p>
+              </div>
+            )}
+            {userDetail.profile.phone && (
+              <div>
+                <label className="text-sm text-gray-500">전화번호</label>
+                <p className="text-gray-900">{userDetail.profile.phone}</p>
+              </div>
+            )}
+            {userDetail.profile.company_name && (
+              <div>
+                <label className="text-sm text-gray-500">회사명</label>
+                <p className="text-gray-900">{userDetail.profile.company_name}</p>
+              </div>
+            )}
+            {userDetail.profile.position && (
+              <div>
+                <label className="text-sm text-gray-500">직책</label>
+                <p className="text-gray-900">{userDetail.profile.position}</p>
+              </div>
+            )}
+            {userDetail.profile.department && (
+              <div>
+                <label className="text-sm text-gray-500">부서</label>
+                <p className="text-gray-900">{userDetail.profile.department}</p>
+              </div>
+            )}
+            {userDetail.profile.email && (
+              <div>
+                <label className="text-sm text-gray-500">프로필 이메일</label>
+                <p className="text-gray-900">{userDetail.profile.email}</p>
+              </div>
+            )}
+            {userDetail.profile.website && (
+              <div>
+                <label className="text-sm text-gray-500">웹사이트</label>
+                <p className="text-gray-900">
+                  <a 
+                    href={userDetail.profile.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    {userDetail.profile.website}
+                  </a>
+                </p>
+              </div>
+            )}
+            {userDetail.profile.address && (
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-500">주소</label>
+                <p className="text-gray-900">{userDetail.profile.address}</p>
+              </div>
+            )}
+            {userDetail.profile.bio && (
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-500">자기소개</label>
+                <p className="text-gray-900 whitespace-pre-wrap">{userDetail.profile.bio}</p>
+              </div>
+            )}
+            {userDetail.profile.specialties && userDetail.profile.specialties.length > 0 && (
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-500">전문 분야</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {userDetail.profile.specialties.map((specialty: string, index: number) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {userDetail.profile.social_links && (
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-500">소셜 링크</label>
+                <div className="mt-1 space-y-1">
+                  {Object.entries(userDetail.profile.social_links).map(([platform, url]: [string, any]) => (
+                    <p key={platform} className="text-gray-900">
+                      <span className="font-medium capitalize">{platform}:</span>{' '}
+                      <a 
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        {url}
+                      </a>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {userDetail.profile.profile_image_url && (
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-500">프로필 이미지</label>
+                <div className="mt-2">
+                  <img
+                    src={userDetail.profile.profile_image_url}
+                    alt="Profile"
+                    className="w-32 h-32 object-cover rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

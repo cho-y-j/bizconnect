@@ -81,6 +81,13 @@ export async function GET(
       .limit(1)
       .maybeSingle()
 
+    // 사용자 설정 정보 (프로필 정보 포함)
+    const { data: userSettings } = await supabaseAdmin
+      .from('user_settings')
+      .select('full_name, phone, company_name, position, department, email, website, address, bio, specialties, social_links, profile_image_url')
+      .eq('user_id', userId)
+      .maybeSingle()
+
     return NextResponse.json({
       user: {
         id: authUser.user.id,
@@ -100,6 +107,21 @@ export async function GET(
             }
           : undefined,
         email_confirmed: authUser.user.email_confirmed_at !== null,
+        // 프로필 정보 추가
+        profile: userSettings ? {
+          full_name: userSettings.full_name,
+          phone: userSettings.phone,
+          company_name: userSettings.company_name,
+          position: userSettings.position,
+          department: userSettings.department,
+          email: userSettings.email,
+          website: userSettings.website,
+          address: userSettings.address,
+          bio: userSettings.bio,
+          specialties: userSettings.specialties,
+          social_links: userSettings.social_links,
+          profile_image_url: userSettings.profile_image_url,
+        } : null,
       },
     })
   } catch (error: any) {
