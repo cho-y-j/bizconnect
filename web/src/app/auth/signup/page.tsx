@@ -36,16 +36,27 @@ export default function SignUpPage() {
     const { data, error } = await signUpWithEmail(email, password, name)
     
     if (error) {
-      console.error('Signup error:', error)
+      console.error('[SignUp Page] Signup error:', {
+        message: error.message,
+        status: (error as any).status,
+        name: (error as any).name,
+        fullError: error,
+      })
       
       // 특정 에러 메시지 처리
       let errorMessage = error.message || '회원가입에 실패했습니다.'
+      
+      // 이미 auth.ts에서 처리된 메시지이지만, 추가 확인
       if (error.message?.includes('Email signups are disabled')) {
         errorMessage = '이메일 회원가입이 비활성화되어 있습니다. 관리자에게 문의하세요.'
-      } else if (error.message?.includes('User already registered')) {
+      } else if (error.message?.includes('User already registered') || error.message?.includes('already registered')) {
         errorMessage = '이미 등록된 이메일입니다. 로그인을 시도해주세요.'
       } else if (error.message?.includes('Email address') && error.message?.includes('is invalid')) {
         errorMessage = '이메일 주소 형식이 올바르지 않거나 허용되지 않는 도메인입니다. 실제 이메일 주소를 사용해주세요.'
+      } else if (error.message?.includes('Password')) {
+        errorMessage = '비밀번호가 요구사항을 만족하지 않습니다. 최소 8자 이상이어야 합니다.'
+      } else if (!error.message || error.message === '회원가입 중 오류가 발생했습니다.') {
+        errorMessage = '회원가입에 실패했습니다. 이메일과 비밀번호를 확인해주세요. 문제가 계속되면 관리자에게 문의하세요.'
       }
       
       setError(errorMessage)

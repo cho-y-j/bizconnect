@@ -68,10 +68,19 @@ export default function AdminDashboardPage() {
 
   const loadStats = async () => {
     try {
-      // 총 사용자 수
-      const { count: totalUsers } = await supabase
-        .from('auth.users')
-        .select('*', { count: 'exact', head: true })
+      // 총 사용자 수 (API를 통해 가져오기)
+      const response = await fetch('/api/admin/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      let totalUsers = 0
+      if (response.ok) {
+        const data = await response.json()
+        totalUsers = data.users?.length || 0
+      }
 
       // 최근 30일 내 활성 사용자 (SMS 발송한 사용자)
       const thirtyDaysAgo = new Date()
@@ -121,26 +130,28 @@ export default function AdminDashboardPage() {
 
   const loadRecentUsers = async () => {
     try {
-      // 최근 가입 사용자 (auth.users는 직접 조회 불가, 대신 customers 테이블로 추정)
-      // 실제로는 Service Role Key를 사용하거나 별도 API 필요
-      const { data } = await supabase
-        .from('customers')
-        .select('user_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5)
+      // API 엔드포인트를 통해 최근 가입 사용자 로드 (auth.users에서 실제 이메일 가져오기)
+      const response = await fetch('/api/admin/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      // 중복 제거
-      const uniqueUsers = Array.from(
-        new Map(data?.map((c) => [c.user_id, c]) || []).values()
-      )
+      if (!response.ok) {
+        console.error('Error loading recent users:', response.statusText)
+        return
+      }
 
-      setRecentUsers(
-        uniqueUsers.map((u) => ({
-          id: u.user_id,
-          email: 'user@example.com', // 실제로는 auth.users에서 가져와야 함
-          created_at: u.created_at,
-        }))
-      )
+      const data = await response.json()
+      // 최근 5명만 가져오기 (이미 API에서 정렬되어 있음)
+      const recentUsers = (data.users || []).slice(0, 5).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+      }))
+
+      setRecentUsers(recentUsers)
     } catch (error) {
       console.error('Error loading recent users:', error)
     }

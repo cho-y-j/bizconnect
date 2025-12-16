@@ -109,6 +109,8 @@ export async function signInWithEmail(email: string, password: string) {
  */
 export async function signUpWithEmail(email: string, password: string, name?: string) {
   try {
+    console.log('[SignUp] Starting signup process for:', email)
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -122,11 +124,29 @@ export async function signUpWithEmail(email: string, password: string, name?: st
     
     // 에러 상세 정보 로깅
     if (error) {
-      console.error('Supabase signup error:', error)
+      console.error('[SignUp] Supabase signup error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        fullError: error,
+      })
+      
+      // 에러 메시지 개선
+      if (error.message?.includes('Email signups are disabled')) {
+        error.message = '이메일 회원가입이 비활성화되어 있습니다. 관리자에게 문의하세요.'
+      } else if (error.message?.includes('User already registered')) {
+        error.message = '이미 등록된 이메일입니다. 로그인을 시도해주세요.'
+      } else if (error.message?.includes('Email address') && error.message?.includes('is invalid')) {
+        error.message = '이메일 주소 형식이 올바르지 않거나 허용되지 않는 도메인입니다. 실제 이메일 주소를 사용해주세요.'
+      } else if (error.message?.includes('Password')) {
+        error.message = '비밀번호가 요구사항을 만족하지 않습니다. 최소 8자 이상이어야 합니다.'
+      }
     }
     
     // 회원가입 성공 시 user_settings 자동 생성 (트리거가 없을 경우)
     if (data?.user && !error) {
+      console.log('[SignUp] User created successfully:', data.user.id)
+      
       try {
         const { error: settingsError } = await supabase
           .from('user_settings')
@@ -134,28 +154,42 @@ export async function signUpWithEmail(email: string, password: string, name?: st
           .select()
         
         if (settingsError) {
-          console.warn('user_settings 자동 생성 실패 (트리거가 있을 수 있음):', settingsError)
+          console.warn('[SignUp] user_settings 자동 생성 실패 (트리거가 있을 수 있음):', settingsError)
           // 에러를 던지지 않음 - 회원가입은 성공한 것으로 처리
+        } else {
+          console.log('[SignUp] user_settings created successfully')
         }
       } catch (settingsErr) {
-        console.warn('user_settings 생성 중 오류:', settingsErr)
+        console.warn('[SignUp] user_settings 생성 중 오류:', settingsErr)
         // 무시하고 계속 진행
       }
       
       // 세션 확인 (이메일 확인이 비활성화된 경우 즉시 세션 생성됨)
       if (!data.session) {
+        console.log('[SignUp] No session found, waiting and checking again...')
         // 세션이 없으면 잠시 대기 후 다시 확인
         await new Promise(resolve => setTimeout(resolve, 500))
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         if (session) {
+          console.log('[SignUp] Session found after wait:', session.user.id)
           data.session = session
+        } else if (sessionError) {
+          console.warn('[SignUp] Session error after wait:', sessionError)
+        } else {
+          console.log('[SignUp] Email confirmation may be required')
         }
+      } else {
+        console.log('[SignUp] Session created immediately:', data.session.user.id)
       }
     }
     
     return { data, error }
   } catch (err) {
-    console.error('Signup exception:', err)
+    console.error('[SignUp] Signup exception:', {
+      error: err,
+      message: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+    })
     return { 
       data: null, 
       error: { 
@@ -169,14 +203,33 @@ export async function signUpWithEmail(email: string, password: string, name?: st
  * 구글 로그인
  */
 export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline',
+        },
+        skipBrowserRedirect: false, // 명시적으로 브라우저 리다이렉트 사용 (모바일 WebView 방지)
+      }
+    })
+    
+    if (error) {
+      console.error('[Google OAuth] Error:', error)
     }
-  })
-  
-  return { data, error }
+    
+    return { data, error }
+  } catch (err) {
+    console.error('[Google OAuth] Exception:', err)
+    return {
+      data: null,
+      error: {
+        message: err instanceof Error ? err.message : '구글 로그인 중 오류가 발생했습니다.'
+      }
+    }
+  }
 }
 
 /**

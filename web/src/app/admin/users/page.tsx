@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
 import { getCurrentUser } from '@/lib/auth'
 import { isSuperAdmin } from '@/lib/admin'
 
@@ -47,56 +46,30 @@ export default function AdminUsersPage() {
     try {
       setLoading(true)
 
-      // 사용자 목록 로드 (customers 테이블에서 user_id 추출)
-      const { data: customersData } = await supabase
-        .from('customers')
-        .select('user_id, created_at')
-        .order('created_at', { ascending: false })
+      // API 엔드포인트를 통해 사용자 목록 로드 (auth.users에서 실제 이메일 가져오기)
+      const response = await fetch('/api/admin/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      // 고유한 user_id 추출
-      const uniqueUserIds = Array.from(
-        new Set(customersData?.map((c) => c.user_id) || [])
-      )
-
-      // 각 사용자별 통계 수집
-      const usersWithStats: User[] = []
-
-      for (const userId of uniqueUserIds) {
-        // 고객 수
-        const { count: customerCount } = await supabase
-          .from('customers')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-
-        // SMS 발송 수
-        const { count: smsCount } = await supabase
-          .from('sms_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-
-        // 구독 정보
-        const { data: subscription } = await supabase
-          .from('subscriptions')
-          .select('plan_type, status')
-          .eq('user_id', userId)
-          .single()
-
-        // 첫 번째 고객의 created_at을 사용자 가입일로 사용
-        const firstCustomer = customersData?.find((c) => c.user_id === userId)
-
-        usersWithStats.push({
-          id: userId,
-          email: `user-${userId.substring(0, 8)}@example.com`, // 실제로는 auth.users에서 가져와야 함
-          created_at: firstCustomer?.created_at || new Date().toISOString(),
-          customer_count: customerCount || 0,
-          sms_count: smsCount || 0,
-          subscription: subscription || undefined,
-        })
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error loading users:', errorData)
+        if (response.status === 401 || response.status === 403) {
+          router.push('/auth/login')
+          return
+        }
+        throw new Error(errorData.error || '사용자 목록을 불러오는데 실패했습니다.')
       }
 
-      setUsers(usersWithStats)
+      const data = await response.json()
+      setUsers(data.users || [])
     } catch (error) {
       console.error('Error loading users:', error)
+      // 에러 발생 시 빈 배열로 설정하여 UI가 깨지지 않도록 함
+      setUsers([])
     } finally {
       setLoading(false)
     }
