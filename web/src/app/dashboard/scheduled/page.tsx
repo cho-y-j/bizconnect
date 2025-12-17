@@ -119,30 +119,21 @@ export default function ScheduledPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-                비즈커넥트
-              </Link>
-              <span className="text-gray-400">/</span>
-              <h1 className="text-xl font-semibold text-gray-900">예약된 발송</h1>
-            </div>
-            <Link
+    <div>
+      {/* 메인 콘텐츠 */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">예약된 발송</h1>
+            <p className="text-sm sm:text-base text-slate-600">예약된 문자 발송을 확인하고 관리합니다</p>
+          </div>
+          <Link
               href="/dashboard/send"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
             >
               + 새 발송 예약
             </Link>
-          </div>
         </div>
-      </header>
-
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
@@ -159,7 +150,7 @@ export default function ScheduledPage() {
             <p className="text-gray-500 mb-4">예약된 발송이 없습니다.</p>
             <Link
               href="/dashboard/send"
-              className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
             >
               + 새 발송 예약
             </Link>
@@ -184,7 +175,6 @@ export default function ScheduledPage() {
                     </p>
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-2 text-blue-600">
-                        <span>📅</span>
                         <span className="font-semibold">{formatDateTime(task.scheduled_at)}</span>
                       </div>
                       <span className="text-gray-500">

@@ -239,21 +239,21 @@ export default function CustomerDetailPage() {
 
                 {customer.address && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500">📍 주소</label>
+                    <label className="text-xs font-medium text-slate-500">주소</label>
                     <p className="text-sm text-gray-900">{customer.address}</p>
                   </div>
                 )}
 
                 {customer.occupation && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500">💼 직업</label>
+                    <label className="text-xs font-medium text-slate-500">직업</label>
                     <p className="text-sm text-gray-900">{customer.occupation}</p>
                   </div>
                 )}
 
                 {(customer.age || customer.birth_year) && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500">🎂 나이</label>
+                    <label className="text-xs font-medium text-slate-500">나이</label>
                     <p className="text-sm text-gray-900">
                       {customer.age ? `${customer.age}세` : customer.birth_year ? `${new Date().getFullYear() - customer.birth_year}세 (추정)` : '-'}
                     </p>
@@ -262,7 +262,7 @@ export default function CustomerDetailPage() {
 
                 {customer.notes && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500">📝 메모</label>
+                    <label className="text-xs font-medium text-slate-500">메모</label>
                     <p className="text-sm text-gray-900 whitespace-pre-wrap">{customer.notes}</p>
                   </div>
                 )}
@@ -272,19 +272,19 @@ export default function CustomerDetailPage() {
                     href={`/dashboard/send?customerId=${customer.id}`}
                     className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    📤 문자 보내기
+                    문자 보내기
                   </Link>
                   
                   {/* 생일/기념일 자동 발송 예약 */}
                   {(customer.birthday || customer.anniversary) && (
                     <div className="pt-2 border-t border-gray-200">
-                      <h3 className="text-xs font-semibold text-gray-700 mb-2">🎉 자동 발송 예약</h3>
+                      <h3 className="text-xs font-semibold text-slate-700 mb-2">자동 발송 예약</h3>
                       {customer.birthday && (
                         <Link
                           href={`/dashboard/send?customerId=${customer.id}&autoSchedule=birthday`}
                           className="block w-full px-3 py-2 mb-2 bg-pink-50 text-pink-700 text-center rounded-lg hover:bg-pink-100 transition-colors text-sm"
                         >
-                          🎂 생일 축하 문자 예약
+                          생일 축하 문자 예약
                         </Link>
                       )}
                       {customer.anniversary && (
@@ -292,7 +292,7 @@ export default function CustomerDetailPage() {
                           href={`/dashboard/send?customerId=${customer.id}&autoSchedule=anniversary`}
                           className="block w-full px-3 py-2 bg-purple-50 text-purple-700 text-center rounded-lg hover:bg-purple-100 transition-colors text-sm"
                         >
-                          💝 기념일 문자 예약
+                          기념일 문자 예약
                         </Link>
                       )}
                     </div>

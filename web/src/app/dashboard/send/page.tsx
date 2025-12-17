@@ -309,8 +309,8 @@ export default function SendSMSPage() {
 
       // 기본 메시지 설정
       const defaultMessage = type === 'birthday'
-        ? `${customer.name}님, 생일 축하합니다! 🎂 건강하고 행복한 한 해 되시길 바랍니다.`
-        : `${customer.name}님, 기념일 축하합니다! 💝 오늘도 특별한 하루 되시길 바랍니다.`
+        ? `${customer.name}님, 생일 축하합니다! 건강하고 행복한 한 해 되시길 바랍니다.`
+        : `${customer.name}님, 기념일 축하합니다! 오늘도 특별한 하루 되시길 바랍니다.`
       
       setMessage(defaultMessage)
       setSuccess(`${type === 'birthday' ? '생일' : '기념일'} 자동 발송이 예약되었습니다. (${targetDate.toLocaleDateString('ko-KR')} 오전 9시)`)
@@ -1227,11 +1227,11 @@ export default function SendSMSPage() {
 
             {/* 다중 발송 (단건 포함 - 고객 선택 또는 전화번호 직접 입력) */}
             {sendMode === 'multiple' && (
-              <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl space-y-4">
                 {/* 전화번호 직접 입력 (단건 발송 대체) */}
-                <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📱 전화번호 직접 입력 (고객 목록에 없는 경우)
+                <div className="p-4 sm:p-5 bg-white border border-slate-200 rounded-xl">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    전화번호 직접 입력 (고객 목록에 없는 경우)
                   </label>
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
@@ -1239,7 +1239,7 @@ export default function SendSMSPage() {
                         type="tel"
                         value={manualPhone}
                         onChange={(e) => setManualPhone(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white"
                         placeholder="010-1234-5678"
                       />
                     </div>
@@ -1248,13 +1248,13 @@ export default function SendSMSPage() {
                         type="text"
                         value={manualName}
                         onChange={(e) => setManualName(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white"
                         placeholder="고객명 (선택)"
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    💡 전화번호를 직접 입력하면 고객 목록에 없어도 발송할 수 있습니다. (단건 발송)
+                  <p className="text-xs text-slate-500 mt-2">
+                    전화번호를 직접 입력하면 고객 목록에 없어도 발송할 수 있습니다. (단건 발송)
                   </p>
                 </div>
 
@@ -1281,7 +1281,7 @@ export default function SendSMSPage() {
                     }}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    📋 고객 목록에서 선택
+                    고객 목록에서 선택
                   </button>
                 </div>
                 {customersLoading ? (
@@ -1306,7 +1306,7 @@ export default function SendSMSPage() {
                         value={customerSearchQuery}
                         onChange={(e) => setCustomerSearchQuery(e.target.value)}
                         placeholder="고객 이름 또는 전화번호로 검색..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white"
                       />
                     </div>
                     <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-2">
@@ -1378,7 +1378,7 @@ export default function SendSMSPage() {
 
             {/* CSV 발송 */}
             {sendMode === 'csv' && (
-              <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     CSV 파일 업로드 <span className="text-red-500">*</span>
@@ -1433,7 +1433,7 @@ export default function SendSMSPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      💡 CSV에 message 컬럼이 있으면 개별 메시지를 사용하고, 없으면 아래 입력한 메시지를 모두에게 발송합니다.
+                      CSV에 message 컬럼이 있으면 개별 메시지를 사용하고, 없으면 아래 입력한 메시지를 모두에게 발송합니다.
                     </p>
                   </div>
                 )}
@@ -1442,7 +1442,7 @@ export default function SendSMSPage() {
 
             {/* 그룹별 발송 */}
             {sendMode === 'group' && (
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   그룹 선택 <span className="text-red-500">*</span>
                 </label>
@@ -1470,7 +1470,7 @@ export default function SendSMSPage() {
 
             {/* 태그별 발송 */}
             {sendMode === 'tag' && (
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   태그 선택 <span className="text-red-500">*</span>
                 </label>
@@ -1527,7 +1527,7 @@ export default function SendSMSPage() {
                     <option value="">템플릿 선택...</option>
                     {templates.map((template) => (
                       <option key={template.id} value={template.id}>
-                        {template.is_favorite ? '⭐ ' : ''}{template.name} ({template.category})
+                        {template.name} ({template.category})
                       </option>
                     ))}
                   </select>
@@ -1657,7 +1657,7 @@ export default function SendSMSPage() {
                   onClick={() => setShowImagePicker(!showImagePicker)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
-                  📷 이미지 첨부
+                  이미지 첨부
                 </button>
                 <button
                   type="button"
@@ -1697,14 +1697,14 @@ export default function SendSMSPage() {
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  💼 명함 첨부 {selectedImages.find(img => img.name === '명함') ? '✓' : ''}
+                  명함 첨부 {selectedImages.find(img => img.name === '명함') ? '(선택됨)' : ''}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
-                  😀 이모티콘
+                  이모티콘
                 </button>
               </div>
 
@@ -1947,7 +1947,7 @@ export default function SendSMSPage() {
                               className="w-full h-full object-cover"
                             />
                             {img.is_favorite && (
-                              <span className="absolute top-1 right-1 text-yellow-500">⭐</span>
+                              <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full"></span>
                             )}
                           </button>
                         ))}
@@ -1995,14 +1995,14 @@ export default function SendSMSPage() {
             {sendMode === 'multiple' && showSummary && !aiCustomerId && manualPhone && (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
-                  💡 고객이 등록되어 있지 않아 요약 기능을 사용할 수 없습니다. 
+                  고객이 등록되어 있지 않아 요약 기능을 사용할 수 없습니다. 
                   고객을 먼저 등록하시면 이전 대화 요약을 확인할 수 있습니다.
                 </p>
               </div>
             )}
 
             {/* 예약 발송 */}
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
               <div className="flex items-center gap-2 mb-3">
                 <input
                   type="checkbox"
@@ -2047,7 +2047,7 @@ export default function SendSMSPage() {
               {isScheduled && scheduledDate && scheduledTime && (
                 <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
                   <p className="text-sm text-slate-700">
-                    📅 예약 시간: {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('ko-KR')}
+                    예약 시간: {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('ko-KR')}
                   </p>
                 </div>
               )}
@@ -2055,7 +2055,7 @@ export default function SendSMSPage() {
 
             {/* 미리보기 */}
             {preview && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="p-4 sm:p-6 bg-slate-50 border border-slate-200 rounded-xl">
                 <label className="block text-sm font-medium text-slate-900 mb-2">
                   미리보기
                 </label>
@@ -2078,7 +2078,7 @@ export default function SendSMSPage() {
             {/* 안내 */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                💡 <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
+                <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
                 발송된 문자는 "발송 기록"에서 확인할 수 있습니다. 모바일 앱이 실행 중이어야 합니다.
               </p>
             </div>
