@@ -48,17 +48,15 @@ export async function GET(
     // 명함 이미지인지 확인
     const isBusinessCard = image.category === 'business_card'
     
-    // 제목 결정 (파일명 제거)
-    const ogTitle = isBusinessCard ? '📇 내 명함' : '이미지 미리보기'
-    const safeTitle = escapeHtml(ogTitle)
-    
-    // 설명은 빈 값 또는 최소한의 텍스트
+    // 제목과 설명을 빈 값으로 설정하여 텍스트 표시 최소화
+    // 메시지 앱에서 깨끗한 이미지만 표시되도록 함
+    const safeTitle = ''
     const safeDescription = ''
     
     // 이미지 URL
     const safeImageUrl = escapeHtml(image.image_url)
     
-    // 현재 페이지 URL
+    // 현재 페이지 URL (최소화)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
     const ogUrl = `${baseUrl}/api/preview/${imageId}`
 
@@ -68,22 +66,23 @@ export async function GET(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${safeTitle}</title>
-  <meta name="description" content="${safeDescription}">
+  <title></title>
+  <meta name="description" content="">
   
-  <!-- Open Graph -->
-  <meta property="og:title" content="${safeTitle}" />
-  <meta property="og:description" content="${safeDescription}" />
+  <!-- Open Graph - 텍스트 최소화하여 이미지만 표시 -->
+  <meta property="og:title" content="" />
+  <meta property="og:description" content="" />
   <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${ogUrl}" />
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="1080" />
+  <meta property="og:site_name" content="" />
   
-  <!-- Twitter -->
+  <!-- Twitter - 텍스트 최소화 -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${safeTitle}" />
-  <meta name="twitter:description" content="${safeDescription}" />
+  <meta name="twitter:title" content="" />
+  <meta name="twitter:description" content="" />
   <meta name="twitter:image" content="${safeImageUrl}" />
   
   <style>
@@ -126,6 +125,13 @@ export async function GET(
     }
     img::after {
       display: none;
+    }
+    /* 모든 텍스트 숨김 */
+    * {
+      color: transparent;
+    }
+    img {
+      color: transparent;
     }
   </style>
 </head>
