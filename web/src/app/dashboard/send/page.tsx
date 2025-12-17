@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { useCustomerGroups } from '@/lib/hooks/useCustomerGroups'
 import { useMessageTemplates } from '@/lib/hooks/useMessageTemplates'
 import { replaceTemplateVariables } from '@/lib/utils/templateParser'
+import { uuidToBase62 } from '@/lib/utils/shortUrl'
 import AIMessageSuggestions from '@/components/AIMessageSuggestions'
 import ConversationSummary from '@/components/ConversationSummary'
 import EmojiPicker from '@/components/EmojiPicker'
@@ -366,8 +367,8 @@ export default function SendSMSPage() {
   const getPreviewUrl = async (imageUrl: string): Promise<string> => {
     if (!imageUrl) return imageUrl
     
-    // 이미 Open Graph URL인 경우 그대로 반환 (API 라우트 포함)
-    if (imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
+    // 이미 Open Graph URL인 경우 그대로 반환 (Base62 short URL 및 API 라우트 포함)
+    if (imageUrl.includes('/p/') || imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
       return imageUrl
     }
 
@@ -385,9 +386,10 @@ export default function SendSMSPage() {
         return imageUrl
       }
 
-      // Open Graph URL 생성 (API 라우트 사용 - 페이지 라우트가 작동하지 않을 때 대체)
+      // Open Graph URL 생성 (Base62 인코딩으로 URL 단축)
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-      return `${baseUrl}/api/preview/${image.id}`
+      const shortId = uuidToBase62(image.id)
+      return `${baseUrl}/p/${shortId}`
     } catch (error) {
       console.error('Error converting to preview URL:', error)
       return imageUrl
@@ -1921,9 +1923,10 @@ export default function SendSMSPage() {
                             key={img.id}
                             type="button"
                             onClick={async () => {
-                              // 이미지 ID로 Open Graph URL 생성 (API 라우트 사용)
+                              // 이미지 ID로 Open Graph URL 생성 (Base62 인코딩으로 URL 단축)
                               const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-                              const previewUrl = `${baseUrl}/api/preview/${img.id}`
+                              const shortId = uuidToBase62(img.id)
+                              const previewUrl = `${baseUrl}/p/${shortId}`
                               const newImage = { 
                                 url: img.image_url, // 미리보기용 원본 URL
                                 name: img.name,
