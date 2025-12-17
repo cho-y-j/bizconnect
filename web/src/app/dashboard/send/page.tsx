@@ -1176,11 +1176,11 @@ export default function SendSMSPage() {
         <form onSubmit={handleSubmit} className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
           {/* 좌측: 고객 선택 영역 */}
           <div className="lg:space-y-6 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">수신자 선택</h2>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+              <h2 className="text-base font-semibold text-slate-900 mb-3">수신자 선택</h2>
               
               {/* 발송 모드 선택 */}
-              <div className="mb-6">
+              <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-3">
                 발송 방식
               </label>
@@ -1234,7 +1234,7 @@ export default function SendSMSPage() {
 
             {/* 다중 발송 (단건 포함 - 고객 선택 또는 전화번호 직접 입력) */}
             {sendMode === 'multiple' && (
-              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl space-y-3">
                 {/* 전화번호 직접 입력 (단건 발송 대체) */}
                 <div className="p-4 sm:p-5 bg-white border border-slate-200 rounded-xl">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -1385,7 +1385,7 @@ export default function SendSMSPage() {
 
             {/* CSV 발송 */}
             {sendMode === 'csv' && (
-              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     CSV 파일 업로드 <span className="text-red-500">*</span>
@@ -1514,17 +1514,14 @@ export default function SendSMSPage() {
           </div>
 
           {/* 우측: 메시지 작성 영역 */}
-          <div className="lg:space-y-6 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">메시지 작성</h2>
+          <div className="lg:space-y-4 space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+              <h2 className="text-base font-semibold text-slate-900 mb-3">메시지 작성</h2>
               
               {/* 템플릿 선택 */}
               {templates.length > 0 && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    템플릿 선택 (선택)
-                  </label>
-                  <div className="flex gap-2 mb-2">
+                <div className="mb-4">
+                  <div className="flex gap-2">
                     <select
                       value={selectedTemplateId}
                       onChange={(e) => {
@@ -1549,59 +1546,48 @@ export default function SendSMSPage() {
                       href="/dashboard/templates"
                       className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all whitespace-nowrap text-sm font-medium"
                     >
-                      템플릿 관리
+                      관리
                     </Link>
                   </div>
                 </div>
               )}
 
               {/* 메시지 입력 */}
-              <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                <label className="block text-sm font-medium text-slate-700">
-                  메시지 <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* 다중 발송에서 한 명만 선택했을 때 요약 보기 버튼 */}
-                  {sendMode === 'multiple' && selectedCustomers.length === 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSummary(!showSummary)}
-                      className="text-xs sm:text-sm px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-                    >
-                      {showSummary ? '요약 숨기기' : '대화 요약 보기'}
-                    </button>
-                  )}
-                  {/* 전화번호 직접 입력 시 요약 보기 버튼 */}
-                  {sendMode === 'multiple' && manualPhone && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSummary(!showSummary)}
-                      className="text-xs sm:text-sm px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-                    >
-                      {showSummary ? '요약 숨기기' : '대화 요약 보기'}
-                    </button>
-                  )}
-                  <Link
-                    href="/dashboard/templates"
-                    className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 font-medium"
+              <div className="mb-4">
+              <div className="flex items-center justify-end gap-2 mb-2">
+                {/* 다중 발송에서 한 명만 선택했을 때 요약 보기 버튼 */}
+                {sendMode === 'multiple' && selectedCustomers.length === 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSummary(!showSummary)}
+                    className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
-                    템플릿 관리 →
-                  </Link>
-                </div>
+                    {showSummary ? '요약 숨기기' : '대화 요약'}
+                  </button>
+                )}
+                {/* 전화번호 직접 입력 시 요약 보기 버튼 */}
+                {sendMode === 'multiple' && manualPhone && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSummary(!showSummary)}
+                    className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                  >
+                    {showSummary ? '요약 숨기기' : '대화 요약'}
+                  </button>
+                )}
               </div>
               
               {/* 메시지 입력 영역 */}
               <div className="relative mb-3">
                 <textarea
                   required
-                  rows={8}
+                  rows={6}
                   value={message}
                   onChange={(e) => {
                     setMessage(e.target.value)
                     setSelectedTemplateId('') // 수동 입력 시 템플릿 선택 해제
                   }}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400 resize-none"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400 resize-none text-sm"
                   placeholder="메시지를 입력하세요. 변수를 사용할 수 있습니다."
                 />
               </div>
@@ -1664,7 +1650,7 @@ export default function SendSMSPage() {
             </div>
 
               {/* 이미지 첨부 및 이모티콘 */}
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
@@ -2016,7 +2002,7 @@ export default function SendSMSPage() {
               )}
 
               {/* 예약 발송 */}
-              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl mb-6">
+              <div className="p-3 bg-slate-50 rounded-xl mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <input
                     type="checkbox"
@@ -2069,29 +2055,26 @@ export default function SendSMSPage() {
 
               {/* 미리보기 */}
               {preview && (
-                <div className="p-4 sm:p-6 bg-slate-50 border border-slate-200 rounded-xl mb-6">
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    미리보기
-                  </label>
-                  <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+                  <div className="text-xs text-slate-700 whitespace-pre-wrap">
                     {preview}
                   </div>
                 </div>
               )}
 
               {/* 취소 버튼 */}
-              <div className="pt-4 border-t border-slate-200 mb-6">
+              <div className="pt-3 border-t border-slate-200 mb-3">
                 <Link
                   href="/dashboard"
-                  className="block w-full px-6 py-3 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center"
+                  className="block w-full px-4 py-2 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center text-sm"
                 >
                   취소
                 </Link>
               </div>
 
               {/* 안내 */}
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
                   <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
                   발송된 문자는 "발송 기록"에서 확인할 수 있습니다. 모바일 앱이 실행 중이어야 합니다.
                 </p>

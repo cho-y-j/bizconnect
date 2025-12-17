@@ -300,7 +300,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="pt-4 border-t border-slate-100">
-              <Link href="/dashboard/customers" className="text-sm text-slate-700 hover:text-slate-900 font-medium flex items-center gap-1">
+              <Link href="/dashboard/customers" className="text-sm text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1">
                 고객 관리 <span>→</span>
               </Link>
             </div>
