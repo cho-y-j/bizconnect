@@ -1153,27 +1153,34 @@ export default function SendSMSPage() {
   return (
     <div>
       {/* 메인 콘텐츠 */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">문자 보내기</h1>
           <p className="text-sm text-slate-600">고객에게 문자를 발송합니다</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
-                {error}
-              </div>
-            )}
+        
+        {/* 에러/성공 메시지 */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
+            {error}
+          </div>
+        )}
 
-            {success && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm mb-6">
-                {success}
-              </div>
-            )}
+        {success && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm mb-6">
+            {success}
+          </div>
+        )}
 
-            {/* 발송 모드 선택 */}
-            <div>
+        {/* 웹: 2단 레이아웃, 모바일: 단일 레이아웃 */}
+        <form onSubmit={handleSubmit} className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+          {/* 좌측: 고객 선택 영역 */}
+          <div className="lg:space-y-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">수신자 선택</h2>
+              
+              {/* 발송 모드 선택 */}
+              <div className="mb-6">
               <label className="block text-sm font-medium text-slate-700 mb-3">
                 발송 방식
               </label>
@@ -1503,46 +1510,53 @@ export default function SendSMSPage() {
                 )}
               </div>
             )}
+            </div>
+          </div>
 
-            {/* 템플릿 선택 */}
-            {templates.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  템플릿 선택 (선택)
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <select
-                    value={selectedTemplateId}
-                    onChange={(e) => {
-                      setSelectedTemplateId(e.target.value)
-                      if (e.target.value) {
-                        const template = templates.find(t => t.id === e.target.value)
-                        if (template) {
-                          setMessage(template.content)
+          {/* 우측: 메시지 작성 영역 */}
+          <div className="lg:space-y-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">메시지 작성</h2>
+              
+              {/* 템플릿 선택 */}
+              {templates.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    템플릿 선택 (선택)
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => {
+                        setSelectedTemplateId(e.target.value)
+                        if (e.target.value) {
+                          const template = templates.find(t => t.id === e.target.value)
+                          if (template) {
+                            setMessage(template.content)
+                          }
                         }
-                      }
-                    }}
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
-                  >
-                    <option value="">템플릿 선택...</option>
-                    {templates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({template.category})
-                      </option>
-                    ))}
-                  </select>
-                  <Link
-                    href="/dashboard/templates"
-                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all whitespace-nowrap text-sm font-medium"
-                  >
-                    템플릿 관리
-                  </Link>
+                      }}
+                      className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">템플릿 선택...</option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name} ({template.category})
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      href="/dashboard/templates"
+                      className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all whitespace-nowrap text-sm font-medium"
+                    >
+                      템플릿 관리
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 메시지 입력 */}
-            <div>
+              {/* 메시지 입력 */}
+              <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                 <label className="block text-sm font-medium text-slate-700">
                   메시지 <span className="text-red-500">*</span>
@@ -1649,8 +1663,8 @@ export default function SendSMSPage() {
               </div>
             </div>
 
-            {/* 이미지 첨부 및 이모티콘 */}
-            <div className="space-y-3">
+              {/* 이미지 첨부 및 이모티콘 */}
+              <div className="space-y-3 mb-6">
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
@@ -1978,112 +1992,113 @@ export default function SendSMSPage() {
               )}
             </div>
 
-            {/* 다중 발송에서 한 명만 선택했을 때 요약 표시 */}
-            {sendMode === 'multiple' && showSummary && aiCustomerId && (
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <ConversationSummary
-                  customerId={aiCustomerId}
-                  customerPhone={aiCustomerPhone || ''}
-                  customerName={aiCustomerName || '고객'}
-                  onSummaryUpdate={() => {
-                    // 요약 업데이트 시 정보 다시 로드
-                    loadSummaryForCustomer(aiCustomerId)
-                  }}
-                />
-              </div>
-            )}
-            {sendMode === 'multiple' && showSummary && !aiCustomerId && manualPhone && (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  고객이 등록되어 있지 않아 요약 기능을 사용할 수 없습니다. 
-                  고객을 먼저 등록하시면 이전 대화 요약을 확인할 수 있습니다.
-                </p>
-              </div>
-            )}
-
-            {/* 예약 발송 */}
-            <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id="isScheduled"
-                  checked={isScheduled}
-                  onChange={(e) => setIsScheduled(e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="isScheduled" className="text-sm font-medium text-gray-700">
-                  예약 발송
-                </label>
-              </div>
-              {isScheduled && (
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      예약 날짜 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required={isScheduled}
-                      value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      예약 시간 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required={isScheduled}
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
-                    />
-                  </div>
+              {/* 다중 발송에서 한 명만 선택했을 때 요약 표시 */}
+              {sendMode === 'multiple' && showSummary && aiCustomerId && (
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl mb-6">
+                  <ConversationSummary
+                    customerId={aiCustomerId}
+                    customerPhone={aiCustomerPhone || ''}
+                    customerName={aiCustomerName || '고객'}
+                    onSummaryUpdate={() => {
+                      // 요약 업데이트 시 정보 다시 로드
+                      loadSummaryForCustomer(aiCustomerId)
+                    }}
+                  />
                 </div>
               )}
-              {isScheduled && scheduledDate && scheduledTime && (
-                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <p className="text-sm text-slate-700">
-                    예약 시간: {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('ko-KR')}
+              {sendMode === 'multiple' && showSummary && !aiCustomerId && manualPhone && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-6">
+                  <p className="text-sm text-yellow-800">
+                    고객이 등록되어 있지 않아 요약 기능을 사용할 수 없습니다. 
+                    고객을 먼저 등록하시면 이전 대화 요약을 확인할 수 있습니다.
                   </p>
                 </div>
               )}
-            </div>
 
-            {/* 미리보기 */}
-            {preview && (
-              <div className="p-4 sm:p-6 bg-slate-50 border border-slate-200 rounded-xl">
-                <label className="block text-sm font-medium text-slate-900 mb-2">
-                  미리보기
-                </label>
-                <div className="text-sm text-slate-700 whitespace-pre-wrap">
-                  {preview}
+              {/* 예약 발송 */}
+              <div className="p-4 sm:p-6 bg-slate-50 rounded-xl mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    id="isScheduled"
+                    checked={isScheduled}
+                    onChange={(e) => setIsScheduled(e.target.checked)}
+                    className="rounded"
+                  />
+                  <label htmlFor="isScheduled" className="text-sm font-medium text-slate-700">
+                    예약 발송
+                  </label>
                 </div>
+                {isScheduled && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        예약 날짜 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required={isScheduled}
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        예약 시간 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        required={isScheduled}
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+                {isScheduled && scheduledDate && scheduledTime && (
+                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <p className="text-sm text-slate-700">
+                      예약 시간: {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('ko-KR')}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* 취소 버튼 */}
-            <div className="pt-4 border-t border-slate-200">
-              <Link
-                href="/dashboard"
-                className="block w-full px-6 py-3 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center"
-              >
-                취소
-              </Link>
-            </div>
+              {/* 미리보기 */}
+              {preview && (
+                <div className="p-4 sm:p-6 bg-slate-50 border border-slate-200 rounded-xl mb-6">
+                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                    미리보기
+                  </label>
+                  <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                    {preview}
+                  </div>
+                </div>
+              )}
 
-            {/* 안내 */}
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
-                발송된 문자는 "발송 기록"에서 확인할 수 있습니다. 모바일 앱이 실행 중이어야 합니다.
-              </p>
+              {/* 취소 버튼 */}
+              <div className="pt-4 border-t border-slate-200 mb-6">
+                <Link
+                  href="/dashboard"
+                  className="block w-full px-6 py-3 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center"
+                >
+                  취소
+                </Link>
+              </div>
+
+              {/* 안내 */}
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>안내:</strong> 웹에서 문자를 발송하면, 모바일 앱이 자동으로 처리하여 실제 문자를 발송합니다.
+                  발송된 문자는 "발송 기록"에서 확인할 수 있습니다. 모바일 앱이 실행 중이어야 합니다.
+                </p>
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </main>
 
       {/* AI 추천 모달 */}

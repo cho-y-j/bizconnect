@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <p className="text-slate-600 text-base sm:text-lg mb-6 font-medium">오늘 예약된 문자가 없습니다.</p>
                 <Link
                   href="/dashboard/send"
-                  className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
+                  className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
                 >
                   문자 보내기 시작하기 →
                 </Link>

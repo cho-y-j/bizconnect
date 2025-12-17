@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true) // 웹에서는 기본적으로 열림
   const [user, setUser] = useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -137,8 +137,38 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* 데스크톱 헤더 (사이드바 토글 포함) */}
+      <header className="hidden md:flex fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-30 items-center px-4">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+          aria-label="사이드바 토글"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {sidebarOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+        <div className="ml-4 flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-slate-900" />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-tight text-slate-900">
+              BizConnect
+            </span>
+            <span className="text-[10px] text-slate-500 leading-tight">
+              Mobile CRM
+            </span>
+          </div>
+        </div>
+      </header>
+
       {/* 데스크톱 사이드바 */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 shadow-sm z-40 flex-col">
+      <aside className={`hidden md:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-slate-200 shadow-sm z-40 flex-col transition-transform duration-300 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex flex-col h-full">
           {/* 로고 */}
           <div className="flex items-center gap-2.5 p-4 border-b border-slate-200">
@@ -333,8 +363,10 @@ export default function DashboardLayout({
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="md:ml-64">
-        {children}
+      <div className={`md:transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}>
+        <div className="md:pt-16">
+          {children}
+        </div>
       </div>
 
       {/* 모바일 하단 네비게이션 */}
