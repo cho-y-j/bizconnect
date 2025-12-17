@@ -418,7 +418,7 @@ export default function CustomersPage() {
           </div>
           <Link
             href="/dashboard/customers/new"
-            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
+            className="px-5 py-2.5 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
           >
             + 고객 추가
           </Link>
@@ -440,7 +440,7 @@ export default function CustomersPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleBulkSend}
-                className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
+                className="px-5 py-2.5 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
               >
                 선택한 고객에게 문자 보내기
               </button>
@@ -474,7 +474,7 @@ export default function CustomersPage() {
               }}
               className={`px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all text-sm ${
                 selectedGroupId === 'all'
-                  ? 'bg-slate-900 text-white shadow-sm'
+                  ? 'bg-slate-900 !text-white shadow-sm'
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -489,7 +489,7 @@ export default function CustomersPage() {
                 }}
                 className={`px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all text-sm ${
                   selectedGroupId === group.id
-                    ? 'bg-slate-900 text-white shadow-sm'
+                    ? 'bg-slate-900 !text-white shadow-sm'
                     : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
                 style={{
@@ -571,7 +571,7 @@ export default function CustomersPage() {
                     onClick={() => toggleTag(tag)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       selectedTags.includes(tag)
-                        ? 'bg-slate-900 text-white shadow-sm'
+                        ? 'bg-slate-900 !text-white shadow-sm'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -616,7 +616,7 @@ export default function CustomersPage() {
             </p>
             <Link
               href="/dashboard/customers/new"
-              className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
+              className="inline-block px-6 py-3 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
             >
               첫 고객 추가하기
             </Link>
@@ -756,7 +756,7 @@ export default function CustomersPage() {
                         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={`/dashboard/send?customerId=${customer.id}`}
-                            className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
+                            className="px-4 py-2 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                           >
                             문자
                           </Link>

@@ -129,7 +129,7 @@ export default function ScheduledPage() {
           </div>
           <Link
               href="/dashboard/send"
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
+              className="px-5 py-2.5 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
             >
               + 새 발송 예약
             </Link>
@@ -150,7 +150,7 @@ export default function ScheduledPage() {
             <p className="text-slate-500 mb-4">예약된 발송이 없습니다.</p>
             <Link
               href="/dashboard/send"
-              className="mt-4 inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
+              className="mt-4 inline-block px-6 py-3 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
             >
               + 새 발송 예약
             </Link>

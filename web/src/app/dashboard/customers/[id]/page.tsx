@@ -270,7 +270,7 @@ export default function CustomerDetailPage() {
                 <div className="pt-4 border-t border-gray-200 space-y-2">
                   <Link
                     href={`/dashboard/send?customerId=${customer.id}`}
-                    className="block w-full px-4 py-2.5 bg-slate-900 text-white text-center rounded-xl hover:bg-slate-800 transition-all font-medium text-sm shadow-sm hover:shadow-md"
+                    className="block w-full px-4 py-2.5 bg-slate-900 !text-white text-center rounded-xl hover:bg-slate-800 transition-all font-medium text-sm shadow-sm hover:shadow-md"
                   >
                     문자 보내기
                   </Link>

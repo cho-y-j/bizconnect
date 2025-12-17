@@ -87,7 +87,7 @@ export default function TemplatesPage() {
               setEditingId(null)
               setShowAddForm(!showAddForm)
             }}
-            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
+            className="px-5 py-2.5 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
           >
             {showAddForm ? '취소' : '+ 템플릿 추가'}
           </button>
@@ -195,7 +195,7 @@ export default function TemplatesPage() {
               <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md text-sm"
+                  className="px-6 py-3 bg-slate-900 !text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md text-sm"
                 >
                   {editingId ? '수정' : '추가'}
                 </button>
@@ -226,7 +226,7 @@ export default function TemplatesPage() {
             <p className="text-gray-500 mb-4">등록된 템플릿이 없습니다.</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
+              className="px-6 py-3 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
             >
               + 첫 템플릿 추가
             </button>

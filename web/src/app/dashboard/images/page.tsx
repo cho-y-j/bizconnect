@@ -219,7 +219,7 @@ export default function ImagesPage() {
           </div>
           <Link
             href="/dashboard/send"
-            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
+            className="px-5 py-2.5 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base whitespace-nowrap"
           >
             문자 보내기
           </Link>
@@ -355,7 +355,7 @@ export default function ImagesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveEdit}
-                    className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
+                    className="flex-1 px-4 py-2 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                   >
                     저장
                   </button>

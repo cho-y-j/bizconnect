@@ -385,7 +385,7 @@ export default function NewCustomerPage() {
               <button
                 type="submit"
                 disabled={loading || !formData.group_id}
-                className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="flex-1 px-6 py-3 bg-slate-900 !text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {loading ? '저장 중...' : '저장'}
               </button>

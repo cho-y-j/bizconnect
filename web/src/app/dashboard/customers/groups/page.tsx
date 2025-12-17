@@ -105,7 +105,7 @@ export default function GroupsPage() {
                   setShowAddForm(true)
                   setError('')
                 }}
-                className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
+                className="px-4 py-2 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
               >
                 + 그룹 추가
               </button>
@@ -159,7 +159,7 @@ export default function GroupsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleCreate}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
+                  className="px-4 py-2 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                 >
                   추가
                 </button>
@@ -226,7 +226,7 @@ export default function GroupsPage() {
                       <div className="flex gap-2 ml-4">
                         <button
                           onClick={() => handleUpdate(group.id)}
-                          className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
+                          className="px-4 py-2 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                         >
                           저장
                         </button>
