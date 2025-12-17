@@ -374,33 +374,26 @@ export async function handleCallEnded(
       return;
     }
 
-    // AI 사용 여부 확인
-    const useAI = shouldUseAI(customer);
-    let template: string | null = null;
+    // 통화 종료 메시지 가져오기 (callback_on_end_message 사용)
+    // 웹과 앱의 메시지를 통일하기 위해 callback_on_end_message 사용
     let message: string = '';
-
-    if (useAI) {
-      // AI 맞춤 메시지 생성 (나중에 API 연동)
-      // 현재는 기본 템플릿 사용
-      template = await getCallbackTemplate(userId, isNewCustomer);
-      if (!template) {
-        console.log('No callback template found');
-        return;
-      }
-      message = replaceTemplateVariables(template, customer, phoneNumber);
-
-      // TODO: AI API 호출하여 맞춤 메시지 생성
-      // const aiMessage = await generateAIMessage(userId, customer, phoneNumber);
-      // message = aiMessage || message;
+    
+    if (config.onEndEnabled && config.onEndMessage) {
+      message = config.onEndMessage;
+      console.log('Using callback_on_end_message:', message);
     } else {
-      // 기본 템플릿 사용
-      template = await getCallbackTemplate(userId, isNewCustomer);
+      // callback_on_end_message가 없으면 기존 템플릿 사용 (하위 호환성)
+      const template = await getCallbackTemplate(userId, isNewCustomer);
       if (!template) {
         console.log('No callback template found');
         return;
       }
       message = replaceTemplateVariables(template, customer, phoneNumber);
+      console.log('Using legacy callback template:', message);
     }
+    
+    // 템플릿 변수 치환
+    message = replaceTemplateVariables(message, customer, phoneNumber);
 
     // 신규 고객인 경우 알림
     if (isNewCustomer && onNewCustomer) {
@@ -415,12 +408,14 @@ export async function handleCallEnded(
     // 자동 발송 또는 확인 후 발송
     if (config.autoSend) {
       // 지연 시간 후 자동 발송
+      // handleCallEvent를 사용하여 통일된 방식으로 발송
       setTimeout(() => {
-        sendCallbackSms(userId, customer, phoneNumber, template!);
+        handleCallEvent(userId, phoneNumber, 'ended');
       }, config.delay * 1000);
     } else {
       // 확인 후 발송 (사용자 승인 필요)
       // 이 경우 onCallbackReady 콜백에서 사용자가 승인하면 발송
+      // handleCallEvent를 사용하여 통일된 방식으로 발송
     }
   } catch (error) {
     console.error('Error in handleCallEnded:', error);
@@ -534,13 +529,33 @@ export async function handleCallEvent(
           console.log('✅ Already Open Graph URL:', previewUrl);
         } else {
           // 일반 이미지 URL인 경우 Open Graph URL로 변환
-          const { data: image, error } = await supabase
+          // 먼저 image_url로 정확히 일치하는 이미지 찾기
+          let { data: image, error } = await supabase
             .from('user_images')
             .select('id')
             .eq('image_url', imageUrl)
-            .single();
+            .eq('user_id', userId)
+            .maybeSingle();
           
-          if (!error && image) {
+          // image_url로 찾지 못한 경우, 명함 이미지인 경우 category와 user_id로 검색
+          if (error || !image) {
+            console.log('⚠️ Image not found by image_url, trying category search...');
+            const { data: businessCardImage, error: cardError } = await supabase
+              .from('user_images')
+              .select('id')
+              .eq('category', 'business_card')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            if (!cardError && businessCardImage) {
+              image = businessCardImage;
+              console.log('✅ Found business card image by category:', image.id);
+            }
+          }
+          
+          if (image) {
             const baseUrl = 'https://bizconnect-ten.vercel.app';
             previewUrl = `${baseUrl}/api/preview/${image.id}`;
             console.log('✅ Converted to Open Graph URL:', previewUrl);
