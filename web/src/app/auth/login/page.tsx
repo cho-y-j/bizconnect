@@ -80,22 +80,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 sm:p-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">비즈커넥트</h1>
-          <p className="text-gray-600">로그인하여 시작하세요</p>
+          <div className="inline-flex items-center justify-center mb-4">
+            <div className="h-10 w-10 rounded-lg bg-slate-900" />
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900 mb-2 tracking-tight">비즈커넥트</h1>
+          <p className="text-sm text-slate-600">로그인하여 시작하세요</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
+        <form onSubmit={handleEmailLogin} className="space-y-5 mb-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
               이메일
             </label>
             <input
@@ -104,13 +107,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400"
               placeholder="your@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
               비밀번호
             </label>
             <input
@@ -119,7 +122,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400"
               placeholder="••••••••"
             />
           </div>
@@ -127,7 +130,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 active:bg-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
           >
             {loading ? '로그인 중...' : '로그인'}
           </button>
@@ -135,17 +138,17 @@ export default function LoginPage() {
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <div className="w-full border-t border-slate-200"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">또는</span>
+            <span className="px-3 bg-white text-slate-500 text-xs">또는</span>
           </div>
         </div>
 
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3.5 border border-slate-200 rounded-xl font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm hover:shadow"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -168,22 +171,23 @@ export default function LoginPage() {
           구글로 로그인
         </button>
 
-        <div className="mt-6 text-center">
-          <Link
-            href="/auth/signup"
-            className="text-sm text-blue-600 hover:text-blue-700"
-          >
-            계정이 없으신가요? 회원가입
-          </Link>
-        </div>
-
-        <div className="mt-4 text-center">
-          <Link
-            href="/auth/forgot-password"
-            className="text-sm text-gray-600 hover:text-gray-700"
-          >
-            비밀번호를 잊으셨나요?
-          </Link>
+        <div className="mt-8 space-y-3 text-center">
+          <div>
+            <Link
+              href="/auth/signup"
+              className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              계정이 없으신가요? <span className="text-slate-900 font-semibold">회원가입</span>
+            </Link>
+          </div>
+          <div>
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-slate-600 hover:text-slate-700 transition-colors"
+            >
+              비밀번호를 잊으셨나요?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

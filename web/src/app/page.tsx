@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 
 function HomeContent() {
   const [lang, setLang] = useState<'ko' | 'en'>('ko')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -28,59 +29,149 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
         <div className="tw-container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-xl bg-slate-900" />
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-slate-900" />
             <div className="flex flex-col">
-              <span className="text-sm font-semibold tracking-wide text-slate-900">
+              <span className="text-sm font-semibold tracking-tight text-slate-900">
                 BizConnect
               </span>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[10px] text-slate-500 leading-tight">
                 Mobile CRM for real sales
               </span>
             </div>
           </div>
-          <nav className="hidden gap-8 text-sm text-slate-600 md:flex">
-            <a href="#features" className="hover:text-slate-900">
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden gap-8 text-sm text-slate-700 md:flex">
+            <a href="#features" className="hover:text-slate-900 transition-colors">
               {lang === 'ko' ? '제품' : 'Product'}
             </a>
-            <a href="#how-it-works" className="hover:text-slate-900">
+            <a href="#how-it-works" className="hover:text-slate-900 transition-colors">
               {lang === 'ko' ? '사용 방법' : 'How it works'}
             </a>
-            <a href="#pricing" className="hover:text-slate-900">
+            <a href="#pricing" className="hover:text-slate-900 transition-colors">
               {lang === 'ko' ? '가격' : 'Pricing'}
             </a>
-            <a href="#support" className="hover:text-slate-900">
+            <a href="#support" className="hover:text-slate-900 transition-colors">
               {lang === 'ko' ? '고객지원' : 'Support'}
             </a>
           </nav>
-          <div className="flex items-center gap-3">
+          
+          {/* Desktop Actions */}
+          <div className="hidden items-center gap-3 md:flex">
             <button
               type="button"
               onClick={() => setLang((prev) => (prev === 'ko' ? 'en' : 'ko'))}
-              className="hidden items-center rounded-full border border-slate-200 px-3 py-1 text-[11px] text-slate-600 hover:border-slate-400 hover:text-slate-900 md:inline-flex"
+              className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition-all"
             >
               {lang === 'ko' ? '한국어 · EN' : 'EN · 한국어'}
             </button>
-            <Link href="/auth/login" className="hidden text-sm text-slate-600 hover:text-slate-900 md:inline">
+            <Link 
+              href="/auth/login" 
+              className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
               {lang === 'ko' ? '로그인' : 'Log in'}
             </Link>
             <Link href="/auth/signup">
-              <Button className="text-xs md:text-sm px-4 py-2">
+              <Button className="text-sm px-5 py-2.5">
                 {lang === 'ko' ? '무료로 시작하기' : 'Start free'}
               </Button>
             </Link>
           </div>
+
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-2 md:hidden">
+            <Link 
+              href="/auth/login"
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              {lang === 'ko' ? '로그인' : 'Login'}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-slate-700 hover:text-slate-900 transition-colors"
+              aria-label="메뉴"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {mobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-200 bg-white md:hidden">
+            <nav className="tw-container py-4 space-y-1">
+              <a
+                href="#features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+              >
+                {lang === 'ko' ? '제품' : 'Product'}
+              </a>
+              <a
+                href="#how-it-works"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+              >
+                {lang === 'ko' ? '사용 방법' : 'How it works'}
+              </a>
+              <a
+                href="#pricing"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+              >
+                {lang === 'ko' ? '가격' : 'Pricing'}
+              </a>
+              <a
+                href="#support"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+              >
+                {lang === 'ko' ? '고객지원' : 'Support'}
+              </a>
+              <div className="pt-2 border-t border-slate-200">
+                <Link
+                  href="/auth/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors text-center"
+                >
+                  {lang === 'ko' ? '무료로 시작하기' : 'Start free'}
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       <main>
         <section className="border-b border-slate-100 pb-20 pt-16 bg-white">
           <div className="tw-container grid gap-12 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-medium text-slate-700">
                 {lang === 'ko'
                   ? '1개월 프리미엄 무료 · 모바일 영업인을 위한 문자 자동화'
                   : '1-month premium free · SMS automation for mobile closers'}
@@ -108,16 +199,17 @@ function HomeContent() {
                   ? '비즈커넥트는 영업인을 위한 가장 쉬운 문자 자동화 서비스입니다. PC에서 메시지를 입력하면, 내 안드로이드 폰이 고객별 맞춤 문자를 자동으로 발송합니다.'
                   : 'BizConnect is the fastest way for salespeople to automate follow-up: type on desktop, your Android phone sends personalized texts automatically — with AI that remembers every customer touchpoint.'}
               </p>
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link href="/auth/signup">
-                  <Button className="text-sm px-6 py-3">
+                  <Button className="text-sm px-7 py-3.5 font-semibold">
                     {lang === 'ko' ? '지금 무료로 시작하기' : 'Get started for free'}
                   </Button>
                 </Link>
-                <Link href="/auth/login">
-                  <Button variant="ghost" className="text-sm">
-                    {lang === 'ko' ? '대시보드 로그인' : 'Log in to dashboard'}
-                  </Button>
+                <Link 
+                  href="/auth/login"
+                  className="px-6 py-3.5 text-sm font-medium text-slate-700 hover:text-slate-900 border border-slate-200 rounded-full hover:border-slate-300 hover:bg-slate-50 transition-all"
+                >
+                  {lang === 'ko' ? '대시보드 로그인' : 'Log in to dashboard'}
                 </Link>
               </div>
               <p className="mt-4 text-xs text-slate-500">
@@ -125,28 +217,28 @@ function HomeContent() {
                   ? '프리미엄 1개월 무료 후, 매일 20건까지 무료 플랜 이용 가능 · 언제든 해지 가능합니다.'
                   : '1 month premium free, then Free plan available · Cancel anytime'}
               </p>
-              <div className="mt-8 flex items-center gap-6 text-xs text-slate-500">
+              <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-6 text-xs text-slate-600">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">
+                  <div className="text-sm font-semibold text-slate-900 mb-1">
                     {lang === 'ko' ? '3배 더 많은 콜백' : '3x more callbacks'}
                   </div>
-                  <div>
+                  <div className="text-xs">
                     {lang === 'ko'
                       ? '통화 후 10분 안에 자동 문자로 후속 연락을 보내면 달라집니다.'
                       : 'when follow-up is automated within 10 minutes'}
                   </div>
                 </div>
-                <div className="h-10 w-px bg-slate-200" />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>
+                <div className="hidden sm:block h-10 w-px bg-slate-200" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+                    <span className="text-xs">
                       {lang === 'ko' ? '무제한 고객 기록' : 'Unlimited CRM records'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+                    <span className="text-xs">
                       {lang === 'ko' ? 'AI 문구 템플릿 포함' : 'AI templates included'}
                     </span>
                   </div>
@@ -155,19 +247,19 @@ function HomeContent() {
             </div>
 
             <div className="relative">
-              <Card className="relative z-10 p-5 sm:p-6 bg-white border border-slate-100 shadow-lg rounded-2xl">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <Card className="relative z-10 p-6 sm:p-8 bg-white border border-slate-200 shadow-sm rounded-2xl">
+                <div className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 mb-3">
                   {lang === 'ko' ? '실시간 사용 현황' : "Today's overview"}
                 </div>
-                <p className="mt-2 text-xs text-slate-700">
+                <p className="text-sm leading-relaxed text-slate-600 mb-6">
                   {lang === 'ko'
                     ? '안드로이드 기기와 대시보드가 실시간으로 동기화되어, 어떤 자동 발송이 실행 중인지 한눈에 확인할 수 있습니다.'
                     : 'Your Android device and web dashboard stay in sync so you can see which automations are running at a glance.'}
                 </p>
-                <div className="mt-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 px-5 py-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex-1">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500 mb-1">
                         {lang === 'ko' ? '콜백 자동 발송' : 'Callback automation'}
                       </div>
                       <div className="text-sm font-medium text-slate-900">
@@ -176,13 +268,13 @@ function HomeContent() {
                           : 'Sends a card and thank-you text after every call.'}
                       </div>
                     </div>
-                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                    <span className="ml-4 rounded-lg bg-slate-900 px-3 py-1 text-[11px] font-medium text-white whitespace-nowrap">
                       {lang === 'ko' ? '실행 중' : 'Active'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 px-5 py-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex-1">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500 mb-1">
                         {lang === 'ko' ? '생일 AI' : 'Birthday AI'}
                       </div>
                       <div className="text-sm font-medium text-slate-900">
@@ -191,7 +283,7 @@ function HomeContent() {
                           : 'Detects key dates and drafts natural birthday messages.'}
                       </div>
                     </div>
-                    <span className="rounded-full bg-slate-200 px-2 py-1 text-[11px] text-slate-600">
+                    <span className="ml-4 rounded-lg bg-slate-200 px-3 py-1 text-[11px] font-medium text-slate-700 whitespace-nowrap">
                       {lang === 'ko' ? '대기 중' : 'Ready'}
                     </span>
                   </div>
@@ -257,15 +349,17 @@ function HomeContent() {
               ].map((item) => (
                 <Card
                   key={item.key}
-                  className="h-full p-5 bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                  className="h-full p-6 bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
                 >
-                  <div className="mb-3 h-8 w-8 rounded-full bg-slate-900/5 text-center text-[10px] font-semibold uppercase leading-8 text-slate-700">
-                    {item.key}
+                  <div className="mb-4 h-10 w-10 rounded-lg bg-slate-900/5 flex items-center justify-center">
+                    <span className="text-xs font-semibold uppercase text-slate-700 tracking-wide">
+                      {item.key}
+                    </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-slate-900 mb-2">
                     {lang === 'ko' ? item.titleKo : item.titleEn}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-700">
+                  <p className="text-sm leading-relaxed text-slate-600">
                     {lang === 'ko' ? item.bodyKo : item.bodyEn}
                   </p>
                 </Card>
@@ -293,46 +387,46 @@ function HomeContent() {
                   ? '웹 대시보드와 안드로이드 앱을 함께 사용해, 고객에게는 항상 본인 전화번호로 문자가 발송되도록 설계했습니다.'
                   : 'We pair your web dashboard with a lightweight Android app so every SMS is sent from your own number — fully carrier-compliant.'}
               </p>
-              <div className="mt-6 space-y-4 text-sm text-slate-700">
-                <div className="flex gap-3">
-                  <div className="mt-1 h-7 w-7 rounded-full bg-slate-100 text-slate-600 text-center text-xs font-semibold leading-7">
+              <div className="mt-8 space-y-5 text-sm text-slate-700">
+                <div className="flex gap-4">
+                  <div className="mt-0.5 h-8 w-8 rounded-lg bg-slate-900 text-white text-center text-xs font-semibold leading-8 flex-shrink-0">
                     1
                   </div>
                   <div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-slate-900 mb-1">
                       {lang === 'ko' ? '계정 생성' : 'Create your account'}
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '구글 또는 이메일로 간단히 가입하고, 비즈커넥트 워크스페이스를 연결하세요. 카드 정보는 필요 없습니다.'
                         : 'Sign up with Google or email and connect your BizConnect workspace — no credit card required.'}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="mt-1 h-7 w-7 rounded-full bg-slate-100 text-slate-600 text-center text-xs font-semibold leading-7">
+                <div className="flex gap-4">
+                  <div className="mt-0.5 h-8 w-8 rounded-lg bg-slate-900 text-white text-center text-xs font-semibold leading-8 flex-shrink-0">
                     2
                   </div>
                   <div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-slate-900 mb-1">
                       {lang === 'ko' ? '안드로이드 앱 설치' : 'Install the Android app'}
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '동반 앱을 설치하고 문자·통화 권한을 허용한 뒤, QR 코드로 웹 계정과 연결합니다.'
                         : 'Install the companion app, grant SMS and call permissions, and link it to your web account with a QR code.'}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="mt-1 h-7 w-7 rounded-full bg-slate-100 text-slate-600 text-center text-xs font-semibold leading-7">
+                <div className="flex gap-4">
+                  <div className="mt-0.5 h-8 w-8 rounded-lg bg-slate-900 text-white text-center text-xs font-semibold leading-8 flex-shrink-0">
                     3
                   </div>
                   <div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-slate-900 mb-1">
                       {lang === 'ko' ? '플로우 설계' : 'Design your flows'}
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '태그, 템플릿, 스케줄을 조합해 콜백·생일·캠페인 문자를 몇 번의 클릭으로 자동화합니다.'
                         : 'Use tags, templates, and schedules to automate callback, birthday, and campaign messages in a few clicks.'}
@@ -342,52 +436,52 @@ function HomeContent() {
               </div>
             </div>
 
-            <Card className="p-5 sm:p-6 bg-slate-50 border border-slate-100 shadow-md rounded-2xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            <Card className="p-6 sm:p-8 bg-slate-50 border border-slate-200 shadow-sm rounded-2xl">
+              <div className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 mb-3">
                 {lang === 'ko' ? 'SAMPLE FLOW' : 'SAMPLE FLOW'}
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-slate-900">
+              <h3 className="text-base font-semibold text-slate-900 mb-2">
                 {lang === 'ko' ? '통화 이후 후속 문자' : 'Post-call follow-up'}
               </h3>
-              <p className="mt-2 text-xs text-slate-600">
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
                 {lang === 'ko'
                   ? '30초 이상 통화가 끝나면, 명함과 다음 스텝을 담은 맞춤 문자를 자동으로 보냅니다.'
                   : 'After every outgoing call longer than 30 seconds, send a personalized message with your card and next steps.'}
               </p>
-              <div className="mt-4 space-y-3 text-xs">
-                <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <div className="space-y-3">
+                <div className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4">
+                  <div className="mt-0.5 h-2 w-2 rounded-full bg-slate-900 flex-shrink-0" />
                   <div>
-                    <div className="font-medium text-slate-900">
+                    <div className="font-semibold text-slate-900 text-sm mb-1">
                       {lang === 'ko' ? '트리거: 통화 종료' : 'Trigger: Call ended'}
                     </div>
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '안드로이드 통화가 끝나면, 비즈커넥트가 번호를 인식하고 CRM 고객 정보와 자동으로 연결합니다.'
                         : 'When your Android call ends, BizConnect captures the number and matches it with your CRM record.'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-sky-400" />
+                <div className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4">
+                  <div className="mt-0.5 h-2 w-2 rounded-full bg-slate-900 flex-shrink-0" />
                   <div>
-                    <div className="font-medium text-slate-900">
+                    <div className="font-semibold text-slate-900 text-sm mb-1">
                       {lang === 'ko' ? 'AI 메시지 제안' : 'AI message suggestion'}
                     </div>
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '최근 메모와 태그를 바탕으로 후속 문자를 제안합니다. 한 번의 클릭으로 승인·수정할 수 있습니다.'
                         : 'We generate a follow-up text using recent notes and tags; you approve or edit in one click.'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-rose-400" />
+                <div className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4">
+                  <div className="mt-0.5 h-2 w-2 rounded-full bg-slate-900 flex-shrink-0" />
                   <div>
-                    <div className="font-medium text-slate-900">
+                    <div className="font-semibold text-slate-900 text-sm mb-1">
                       {lang === 'ko' ? '내 번호로 발송' : 'Send from your number'}
                     </div>
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       {lang === 'ko'
                         ? '문자는 항상 내 안드로이드 기기를 통해 발송되기 때문에, 고객은 익숙한 번호만 보게 됩니다.'
                         : 'The SMS is sent through your own Android device, so your customers always see the number they recognise.'}
@@ -416,8 +510,8 @@ function HomeContent() {
             </p>
 
             <div className="mt-10 grid gap-6 md:grid-cols-3">
-              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {lang === 'ko' ? 'Free' : 'Free'}
                 </div>
                 <h3 className="mt-2 text-lg font-semibold text-slate-900">
@@ -450,9 +544,9 @@ function HomeContent() {
 
               <Card
                 highlight
-                className="p-6 text-left relative overflow-hidden bg-slate-50 border border-slate-900/10 shadow-lg rounded-2xl md:-mt-4 md:mb-4 hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
+                className="p-6 text-left relative overflow-hidden bg-white border-2 border-slate-900 shadow-md rounded-2xl md:-mt-4 md:mb-4 hover:-translate-y-1 hover:shadow-lg transition-all duration-200"
               >
-                <div className="absolute right-4 top-4 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white">
+                <div className="absolute right-4 top-4 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white">
                   {lang === 'ko' ? '가장 인기' : 'Most popular'}
                 </div>
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
@@ -509,8 +603,8 @@ function HomeContent() {
                 </div>
               </Card>
 
-              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-900/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <Card className="p-6 text-left bg-white border border-slate-200 shadow-sm rounded-2xl hover:border-slate-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {lang === 'ko' ? 'Lite' : 'Lite'}
                 </div>
                 <h3 className="mt-2 text-lg font-semibold text-slate-900">
@@ -579,13 +673,13 @@ function HomeContent() {
                   : 'BizConnect is built for Korean sales teams, with support that understands your day-to-day. We help you onboard, import customers, and design flows that actually get replies.'}
               </p>
             </div>
-            <Card className="p-6 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-2xl">
-              <p className="text-xs text-slate-800">
+            <Card className="p-6 sm:p-8 text-sm bg-white border border-slate-200 shadow-sm rounded-2xl">
+              <p className="text-sm text-slate-700 leading-relaxed mb-4">
                 {lang === 'ko'
-                  ? '“비즈커넥트 덕분에 후속 문자는 저절로 나갑니다. 팀원들은 다음에 누구에게 연락해야 할지 고민하지 않고, 답장을 확인하는 데 집중해요.”'
+                  ? '"비즈커넥트 덕분에 후속 문자는 저절로 나갑니다. 팀원들은 다음에 누구에게 연락해야 할지 고민하지 않고, 답장을 확인하는 데 집중해요."'
                   : "“With BizConnect, follow-up texts just happen. My team doesn't worry about who to call next — the next reply is already in the inbox.”"}
               </p>
-              <p className="mt-4 text-xs text-slate-700">
+              <p className="text-xs font-medium text-slate-600">
                 {lang === 'ko'
                   ? '— 금융 서비스 영업 리더 (서울)'
                   : '— Sales lead, financial services (Seoul)'}
