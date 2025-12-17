@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uuidToBase62 } from '@/lib/utils/shortUrl'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,9 +31,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '이미지를 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    // Open Graph 미리보기 URL 생성 (API 라우트 사용)
+    // Open Graph 미리보기 URL 생성 (Base62 인코딩으로 URL 단축)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
-    const previewUrl = `${baseUrl}/api/preview/${image.id}`
+    const shortId = uuidToBase62(image.id)
+    const previewUrl = `${baseUrl}/p/${shortId}`
 
     return NextResponse.json({
       success: true,
