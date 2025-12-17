@@ -60,29 +60,23 @@ export async function GET(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bizconnect-ten.vercel.app'
     const ogUrl = `${baseUrl}/api/preview/${imageId}`
 
-    // HTML 응답 반환 (Open Graph 메타 태그 포함)
+    // HTML 응답 반환 (Open Graph 메타 태그 최소화 - 이미지만 표시)
+    // 메시지 앱에서 사이트 주소와 제목이 표시되지 않도록 최소한의 메타 태그만 사용
     const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title></title>
-  <meta name="description" content="">
   
-  <!-- Open Graph - 텍스트 최소화하여 이미지만 표시 -->
-  <meta property="og:title" content="" />
-  <meta property="og:description" content="" />
+  <!-- Open Graph - 이미지만 표시, 텍스트 제거 -->
+  <!-- og:title과 og:url을 제거하여 사이트 주소와 제목이 표시되지 않도록 함 -->
   <meta property="og:image" content="${safeImageUrl}" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="${ogUrl}" />
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="1080" />
-  <meta property="og:site_name" content="" />
+  <meta property="og:type" content="website" />
   
-  <!-- Twitter - 텍스트 최소화 -->
+  <!-- Twitter - 이미지만 표시 -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="" />
-  <meta name="twitter:description" content="" />
   <meta name="twitter:image" content="${safeImageUrl}" />
   
   <style>
