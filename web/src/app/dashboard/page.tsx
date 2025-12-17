@@ -400,33 +400,25 @@ export default function DashboardPage() {
 
         {/* 오늘의 할 일 섹션 */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">오늘의 할 일</h2>
-              <p className="text-gray-600">
-                {tasks.length > 0 || todayEvents.length > 0
-                  ? `오늘 예약된 문자 ${tasks.length}개${todayEvents.length > 0 ? `와 오늘 생일/기념일 ${todayEvents.length}개` : ''}가 있습니다.`
-                  : todayEvents.length > 0
-                  ? `오늘 생일/기념일 ${todayEvents.length}개가 있습니다.`
-                  : '오늘 예약된 문자가 없습니다.'}
-              </p>
-            </div>
-            <Link
-              href="/dashboard/send"
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
-            >
-              + 새 문자 작성
-            </Link>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2">오늘의 할 일</h2>
+            <p className="text-sm sm:text-base text-slate-600">
+              {tasks.length > 0 || todayEvents.length > 0
+                ? `오늘 예약된 문자 ${tasks.length}개${todayEvents.length > 0 ? `와 오늘 생일/기념일 ${todayEvents.length}개` : ''}가 있습니다.`
+                : todayEvents.length > 0
+                ? `오늘 생일/기념일 ${todayEvents.length}개가 있습니다.`
+                : '오늘 예약된 문자가 없습니다.'}
+            </p>
           </div>
 
           {/* 작업 카드들 */}
           <div className="space-y-4">
             {tasks.length === 0 && todayEvents.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-12 text-center border border-gray-100/50">
-                <p className="text-gray-600 text-lg mb-6 font-medium">오늘 예약된 문자가 없습니다.</p>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
+                <p className="text-slate-600 text-base sm:text-lg mb-6 font-medium">오늘 예약된 문자가 없습니다.</p>
                 <Link
                   href="/dashboard/send"
-                  className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+                  className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
                 >
                   문자 보내기 시작하기 →
                 </Link>
