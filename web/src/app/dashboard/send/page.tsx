@@ -1628,6 +1628,12 @@ export default function SendSMSPage() {
                 >
                   {loading ? '발송 중...' : '문자 발송'}
                 </button>
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm whitespace-nowrap"
+                >
+                  취소
+                </Link>
               </div>
 
               {/* 변수 안내 */}
@@ -2061,16 +2067,6 @@ export default function SendSMSPage() {
                   </div>
                 </div>
               )}
-
-              {/* 취소 버튼 */}
-              <div className="pt-3 border-t border-slate-200 mb-3">
-                <Link
-                  href="/dashboard"
-                  className="block w-full px-4 py-2 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center text-sm"
-                >
-                  취소
-                </Link>
-              </div>
 
               {/* 안내 */}
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
