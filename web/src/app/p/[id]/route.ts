@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { resolveToUuid } from '@/lib/utils/shortUrl'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -9,6 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 /**
  * Short Preview Route - /p/[id]
  * 짧은 URL로 이미지 미리보기 제공
+ * id는 UUID 또는 Base62 인코딩된 짧은 코드
  */
 export async function GET(
   request: NextRequest,
@@ -18,10 +20,13 @@ export async function GET(
   const { id } = resolvedParams
 
   try {
+    // Base62 shortId를 UUID로 변환 (UUID면 그대로 사용)
+    const uuid = resolveToUuid(id)
+
     const { data: image, error } = await supabase
       .from('user_images')
       .select('image_url, name, category')
-      .eq('id', id)
+      .eq('id', uuid)
       .single()
 
     if (error || !image) {
