@@ -647,6 +647,13 @@ export default function SendSMSPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 중복 호출 방지: 이미 처리 중이면 무시
+    if (loading) {
+      console.warn('⚠️ [Web] Submit already in progress, ignoring duplicate call')
+      return
+    }
+    
     setLoading(true)
     setError('')
     setSuccess('')

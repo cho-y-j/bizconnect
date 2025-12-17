@@ -327,6 +327,14 @@ class TaskService {
   }
 
   /**
+   * 작업 알림 마킹 해제 (에러 발생 시 재시도 가능하도록)
+   */
+  unmarkAsNotified(taskId: string): void {
+    this.notifiedTaskIds.delete(taskId);
+    console.log('🔄 [TaskService] Task unmarked as notified:', taskId);
+  }
+
+  /**
    * 이미 알림을 보낸 작업인지 확인
    */
   isNotified(taskId: string): boolean {
