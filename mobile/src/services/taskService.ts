@@ -78,13 +78,16 @@ class TaskService {
       // 승인 시
       async (taskId: string) => {
         console.log('✅ [TaskService] SMS Approved:', taskId);
-        this.notifiedTaskIds.delete(taskId);
         
-        // 이미 자동 승인된 작업이면 무시 (중복 처리 방지)
+        // ⚠️ 중복 처리 방지: 이미 자동 승인된 작업이면 즉시 무시
         if (this.autoApprovedTaskIds.has(taskId)) {
           console.log('⏭️ [TaskService] Task already auto-approved, skipping:', taskId);
           return;
         }
+        
+        // ⚠️ 원자적 처리: 먼저 마킹하여 동시 호출 방지
+        this.autoApprovedTaskIds.add(taskId);
+        this.notifiedTaskIds.delete(taskId);
 
         let task = this.pendingApprovalTasks.get(taskId);
         
@@ -155,7 +158,7 @@ class TaskService {
         } else {
           // 단건 승인: 항상 즉시 발송 (수동/자동 모두)
           console.log('⚡ [TaskService] Single task approved - sending immediately (bypassing queue):', task.id);
-          this.autoApprovedTaskIds.add(taskId);
+          // autoApprovedTaskIds는 이미 위에서 추가됨
           
           // 타임아웃 설정 (1분)
           const timeoutId = setTimeout(async () => {

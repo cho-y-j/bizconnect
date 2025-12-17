@@ -440,7 +440,7 @@ export default function CustomersPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleBulkSend}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                className="px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
               >
                 선택한 고객에게 문자 보내기
               </button>
@@ -472,10 +472,10 @@ export default function CustomersPage() {
                 setSelectedGroupId('all')
                 setCurrentPage(1)
               }}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all text-sm ${
                 selectedGroupId === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
               전체
@@ -487,10 +487,10 @@ export default function CustomersPage() {
                   setSelectedGroupId(group.id)
                   setCurrentPage(1)
                 }}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
+                className={`px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all text-sm ${
                   selectedGroupId === group.id
-                    ? 'text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
                 style={{
                   backgroundColor: selectedGroupId === group.id ? group.color : undefined,
@@ -569,10 +569,10 @@ export default function CustomersPage() {
                   <button
                     key={tag}
                     onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       selectedTags.includes(tag)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     {tag}
@@ -581,7 +581,7 @@ export default function CustomersPage() {
                 {selectedTags.length > 0 && (
                   <button
                     onClick={() => setSelectedTags([])}
-                    className="px-3 py-1 rounded-full text-sm bg-red-100 text-red-700 hover:bg-red-200"
+                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all"
                   >
                     필터 초기화
                   </button>
@@ -616,7 +616,7 @@ export default function CustomersPage() {
             </p>
             <Link
               href="/dashboard/customers/new"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
             >
               첫 고객 추가하기
             </Link>
@@ -756,19 +756,19 @@ export default function CustomersPage() {
                         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={`/dashboard/send?customerId=${customer.id}`}
-                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                            className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                           >
                             문자
                           </Link>
                           <Link
                             href={`/dashboard/customers/${customer.id}/edit`}
-                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-xs"
+                            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium"
                           >
                             수정
                           </Link>
                           <button
                             onClick={() => handleDelete(customer.id, customer.name)}
-                            className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs"
+                            className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-all text-sm font-medium"
                           >
                             삭제
                           </button>

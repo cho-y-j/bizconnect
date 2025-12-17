@@ -196,7 +196,7 @@ export default function HistoryPage() {
       failed: '실패',
     }
     return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || 'bg-slate-100 text-slate-700'}`}>
         {labels[status as keyof typeof labels] || status}
       </span>
     )

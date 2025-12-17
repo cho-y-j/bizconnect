@@ -142,12 +142,12 @@ export default function ScheduledPage() {
 
         {loading ? (
           <div className="bg-white rounded-xl shadow p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">예약된 발송을 불러오는 중...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
+            <p className="text-slate-600">예약된 발송을 불러오는 중...</p>
           </div>
         ) : tasks.length === 0 ? (
           <div className="bg-white rounded-xl shadow p-8 text-center">
-            <p className="text-gray-500 mb-4">예약된 발송이 없습니다.</p>
+            <p className="text-slate-500 mb-4">예약된 발송이 없습니다.</p>
             <Link
               href="/dashboard/send"
               className="mt-4 inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold"
@@ -185,7 +185,7 @@ export default function ScheduledPage() {
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                     task.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     task.status === 'queued' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
+                    'bg-slate-100 text-slate-700'
                   }`}>
                     {task.status === 'pending' ? '대기 중' :
                      task.status === 'queued' ? '발송 대기' :
@@ -198,7 +198,7 @@ export default function ScheduledPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleCancel(task.id)}
-                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl hover:bg-red-100 transition-all font-medium"
                   >
                     예약 취소
                   </button>

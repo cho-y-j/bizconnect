@@ -4,6 +4,7 @@ import { Customer } from './types/customer';
 import { Task } from './types/task';
 import { taskService } from '../services/taskService';
 import { replaceTemplateVariables } from './templateParser';
+import { sendSmsDirectly, sendMmsDirectly } from './smsSender';
 
 // 콜백 이벤트 타입
 export type CallEventType = 'ended' | 'missed' | 'busy';
@@ -488,9 +489,19 @@ export async function handleCallEvent(
       return;
     }
 
+    // 메시지가 비어있는지 확인 (설정은 되어있지만 메시지가 비어있을 수 있음)
+    if (!message || message.trim().length === 0) {
+      console.log(`⚠️⚠️⚠️ Callback message is empty for ${eventType} ⚠️⚠️⚠️`);
+      console.log(`💡 To fix: Go to Callback Settings and set a message for "${eventType}"`);
+      // 메시지가 비어있어도 기본 메시지로 발송 시도
+      message = DEFAULT_MESSAGES[eventType] || '안녕하세요, 방금 통화 감사합니다.';
+      console.log(`📝 Using default message: ${message}`);
+    }
+
     // 템플릿 변수 치환
     const finalMessage = replaceTemplateVariables(message, customer, phoneNumber);
     console.log('Final message:', finalMessage);
+    console.log('Final message length:', finalMessage.length);
 
     // 이미지 우선순위 결정:
     // 1. 이벤트 타입별 개별 이미지가 있으면 그것 사용
@@ -564,8 +575,6 @@ export async function handleCallEvent(
 
     // SMS/MMS 발송
     try {
-      const { sendSmsDirectly, sendMmsDirectly } = require('./smsSender');
-
       console.log('📤 Attempting to send callback message...');
       console.log('Is MMS:', isMMS);
       console.log('Image URL:', imageUrl);

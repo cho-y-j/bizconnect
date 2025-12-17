@@ -111,9 +111,22 @@ export async function POST(request: Request) {
     const { userId, taskId, taskIds, type = 'send_sms', phone, message, hasImage } = body;
 
     // 다량 문자인지 확인
-    const isBatch = taskIds && taskIds.length > 1;
+    // taskIds가 배열이고 길이가 1보다 클 때만 배치로 처리
+    // taskIds가 undefined이거나 빈 배열이면 단일로 처리
+    const isBatch = Array.isArray(taskIds) && taskIds.length > 1;
     const count = isBatch ? taskIds.length : 1;
+    // 단일 문자일 때는 taskId만 사용, 배치일 때만 taskIds 사용
     const finalTaskIds = isBatch ? taskIds : (taskId ? [taskId] : []);
+    
+    console.log('[FCM API] Batch check:', { 
+      taskId, 
+      taskIds, 
+      taskIdsType: typeof taskIds,
+      taskIdsIsArray: Array.isArray(taskIds),
+      isBatch,
+      count,
+      finalTaskIdsLength: finalTaskIds.length
+    });
 
     console.log('[FCM API] Request:', { userId, isBatch, count, type, hasImage });
 
@@ -156,8 +169,10 @@ export async function POST(request: Request) {
         // DATA ONLY - 시스템 알림 없음, 앱에서 직접 처리
         data: {
           type: isBatch ? 'send_sms_batch' : type,
+          // 단일 문자: taskId만 전송, taskIds는 빈 문자열
+          // 배치: taskId는 빈 문자열, taskIds만 전송
           taskId: isBatch ? '' : (taskId || ''), // 배치가 아닐 때만 taskId 전송
-          taskIds: isBatch ? JSON.stringify(finalTaskIds) : '', // 배치일 때만 taskIds 전송
+          taskIds: isBatch ? JSON.stringify(finalTaskIds) : '', // 배치일 때만 taskIds 전송 (단일일 때는 빈 문자열)
           count: String(count),
           phone: phone || '',
           messagePreview: message ? message.substring(0, 50) : '',

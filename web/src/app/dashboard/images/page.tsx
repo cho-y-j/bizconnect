@@ -291,27 +291,27 @@ export default function ImagesPage() {
                       <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full"></span>
                     )}
                   </div>
-                  <div className="absolute top-2 right-2 flex gap-1">
+                  <div className="absolute top-2 right-2 flex gap-1.5">
                     <button
                       onClick={() => handleToggleFavorite(image.id, image.is_favorite)}
-                      className="p-1 bg-white rounded-full shadow hover:bg-gray-50"
+                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
                       title={image.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                     >
-                      {image.is_favorite ? '선택됨' : ''}
+                      {image.is_favorite ? '선택됨' : '선택'}
                     </button>
                     <button
                       onClick={() => handleEdit(image)}
-                      className="p-1 bg-white rounded-full shadow hover:bg-gray-50"
+                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
                       title="편집"
                     >
-                      ✏️
+                      편집
                     </button>
                     <button
                       onClick={() => handleDelete(image.id, image.image_url)}
-                      className="p-1 bg-white rounded-full shadow hover:bg-gray-50"
+                      className="px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg shadow-sm hover:bg-red-100 transition-all text-xs font-medium text-red-700"
                       title="삭제"
                     >
-                      🗑️
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export default function ImagesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveEdit}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                   >
                     저장
                   </button>

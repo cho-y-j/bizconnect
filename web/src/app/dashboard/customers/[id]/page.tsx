@@ -131,7 +131,7 @@ export default function CustomerDetailPage() {
       failed: '실패',
     }
     return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || 'bg-slate-100 text-slate-700'}`}>
         {labels[status as keyof typeof labels] || status}
       </span>
     )
@@ -270,7 +270,7 @@ export default function CustomerDetailPage() {
                 <div className="pt-4 border-t border-gray-200 space-y-2">
                   <Link
                     href={`/dashboard/send?customerId=${customer.id}`}
-                    className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
+                    className="block w-full px-4 py-2.5 bg-slate-900 text-white text-center rounded-xl hover:bg-slate-800 transition-all font-medium text-sm shadow-sm hover:shadow-md"
                   >
                     문자 보내기
                   </Link>

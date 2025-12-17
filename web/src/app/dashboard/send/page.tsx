@@ -1174,17 +1174,17 @@ export default function SendSMSPage() {
 
             {/* 발송 모드 선택 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-3">
                 발송 방식
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => setSendMode('multiple')}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'multiple'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   다중 발송
@@ -1192,10 +1192,10 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => setSendMode('group')}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'group'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   그룹별
@@ -1203,10 +1203,10 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => setSendMode('tag')}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'tag'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   태그별
@@ -1214,10 +1214,10 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => setSendMode('csv')}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'csv'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   CSV 업로드
@@ -1261,16 +1261,16 @@ export default function SendSMSPage() {
                 {/* 또는 구분선 */}
                 {(selectedCustomers.length > 0 || customerSearchQuery) && manualPhone && (
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 border-t border-gray-300"></div>
-                    <span className="text-sm text-gray-500">또는</span>
-                    <div className="flex-1 border-t border-gray-300"></div>
+                    <div className="flex-1 border-t border-slate-200"></div>
+                    <span className="text-sm text-slate-500">또는</span>
+                    <div className="flex-1 border-t border-slate-200"></div>
                   </div>
                 )}
 
                 {/* 고객 선택 */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-slate-700">
                     고객 선택 <span className="text-red-500">*</span>
                   </label>
                   <button
@@ -1279,21 +1279,21 @@ export default function SendSMSPage() {
                       loadCustomers()
                       setShowCustomerPicker(true)
                     }}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-medium shadow-sm"
                   >
                     고객 목록에서 선택
                   </button>
                 </div>
                 {customersLoading ? (
-                  <div className="text-center py-4 text-gray-500">로딩 중...</div>
+                  <div className="text-center py-4 text-slate-500">로딩 중...</div>
                 ) : customers.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-slate-500">
                     고객이 없습니다.{' '}
-                    <Link href="/dashboard/customers/new" className="text-blue-600 hover:text-blue-700">
+                    <Link href="/dashboard/customers/new" className="text-slate-900 hover:text-slate-700 font-medium underline">
                       고객 추가하기
                     </Link>
                     {' 또는 '}
-                    <Link href="/dashboard/customers/upload" className="text-blue-600 hover:text-blue-700">
+                    <Link href="/dashboard/customers/upload" className="text-slate-900 hover:text-slate-700 font-medium underline">
                       CSV로 일괄 등록
                     </Link>
                   </div>
@@ -1309,16 +1309,16 @@ export default function SendSMSPage() {
                         className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white"
                       />
                     </div>
-                    <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                    <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-xl p-2">
                       {filteredCustomers.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500">
+                        <div className="text-center py-4 text-slate-500">
                           검색 결과가 없습니다.
                         </div>
                       ) : (
                         <>
                           {/* 전체 선택/해제 */}
-                          <div className="mb-2 pb-2 border-b border-gray-200">
-                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                          <div className="mb-2 pb-2 border-b border-slate-200">
+                            <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={selectedCustomers.length === filteredCustomers.length && filteredCustomers.length > 0}
@@ -1331,7 +1331,7 @@ export default function SendSMSPage() {
                                 }}
                                 className="rounded"
                               />
-                              <span className="text-sm font-semibold text-gray-700">
+                              <span className="text-sm font-semibold text-slate-700">
                                 전체 선택 ({filteredCustomers.length}명)
                               </span>
                             </label>
@@ -1339,7 +1339,7 @@ export default function SendSMSPage() {
                           {filteredCustomers.map((customer) => (
                             <label
                               key={customer.id}
-                              className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer"
                             >
                               <input
                                 type="checkbox"
@@ -1348,8 +1348,8 @@ export default function SendSMSPage() {
                                 className="rounded"
                               />
                               <div className="flex-1">
-                                <span className="text-sm font-medium text-gray-900">{customer.name}</span>
-                                <span className="text-xs text-gray-500 ml-2">({formatPhone(customer.phone)})</span>
+                                <span className="text-sm font-medium text-slate-900">{customer.name}</span>
+                                <span className="text-xs text-slate-500 ml-2">({formatPhone(customer.phone)})</span>
                               </div>
                             </label>
                           ))}
@@ -1360,7 +1360,7 @@ export default function SendSMSPage() {
                 )}
                 {selectedCustomers.length > 0 && (
                   <div className="mt-2 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-slate-600">
                       {selectedCustomers.length}명 선택됨
                     </div>
                     <button
@@ -1380,16 +1380,16 @@ export default function SendSMSPage() {
             {sendMode === 'csv' && (
               <div className="p-4 sm:p-6 bg-slate-50 rounded-xl space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     CSV 파일 업로드 <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
                     accept=".csv,.xlsx,.xls"
                     onChange={handleCsvFileChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
+                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     CSV 형식: name,phone,message (선택) 또는 엑셀 파일 (.xlsx, .xls)
                     <br />
                     예시: 홍길동,01012345678,안녕하세요 {`{고객명}`}님!
@@ -1398,28 +1398,28 @@ export default function SendSMSPage() {
 
                 {csvPreview.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      수신자 미리보기 ({csvData.length}명)
-                    </label>
-                    <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">메시지</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {csvPreview.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50">
-                              <td className="px-4 py-2 text-sm text-gray-900">{row.name}</td>
-                              <td className="px-4 py-2 text-sm text-gray-500">{formatPhone(row.phone)}</td>
-                              <td className="px-4 py-2 text-sm text-gray-500">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    수신자 미리보기 ({csvData.length}명)
+                  </label>
+                  <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-xl">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">이름</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">전화번호</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">메시지</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-200">
+                        {csvPreview.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="px-4 py-2 text-sm text-slate-900">{row.name}</td>
+                            <td className="px-4 py-2 text-sm text-slate-500">{formatPhone(row.phone)}</td>
+                            <td className="px-4 py-2 text-sm text-slate-500">
                                 {row.message ? (
                                   <span className="text-xs">{row.message.substring(0, 30)}...</span>
                                 ) : (
-                                  <span className="text-gray-400">아래 메시지 사용</span>
+                                  <span className="text-slate-400">아래 메시지 사용</span>
                                 )}
                               </td>
                             </tr>
@@ -1427,12 +1427,12 @@ export default function SendSMSPage() {
                         </tbody>
                       </table>
                       {csvData.length > 10 && (
-                        <div className="p-2 text-center text-xs text-gray-500 bg-gray-50">
+                        <div className="p-2 text-center text-xs text-slate-500 bg-slate-50">
                           외 {csvData.length - 10}명 더...
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-slate-500 mt-2">
                       CSV에 message 컬럼이 있으면 개별 메시지를 사용하고, 없으면 아래 입력한 메시지를 모두에게 발송합니다.
                     </p>
                   </div>
@@ -1443,7 +1443,7 @@ export default function SendSMSPage() {
             {/* 그룹별 발송 */}
             {sendMode === 'group' && (
               <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-slate-700 mb-3">
                   그룹 선택 <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -1452,10 +1452,10 @@ export default function SendSMSPage() {
                       key={group.id}
                       type="button"
                       onClick={() => setSelectedGroupId(group.id)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
                         selectedGroupId === group.id
-                          ? 'text-white'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
                       style={{
                         backgroundColor: selectedGroupId === group.id ? group.color : undefined,
@@ -1471,11 +1471,11 @@ export default function SendSMSPage() {
             {/* 태그별 발송 */}
             {sendMode === 'tag' && (
               <div className="p-4 sm:p-6 bg-slate-50 rounded-xl">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-slate-700 mb-3">
                   태그 선택 <span className="text-red-500">*</span>
                 </label>
                 {availableTags.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-slate-500">
                     사용 가능한 태그가 없습니다.
                   </div>
                 ) : (
@@ -1485,10 +1485,10 @@ export default function SendSMSPage() {
                         key={tag}
                         type="button"
                         onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                           selectedTags.includes(tag)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
                         {tag}
@@ -1497,7 +1497,7 @@ export default function SendSMSPage() {
                   </div>
                 )}
                 {selectedTags.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
+                  <div className="mt-2 text-sm text-slate-600">
                     {selectedTags.length}개 태그 선택됨
                   </div>
                 )}
@@ -1507,7 +1507,7 @@ export default function SendSMSPage() {
             {/* 템플릿 선택 */}
             {templates.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   템플릿 선택 (선택)
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -1522,7 +1522,7 @@ export default function SendSMSPage() {
                         }
                       }
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
                   >
                     <option value="">템플릿 선택...</option>
                     {templates.map((template) => (
@@ -1533,7 +1533,7 @@ export default function SendSMSPage() {
                   </select>
                   <Link
                     href="/dashboard/templates"
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all whitespace-nowrap text-sm font-medium"
                   >
                     템플릿 관리
                   </Link>
@@ -1655,7 +1655,7 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => setShowImagePicker(!showImagePicker)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 text-sm font-medium"
                 >
                   이미지 첨부
                 </button>
@@ -1693,8 +1693,8 @@ export default function SendSMSPage() {
                   }}
                   className={`px-4 py-2 border rounded-lg transition-colors flex items-center gap-2 ${
                     selectedImages.find(img => img.name === '명함')
-                      ? 'bg-blue-100 border-blue-500 text-blue-700'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-slate-100 border-slate-500 text-slate-700'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   명함 첨부 {selectedImages.find(img => img.name === '명함') ? '(선택됨)' : ''}
@@ -1702,7 +1702,7 @@ export default function SendSMSPage() {
                 <button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 text-sm font-medium"
                 >
                   이모티콘
                 </button>
@@ -1711,10 +1711,10 @@ export default function SendSMSPage() {
               {/* 선택된 이미지 표시 (다중 이미지) */}
               {selectedImages.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">선택된 이미지 ({selectedImages.length}개):</p>
+                  <p className="text-sm font-medium text-slate-700">선택된 이미지 ({selectedImages.length}개):</p>
                   <div className="flex flex-wrap gap-3">
                     {selectedImages.map((img, index) => (
-                      <div key={index} className="relative inline-block p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div key={index} className="relative inline-block p-3 bg-slate-50 border border-slate-200 rounded-xl">
                         <img
                           src={img.url} // 항상 원본 URL 사용 (미리보기용)
                           alt={img.name}
@@ -1744,7 +1744,7 @@ export default function SendSMSPage() {
                         >
                           ×
                         </button>
-                        <p className="text-xs text-gray-600 mt-1">{img.name}</p>
+                        <p className="text-xs text-slate-600 mt-1">{img.name}</p>
                         {img.previewUrl && (
                           <p className="text-xs text-green-600 mt-1">✓ Open Graph 링크 준비됨</p>
                         )}
@@ -1758,7 +1758,7 @@ export default function SendSMSPage() {
               {showBusinessCardUpload && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-semibold text-gray-900">명함 이미지 업로드</h4>
+                    <h4 className="font-semibold text-slate-900">명함 이미지 업로드</h4>
                     <button
                       type="button"
                       onClick={() => setShowBusinessCardUpload(false)}
@@ -1939,7 +1939,7 @@ export default function SendSMSPage() {
                               }
                               setShowImagePicker(false)
                             }}
-                            className="relative aspect-square border-2 border-gray-300 rounded hover:border-blue-500 transition-colors overflow-hidden"
+                            className="relative aspect-square border-2 border-slate-200 rounded-xl hover:border-slate-500 transition-all overflow-hidden"
                           >
                             <img
                               src={img.image_url}
@@ -1957,7 +1957,7 @@ export default function SendSMSPage() {
 
                   {/* 새 이미지 업로드 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-2">새 이미지 업로드:</label>
+                    <label className="block text-sm text-slate-600 mb-2">새 이미지 업로드:</label>
                     <input
                       type="file"
                       accept="image/*"
@@ -1968,10 +1968,10 @@ export default function SendSMSPage() {
                         }
                       }}
                       disabled={uploadingImage}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
+                      className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
                     />
                     {uploadingImage && (
-                      <p className="text-xs text-gray-500 mt-1">업로드 중...</p>
+                      <p className="text-xs text-slate-500 mt-1">업로드 중...</p>
                     )}
                   </div>
                 </div>
@@ -2018,7 +2018,7 @@ export default function SendSMSPage() {
               {isScheduled && (
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       예약 날짜 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -2027,11 +2027,11 @@ export default function SendSMSPage() {
                       value={scheduledDate}
                       onChange={(e) => setScheduledDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       예약 시간 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -2039,7 +2039,7 @@ export default function SendSMSPage() {
                       required={isScheduled}
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
                     />
                   </div>
                 </div>

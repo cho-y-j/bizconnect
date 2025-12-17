@@ -154,7 +154,7 @@ export default function TemplatesPage() {
                         key={variable.key}
                         type="button"
                         onClick={() => insertVariable(variable.key)}
-                        className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                        className="px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                         title={variable.description}
                       >
                         {variable.key}
@@ -195,7 +195,7 @@ export default function TemplatesPage() {
               <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md text-sm"
                 >
                   {editingId ? '수정' : '추가'}
                 </button>
@@ -206,7 +206,7 @@ export default function TemplatesPage() {
                     setEditingId(null)
                     resetForm()
                   }}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm"
                 >
                   취소
                 </button>
@@ -226,7 +226,7 @@ export default function TemplatesPage() {
             <p className="text-gray-500 mb-4">등록된 템플릿이 없습니다.</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm"
             >
               + 첫 템플릿 추가
             </button>
@@ -243,7 +243,7 @@ export default function TemplatesPage() {
                     <h3 className="font-bold text-lg text-gray-800 mb-1">
                       {template.name}
                     </h3>
-                    <span className="inline-block px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">
+                    <span className="inline-block px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded-lg font-medium">
                       {TEMPLATE_CATEGORY_LABELS[template.category]}
                     </span>
                   </div>
@@ -275,13 +275,13 @@ export default function TemplatesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(template)}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium"
                   >
                     수정
                   </button>
                   <button
                     onClick={() => handleDelete(template.id, template.name)}
-                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-all text-sm font-medium"
                   >
                     삭제
                   </button>

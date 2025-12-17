@@ -1028,8 +1028,18 @@ export default function SendSMSScreen({ navigation, route }: any) {
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-                onPress={handleSend}
+                style={[styles.sendButton, (sending || selectedCustomers.length === 0) && styles.sendButtonDisabled]}
+                onPress={() => {
+                  console.log('📤 Send button pressed');
+                  console.log('📤 Sending state:', sending);
+                  console.log('📤 Selected customers count:', selectedCustomers.length);
+                  console.log('📤 Selected customers:', selectedCustomers);
+                  if (!sending && selectedCustomers.length > 0) {
+                    handleSend();
+                  } else {
+                    console.warn('⚠️ Send button disabled:', { sending, selectedCount: selectedCustomers.length });
+                  }
+                }}
                 disabled={sending || selectedCustomers.length === 0}
               >
                 {sending ? (

@@ -137,26 +137,13 @@ export default function NewCustomerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/customers" className="text-2xl font-bold text-blue-600">
-              비즈커넥트
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link href="/dashboard/customers" className="text-gray-600 hover:text-gray-900">
-              고객 관리
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">고객 추가</h1>
-          </div>
-        </div>
-      </header>
-
+    <div>
       {/* 메인 콘텐츠 */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">고객 추가</h1>
+          <p className="text-sm sm:text-base text-slate-600">새로운 고객 정보를 등록합니다</p>
+        </div>
         <div className="bg-white rounded-xl shadow p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -398,13 +385,13 @@ export default function NewCustomerPage() {
               <button
                 type="submit"
                 disabled={loading || !formData.group_id}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {loading ? '저장 중...' : '저장'}
               </button>
               <Link
                 href="/dashboard/customers"
-                className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors text-center"
+                className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-center text-sm"
               >
                 취소
               </Link>

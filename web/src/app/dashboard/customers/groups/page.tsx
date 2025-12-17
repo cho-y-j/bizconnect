@@ -105,7 +105,7 @@ export default function GroupsPage() {
                   setShowAddForm(true)
                   setError('')
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
               >
                 + 그룹 추가
               </button>
@@ -159,7 +159,7 @@ export default function GroupsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleCreate}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                 >
                   추가
                 </button>
@@ -226,13 +226,13 @@ export default function GroupsPage() {
                       <div className="flex gap-2 ml-4">
                         <button
                           onClick={() => handleUpdate(group.id)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
                         >
                           저장
                         </button>
                         <button
                           onClick={cancelEdit}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                          className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium"
                         >
                           취소
                         </button>
@@ -250,13 +250,13 @@ export default function GroupsPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => startEdit(group)}
-                          className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700"
+                          className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium"
                         >
                           수정
                         </button>
                         <button
                           onClick={() => handleDelete(group.id, group.name)}
-                          className="px-3 py-1 text-sm text-red-600 hover:text-red-700"
+                          className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-all text-sm font-medium"
                         >
                           삭제
                         </button>
