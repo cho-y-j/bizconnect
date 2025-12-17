@@ -95,3 +95,4 @@ Supabase Google 설정 페이지에서 다음을 확인:
 
 
 
+

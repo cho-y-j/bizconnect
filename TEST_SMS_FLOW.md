@@ -98,3 +98,4 @@ ADD CONSTRAINT valid_log_status CHECK (status IN ('pending', 'sent', 'failed', '
 
 
 
+

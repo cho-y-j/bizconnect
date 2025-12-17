@@ -14,3 +14,4 @@ COMMENT ON COLUMN user_settings.phone IS '사용자 전화번호 (관리자용)'
 
 
 
+

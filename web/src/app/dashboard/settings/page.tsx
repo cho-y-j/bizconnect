@@ -360,13 +360,31 @@ export default function SettingsPage() {
         type,
       })
       
+      // user_settings에 이미지 URL 저장
+      const fieldName = type === 'card' ? 'business_card_image_url' : 'profile_image_url'
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          [fieldName]: data.image.image_url,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        })
+
+      if (settingsError) {
+        console.error('❌ Error saving image URL to settings:', settingsError)
+        throw new Error('이미지는 업로드되었지만 설정 저장에 실패했습니다: ' + settingsError.message)
+      }
+
+      // 상태 업데이트
       if (type === 'card') {
         setBusinessCard(prev => ({ ...prev, business_card_image_url: data.image.image_url }))
       } else {
         setBusinessCard(prev => ({ ...prev, profile_image_url: data.image.image_url }))
       }
 
-      setSuccess('이미지가 업로드되었습니다.')
+      setSuccess('이미지가 업로드되고 저장되었습니다.')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       console.error('❌ Image upload error:', {

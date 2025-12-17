@@ -170,3 +170,4 @@ $env:Path += ";C:\Users\조연지\AppData\Local\Android\Sdk\platform-tools"
 
 
 
+
