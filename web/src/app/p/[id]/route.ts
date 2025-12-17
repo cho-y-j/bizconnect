@@ -21,7 +21,13 @@ export async function GET(
 
   try {
     // Base62 shortId를 UUID로 변환 (UUID면 그대로 사용)
-    const uuid = resolveToUuid(id)
+    let uuid: string
+    try {
+      uuid = resolveToUuid(id)
+    } catch (decodeError: any) {
+      console.error('Base62 decode error:', decodeError.message, 'id:', id)
+      return NextResponse.json({ error: 'Invalid ID format', id, message: decodeError.message }, { status: 400 })
+    }
 
     const { data: image, error } = await supabase
       .from('user_images')
@@ -30,7 +36,8 @@ export async function GET(
       .single()
 
     if (error || !image) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      console.error('DB error:', error, 'uuid:', uuid, 'original id:', id)
+      return NextResponse.json({ error: 'Not found', uuid, originalId: id }, { status: 404 })
     }
 
     const escapeHtml = (str: string) => {

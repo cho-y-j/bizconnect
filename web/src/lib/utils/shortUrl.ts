@@ -20,11 +20,13 @@ export function uuidToBase62(uuid: string): string {
   // Base62로 인코딩
   let result = '';
   let n = num;
+  const ZERO = BigInt(0);
+  const SIXTY_TWO = BigInt(62);
 
-  while (n > 0n) {
-    const remainder = Number(n % 62n);
+  while (n > ZERO) {
+    const remainder = Number(n % SIXTY_TWO);
     result = BASE62_CHARS[remainder] + result;
-    n = n / 62n;
+    n = n / SIXTY_TWO;
   }
 
   return result || '0';
@@ -37,14 +39,15 @@ export function uuidToBase62(uuid: string): string {
  */
 export function base62ToUuid(base62: string): string {
   // Base62를 BigInt로 디코딩
-  let num = 0n;
+  let num = BigInt(0);
+  const SIXTY_TWO = BigInt(62);
 
   for (const char of base62) {
     const index = BASE62_CHARS.indexOf(char);
     if (index === -1) {
       throw new Error(`Invalid Base62 character: ${char}`);
     }
-    num = num * 62n + BigInt(index);
+    num = num * SIXTY_TWO + BigInt(index);
   }
 
   // BigInt를 16진수 문자열로 변환 (32자로 패딩)
