@@ -374,48 +374,34 @@ export async function handleCallEnded(
       return;
     }
 
-    // 통화 종료 메시지 가져오기 (callback_on_end_message 사용)
-    // 웹과 앱의 메시지를 통일하기 위해 callback_on_end_message 사용
-    let message: string = '';
+    // 통화 종료 이벤트 처리 - handleCallEvent를 직접 호출하여 통일된 방식으로 처리
+    // onEndEnabled 체크는 handleCallEvent 내부에서 수행됨
+    console.log('📞 [handleCallEnded] Delegating to handleCallEvent for unified processing');
     
-    if (config.onEndEnabled && config.onEndMessage) {
-      message = config.onEndMessage;
-      console.log('Using callback_on_end_message:', message);
-    } else {
-      // callback_on_end_message가 없으면 기존 템플릿 사용 (하위 호환성)
-      const template = await getCallbackTemplate(userId, isNewCustomer);
-      if (!template) {
-        console.log('No callback template found');
-        return;
-      }
-      message = replaceTemplateVariables(template, customer, phoneNumber);
-      console.log('Using legacy callback template:', message);
-    }
-    
-    // 템플릿 변수 치환
-    message = replaceTemplateVariables(message, customer, phoneNumber);
-
-    // 신규 고객인 경우 알림
+    // 신규 고객인 경우 알림 (handleCallEvent 호출 전에 처리)
     if (isNewCustomer && onNewCustomer) {
       onNewCustomer(null, phoneNumber);
     }
 
-    // 메시지 미리보기
-    if (onCallbackReady) {
-      onCallbackReady(message);
-    }
-
-    // 자동 발송 또는 확인 후 발송
+    // handleCallEvent를 직접 호출하여 통일된 방식으로 처리
+    // handleCallEvent 내부에서 onEndEnabled 체크 및 발송 수행
+    // callDetectionService.ts에서도 handleCallEvent를 직접 호출하므로 통일됨
+    // 자동 발송 여부와 지연 시간은 handleCallEvent 내부에서 처리하지 않으므로 여기서 처리
     if (config.autoSend) {
       // 지연 시간 후 자동 발송
-      // handleCallEvent를 사용하여 통일된 방식으로 발송
       setTimeout(() => {
-        handleCallEvent(userId, phoneNumber, 'ended');
+        handleCallEvent(userId, phoneNumber, 'ended').catch((error) => {
+          console.error('Error in handleCallEvent:', error);
+        });
       }, config.delay * 1000);
     } else {
       // 확인 후 발송 (사용자 승인 필요)
       // 이 경우 onCallbackReady 콜백에서 사용자가 승인하면 발송
-      // handleCallEvent를 사용하여 통일된 방식으로 발송
+      // 일단 handleCallEvent를 호출하되, 승인 로직은 나중에 구현
+      // TODO: 승인 로직 구현 필요
+      handleCallEvent(userId, phoneNumber, 'ended').catch((error) => {
+        console.error('Error in handleCallEvent:', error);
+      });
     }
   } catch (error) {
     console.error('Error in handleCallEnded:', error);
