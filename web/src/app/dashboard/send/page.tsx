@@ -1153,18 +1153,21 @@ export default function SendSMSPage() {
   return (
     <div>
       {/* 메인 콘텐츠 */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">문자 보내기</h1>
-        <div className="bg-white rounded-xl shadow p-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">문자 보내기</h1>
+          <p className="text-sm text-slate-600">고객에게 문자를 발송합니다</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm mb-6">
                 {success}
               </div>
             )}
@@ -1539,20 +1542,20 @@ export default function SendSMSPage() {
             )}
 
             {/* 메시지 입력 */}
-            <div className="relative">
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <label className="block text-sm font-medium text-slate-700">
                   메시지 <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* 다중 발송에서 한 명만 선택했을 때 요약 보기 버튼 */}
                   {sendMode === 'multiple' && selectedCustomers.length === 1 && (
                     <button
                       type="button"
                       onClick={() => setShowSummary(!showSummary)}
-                      className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                      className="text-xs sm:text-sm px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                     >
-                      {showSummary ? '📋 요약 숨기기' : '📋 대화 요약 보기'}
+                      {showSummary ? '요약 숨기기' : '대화 요약 보기'}
                     </button>
                   )}
                   {/* 전화번호 직접 입력 시 요약 보기 버튼 */}
@@ -1560,32 +1563,37 @@ export default function SendSMSPage() {
                     <button
                       type="button"
                       onClick={() => setShowSummary(!showSummary)}
-                      className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                      className="text-xs sm:text-sm px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                     >
-                      {showSummary ? '📋 요약 숨기기' : '📋 대화 요약 보기'}
+                      {showSummary ? '요약 숨기기' : '대화 요약 보기'}
                     </button>
                   )}
                   <Link
                     href="/dashboard/templates"
-                    className="text-sm text-blue-600 hover:text-blue-700"
+                    className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 font-medium"
                   >
                     템플릿 관리 →
                   </Link>
                 </div>
               </div>
-              <div className="relative">
+              
+              {/* 메시지 입력 영역 */}
+              <div className="relative mb-3">
                 <textarea
                   required
-                  rows={6}
+                  rows={8}
                   value={message}
                   onChange={(e) => {
                     setMessage(e.target.value)
                     setSelectedTemplateId('') // 수동 입력 시 템플릿 선택 해제
                   }}
-                  className="w-full px-4 py-2 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="메시지를 입력하세요. 변수를 사용할 수 있습니다. 또는 AI 버튼을 눌러 의도를 입력하세요."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400 resize-none"
+                  placeholder="메시지를 입력하세요. 변수를 사용할 수 있습니다."
                 />
-                {/* AI 버튼 고정 (우측 하단) */}
+              </div>
+
+              {/* AI 버튼과 전송 버튼을 함께 배치 */}
+              <div className="flex items-center gap-2 mb-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -1605,21 +1613,33 @@ export default function SendSMSPage() {
                     }
                     setShowAISuggestions(true)
                   }}
-                  className="absolute bottom-3 right-3 px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-1"
+                  className="px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
                   title="AI 메시지 추천"
                 >
-                  ✨ AI
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  AI 추천
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md text-sm sm:text-base"
+                >
+                  {loading ? '발송 중...' : '문자 발송'}
                 </button>
               </div>
+
+              {/* 변수 안내 */}
               <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1">
+                <p className="text-xs text-slate-500 mb-2">
                   사용 가능한 변수:
                 </p>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {AVAILABLE_VARIABLES.map((variable) => (
                     <span
                       key={variable.key}
-                      className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded"
+                      className="px-2 py-1 text-xs bg-slate-100 text-slate-700 rounded-lg font-medium"
                       title={variable.description}
                     >
                       {variable.key}
@@ -2045,18 +2065,11 @@ export default function SendSMSPage() {
               </div>
             )}
 
-            {/* 버튼 */}
-            <div className="flex gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? '발송 중...' : '문자 발송'}
-              </button>
+            {/* 취소 버튼 */}
+            <div className="pt-4 border-t border-slate-200">
               <Link
                 href="/dashboard"
-                className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors text-center"
+                className="block w-full px-6 py-3 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-center"
               >
                 취소
               </Link>

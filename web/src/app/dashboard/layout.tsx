@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { getCurrentUser, signOut } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 
 export default function DashboardLayout({
   children,
@@ -16,10 +15,25 @@ export default function DashboardLayout({
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // 사이드바 외부 클릭 시 닫기
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('.mobile-sidebar') && !target.closest('.mobile-menu-button')) {
+          setMobileMenuOpen(false)
+        }
+      }
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [mobileMenuOpen])
 
   const checkAuth = async () => {
     const currentUser = await getCurrentUser()
@@ -111,6 +125,9 @@ export default function DashboardLayout({
     },
   ]
 
+  // 주요 메뉴 (하단 네비게이션용)
+  const mainMenuItems = menuItems.slice(0, 5)
+
   const isActive = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/dashboard'
@@ -120,72 +137,52 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* 사이드바 */}
-      <aside
-        className={`fixed left-0 top-0 h-full bg-white border-r border-slate-200 shadow-sm z-40 transition-all duration-300 ${
-          sidebarOpen ? 'w-64' : 'w-20'
-        }`}
-      >
+      {/* 데스크톱 사이드바 */}
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 shadow-sm z-40 flex-col">
         <div className="flex flex-col h-full">
-          {/* 로고 및 토글 버튼 */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            {sidebarOpen && (
-              <Link href="/dashboard" className="text-xl font-bold text-slate-900">
-                비즈커넥트
-              </Link>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <svg
-                className="w-5 h-5 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {sidebarOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                )}
-              </svg>
-            </button>
+          {/* 로고 */}
+          <div className="flex items-center gap-2.5 p-4 border-b border-slate-200">
+            <div className="h-8 w-8 rounded-lg bg-slate-900" />
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold tracking-tight text-slate-900">
+                BizConnect
+              </span>
+              <span className="text-[10px] text-slate-500 leading-tight">
+                Mobile CRM
+              </span>
+            </div>
           </div>
 
           {/* 메뉴 아이템 */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             {menuItems.map((item) => {
               const active = isActive(item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     active
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-700 hover:bg-slate-100'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
-                  title={!sidebarOpen ? item.name : ''}
                 >
                   <span className="flex-shrink-0">{item.icon}</span>
-                  {sidebarOpen && (
-                    <span className="font-medium">{item.name}</span>
-                  )}
+                  <span>{item.name}</span>
                 </Link>
               )
             })}
           </nav>
 
           {/* 사용자 정보 및 로그아웃 */}
-          <div className="p-4 border-t border-gray-200">
-            {sidebarOpen && user && (
-              <div className="mb-3 px-4 py-2 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+          <div className="p-4 border-t border-slate-200">
+            {user && (
+              <div className="mb-3 px-4 py-2 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                     {user?.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="text-sm text-gray-700 font-medium truncate">
+                  <span className="text-xs text-slate-700 font-medium truncate">
                     {user?.email}
                   </span>
                 </div>
@@ -193,30 +190,181 @@ export default function DashboardLayout({
             )}
             <button
               onClick={handleLogout}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all ${
-                !sidebarOpen ? 'justify-center' : ''
-              }`}
-              title={!sidebarOpen ? '로그아웃' : ''}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              {sidebarOpen && <span className="font-medium">로그아웃</span>}
+              <span>로그아웃</span>
             </button>
           </div>
         </div>
       </aside>
 
+      {/* 모바일 헤더 */}
+      <header className="md:hidden sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+        <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-slate-900" />
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold tracking-tight text-slate-900">
+                BizConnect
+              </span>
+              <span className="text-[10px] text-slate-500 leading-tight">
+                Mobile CRM
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-menu-button p-2 text-slate-700 hover:text-slate-900 transition-colors"
+            aria-label="메뉴"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {mobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {/* 모바일 사이드바 오버레이 */}
+        {mobileMenuOpen && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <aside className="mobile-sidebar fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 shadow-xl z-50 md:hidden flex flex-col">
+              <div className="flex flex-col h-full">
+                {/* 로고 및 닫기 */}
+                <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-slate-900" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold tracking-tight text-slate-900">
+                        BizConnect
+                      </span>
+                      <span className="text-[10px] text-slate-500 leading-tight">
+                        Mobile CRM
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* 메뉴 아이템 */}
+                <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+                  {menuItems.map((item) => {
+                    const active = isActive(item.href)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                          active
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="flex-shrink-0">{item.icon}</span>
+                        <span>{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+
+                {/* 사용자 정보 및 로그아웃 */}
+                <div className="p-4 border-t border-slate-200">
+                  {user && (
+                    <div className="mb-3 px-4 py-2 bg-slate-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <span className="text-xs text-slate-700 font-medium truncate">
+                          {user?.email}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout()
+                      setMobileMenuOpen(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>로그아웃</span>
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </>
+        )}
+      </header>
+
       {/* 메인 콘텐츠 */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <div className="md:ml-64">
         {children}
       </div>
+
+      {/* 모바일 하단 네비게이션 */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-40">
+        <div className="flex items-center justify-around h-16">
+          {mainMenuItems.map((item) => {
+            const active = isActive(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                  active ? 'text-slate-900' : 'text-slate-500'
+                }`}
+              >
+                <span className={`${active ? 'text-slate-900' : 'text-slate-500'}`}>
+                  {item.icon}
+                </span>
+                <span className="text-[10px] font-medium mt-1">{item.name}</span>
+                {active && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+
+      {/* 하단 네비게이션 공간 확보 (모바일만) */}
+      <div className="md:hidden h-16" />
     </div>
   )
 }
-
-
-
-
-
-
