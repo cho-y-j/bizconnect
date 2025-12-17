@@ -277,42 +277,53 @@ export default function ImagesPage() {
               {images.map((image) => (
                 <div
                   key={image.id}
-                  className="relative border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all"
                 >
-                  <img
-                    src={image.image_url}
-                    alt={image.name}
-                    className="w-full h-32 object-cover"
-                  />
-                  <div className="p-2">
-                    <p className="text-xs font-medium text-gray-900 truncate">{image.name}</p>
-                    <p className="text-xs text-gray-500">{image.category}</p>
+                  {/* 이미지 영역 */}
+                  <div className="relative aspect-square bg-slate-50">
+                    <img
+                      src={image.image_url}
+                      alt={image.name}
+                      className="w-full h-full object-cover"
+                    />
                     {image.is_favorite && (
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full"></span>
+                      <div className="absolute top-2 right-2">
+                        <div className="w-3 h-3 bg-amber-400 rounded-full shadow-sm"></div>
+                      </div>
                     )}
                   </div>
-                  <div className="absolute top-2 right-2 flex gap-1.5">
-                    <button
-                      onClick={() => handleToggleFavorite(image.id, image.is_favorite)}
-                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
-                      title={image.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
-                    >
-                      {image.is_favorite ? '선택됨' : '선택'}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(image)}
-                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
-                      title="편집"
-                    >
-                      편집
-                    </button>
-                    <button
-                      onClick={() => handleDelete(image.id, image.image_url)}
-                      className="px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg shadow-sm hover:bg-red-100 transition-all text-xs font-medium text-red-700"
-                      title="삭제"
-                    >
-                      삭제
-                    </button>
+                  
+                  {/* 이미지 정보 및 버튼 영역 */}
+                  <div className="p-3 space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-slate-900 truncate mb-0.5">{image.name}</p>
+                      <p className="text-xs text-slate-500">{image.category}</p>
+                    </div>
+                    
+                    {/* 버튼들 - 이미지 아래에 배치 */}
+                    <div className="flex gap-1.5 pt-1">
+                      <button
+                        onClick={() => handleToggleFavorite(image.id, image.is_favorite)}
+                        className="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
+                        title={image.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                      >
+                        {image.is_favorite ? '✓' : '☆'}
+                      </button>
+                      <button
+                        onClick={() => handleEdit(image)}
+                        className="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all text-xs font-medium text-slate-700"
+                        title="편집"
+                      >
+                        편집
+                      </button>
+                      <button
+                        onClick={() => handleDelete(image.id, image.image_url)}
+                        className="flex-1 px-2 py-1.5 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all text-xs font-medium text-red-700"
+                        title="삭제"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
