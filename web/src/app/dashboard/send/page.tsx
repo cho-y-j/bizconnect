@@ -1190,7 +1190,7 @@ export default function SendSMSPage() {
                   onClick={() => setSendMode('multiple')}
                   className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'multiple'
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-slate-900 !text-white shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -1201,7 +1201,7 @@ export default function SendSMSPage() {
                   onClick={() => setSendMode('group')}
                   className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'group'
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-slate-900 !text-white shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -1212,7 +1212,7 @@ export default function SendSMSPage() {
                   onClick={() => setSendMode('tag')}
                   className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'tag'
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-slate-900 !text-white shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -1223,7 +1223,7 @@ export default function SendSMSPage() {
                   onClick={() => setSendMode('csv')}
                   className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                     sendMode === 'csv'
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-slate-900 !text-white shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -1286,7 +1286,7 @@ export default function SendSMSPage() {
                       loadCustomers()
                       setShowCustomerPicker(true)
                     }}
-                    className="px-3 py-1 text-sm bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-medium shadow-sm"
+                    className="px-3 py-1 text-sm bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all font-medium shadow-sm"
                   >
                     고객 목록에서 선택
                   </button>
@@ -1461,7 +1461,7 @@ export default function SendSMSPage() {
                       onClick={() => setSelectedGroupId(group.id)}
                       className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
                         selectedGroupId === group.id
-                          ? 'bg-slate-900 text-white shadow-sm'
+                          ? 'bg-slate-900 !text-white shadow-sm'
                           : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
                       style={{
@@ -1494,7 +1494,7 @@ export default function SendSMSPage() {
                         onClick={() => toggleTag(tag)}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                           selectedTags.includes(tag)
-                            ? 'bg-slate-900 text-white shadow-sm'
+                            ? 'bg-slate-900 !text-white shadow-sm'
                             : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
@@ -1613,7 +1613,7 @@ export default function SendSMSPage() {
                     }
                     setShowAISuggestions(true)
                   }}
-                  className="px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
+                  className="px-4 py-2.5 bg-slate-900 !text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
                   title="AI 메시지 추천"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1624,7 +1624,7 @@ export default function SendSMSPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md text-sm sm:text-base"
+                  className="flex-1 px-6 py-2.5 bg-slate-900 !text-white font-semibold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md text-sm sm:text-base"
                 >
                   {loading ? '발송 중...' : '문자 발송'}
                 </button>

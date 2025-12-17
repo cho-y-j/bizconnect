@@ -261,7 +261,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* 개인 설정 안내 배너 */}
         {!userName && (
-          <div className="mb-6 bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 sm:p-8 text-white">
+          <div className="mb-6 bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 sm:p-8 !text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h3 className="text-lg sm:text-xl font-semibold mb-2">개인 설정을 통하여 나만의 맞춤 AI를 만드세요</h3>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                     </div>
                     <Link
                       href={`/dashboard/send?customerId=${event.id}`}
-                      className="ml-4 px-6 py-3 bg-slate-900 text-white rounded-xl transition-all text-sm font-semibold hover:bg-slate-800 whitespace-nowrap"
+                      className="ml-4 px-6 py-3 bg-slate-900 !text-white rounded-xl transition-all text-sm font-semibold hover:bg-slate-800 whitespace-nowrap"
                     >
                       축하 문자 보내기 →
                     </Link>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <p className="text-slate-600 text-base sm:text-lg mb-6 font-medium">오늘 예약된 문자가 없습니다.</p>
                 <Link
                   href="/dashboard/send"
-                  className="inline-block px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
+                  className="inline-block px-6 py-3 bg-slate-900 !text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm hover:shadow-md font-semibold text-sm sm:text-base"
                 >
                   문자 보내기 시작하기 →
                 </Link>
