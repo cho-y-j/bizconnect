@@ -174,8 +174,9 @@ export async function POST(request: Request) {
           taskId: isBatch ? '' : (taskId || ''), // 배치가 아닐 때만 taskId 전송
           taskIds: isBatch ? JSON.stringify(finalTaskIds) : '', // 배치일 때만 taskIds 전송 (단일일 때는 빈 문자열)
           count: String(count),
-          phone: phone || '',
-          messagePreview: message ? message.substring(0, 50) : '',
+          userId: userId || '', // ⚡ 앱에서 DB 조회 없이 사용
+          phone: phone || '', // ⚡ 앱에서 DB 조회 없이 사용
+          message: message || '', // ⚡ 전체 메시지 (앱에서 DB 조회 없이 즉시 발송)
           hasImage: hasImage ? 'true' : 'false',
           timestamp: new Date().toISOString(),
         },
