@@ -176,22 +176,42 @@ class FCMService {
 
   /**
    * FCM data를 기반으로 승인 알림 표시 (단일)
+   * ⚡ 최적화: FCM data에 정보가 있으면 DB 조회 없이 즉시 처리
+   * ⚠️ 중복 방지는 requestApproval 내부에서 처리 (마킹도 거기서 함)
    */
   private async showApprovalFromData(taskId: string, data: any): Promise<void> {
     console.log('📱 [FCM] Showing approval for task:', taskId);
 
-    // 중복 방지: 먼저 체크하고 표시
+    // 중복 방지: 먼저 체크 (마킹은 requestApproval에서 함)
     if (taskService.isNotified(taskId)) {
       console.log('⏭️ [FCM] Task already notified, skipping:', taskId);
       return;
     }
 
-    // 원자적 처리: 먼저 마킹하여 Realtime과의 경쟁 조건 방지
-    // requestApproval 내부에서도 체크하지만, 여기서 먼저 마킹하면 Realtime이 도착해도 스킵됨
-    taskService.markAsNotified(taskId);
+    // ⚠️ 여기서 markAsNotified 하지 않음! requestApproval에서 처리함
 
-    // DB에서 전체 task 정보 가져오기
     try {
+      // ⚡ FCM data에 phone, message가 있으면 DB 조회 없이 즉시 처리
+      if (data.phone && data.message) {
+        console.log('⚡ [FCM] Using FCM data directly (no DB query)');
+        const task = {
+          id: taskId,
+          user_id: data.userId || '',
+          customer_phone: data.phone,
+          message_content: data.message,
+          customer_name: data.customerName || null,
+          type: data.type || 'send_sms',
+          status: 'pending' as const,
+          priority: 100, // 높은 우선순위
+          created_at: new Date().toISOString(),
+        };
+        await taskService.requestApproval(task as any);
+        console.log('✅ [FCM] Approval shown instantly (no DB query)');
+        return;
+      }
+
+      // FCM data에 정보가 없으면 DB 조회 (fallback)
+      console.log('⚠️ [FCM] FCM data incomplete, querying DB...');
       const { data: task, error } = await supabase
         .from('tasks')
         .select('*')
@@ -200,26 +220,19 @@ class FCMService {
 
       if (error || !task) {
         console.error('❌ [FCM] 작업 조회 실패:', error?.message || 'Task not found');
-        // 조회 실패 시 마킹 해제 (재시도 가능하도록)
-        taskService.unmarkAsNotified(taskId);
         return;
       }
 
       // pending 또는 queued 상태인 경우에만 처리
       if (task.status !== 'pending' && task.status !== 'queued') {
         console.log('ℹ️ [FCM] 작업이 처리 가능한 상태가 아님:', task.status);
-        // 상태가 맞지 않으면 마킹 해제
-        taskService.unmarkAsNotified(taskId);
         return;
       }
 
-      // 승인 알림 표시 (requestApproval 내부에서도 중복 체크하지만, 이미 마킹되어 있음)
       await taskService.requestApproval(task);
       console.log('✅ [FCM] Approval notification shown for:', taskId);
     } catch (error) {
       console.error('❌ [FCM] 승인 요청 실패:', error);
-      // 에러 발생 시 마킹 해제 (재시도 가능하도록)
-      taskService.unmarkAsNotified(taskId);
     }
   }
 

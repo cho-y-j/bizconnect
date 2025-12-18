@@ -1064,9 +1064,9 @@ export default function SendSMSPage() {
                 taskId: taskIds.length === 1 ? taskIds[0] : undefined,
                 taskIds: taskIds.length > 1 ? taskIds : undefined,
                 type: firstTask?.type || 'send_sms',
-                // 추가 정보 (앱에서 알림 표시용)
+                // 추가 정보 (앱에서 DB 조회 없이 즉시 발송용)
                 phone: firstTask?.customer_phone,
-                message: firstTask?.message_content?.substring(0, 50),
+                message: firstTask?.message_content, // 전체 메시지 전송 (잘림 방지)
                 hasImage: hasImageAttachment,
               }),
             })

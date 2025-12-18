@@ -3,6 +3,10 @@ import SmsAndroid from 'react-native-get-sms-android';
 import { supabase } from '../../lib/supabaseClient';
 import { Task } from './types/task';
 import { incrementSentCount } from './dailyLimit';
+import { createShortPreviewUrl } from './shortUrl';
+
+// SMS 최대 길이 (90바이트 기준)
+const SMS_MAX_BYTES = 90;
 
 /**
  * SMS 발송 권한 확인
@@ -133,30 +137,51 @@ export async function sendSms(
 
     // SMS 발송
     return new Promise((resolve) => {
+      let isResolved = false; // 중복 resolve 방지
+      
       SmsAndroid.autoSend(
         normalizedPhone,
         task.message_content,
         (fail: any) => {
+          if (isResolved) {
+            console.warn('⚠️ [sendSms] Already resolved, ignoring fail callback');
+            return;
+          }
+          isResolved = true;
           console.error('Failed to send SMS:', fail);
           const error = fail?.message || 'SMS 발송 실패';
-          updateTaskStatus(task.id, 'failed', error);
+          updateTaskStatus(task.id, 'failed', error).catch((err) => {
+            console.error('Error updating task status to failed:', err);
+          });
           onFailure?.(error);
           resolve(false);
         },
         async (success: any) => {
+          if (isResolved) {
+            console.warn('⚠️ [sendSms] Already resolved, ignoring success callback');
+            return;
+          }
+          isResolved = true;
           console.log('SMS sent successfully:', success);
 
-          // 발송 기록 저장
-          await saveSmsLog(task, normalizedPhone, 'sent');
+          try {
+            // 발송 기록 저장
+            await saveSmsLog(task, normalizedPhone, 'sent');
 
-          // 일일 한도 카운트 증가
-          await incrementSentCount(task.user_id);
+            // 일일 한도 카운트 증가
+            await incrementSentCount(task.user_id);
 
-          // 작업 상태를 'completed'로 업데이트
-          await updateTaskStatus(task.id, 'completed');
+            // 작업 상태를 'completed'로 업데이트 (마지막에)
+            await updateTaskStatus(task.id, 'completed');
 
-          onSuccess?.();
-          resolve(true);
+            onSuccess?.();
+            resolve(true);
+          } catch (error: any) {
+            console.error('Error in success callback:', error);
+            // 성공했지만 상태 업데이트 실패한 경우에도 성공으로 처리
+            onSuccess?.();
+            resolve(true);
+          }
         }
       );
     });
@@ -201,7 +226,8 @@ async function updateTaskStatus(
 }
 
 /**
- * SMS 발송 기록 저장
+ * SMS 발송 기록 저장/업데이트
+ * 웹에서 이미 'pending' 상태로 생성했으면 UPDATE, 없으면 INSERT
  */
 async function saveSmsLog(
   task: Task,
@@ -209,17 +235,50 @@ async function saveSmsLog(
   status: 'sent' | 'failed'
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('sms_logs').insert({
-      user_id: task.user_id,
-      task_id: task.id,
-      phone_number: phoneNumber,
-      message: task.message_content,
-      status,
-      sent_at: new Date().toISOString(),
-    });
+    // 먼저 기존 로그가 있는지 확인 (웹에서 생성한 pending 로그)
+    const { data: existingLog, error: selectError } = await supabase
+      .from('sms_logs')
+      .select('id')
+      .eq('task_id', task.id)
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error saving SMS log:', error);
+    if (selectError) {
+      console.warn('⚠️ Error checking existing SMS log:', selectError.message);
+    }
+
+    if (existingLog) {
+      // 기존 로그가 있으면 UPDATE
+      console.log('📝 Updating existing SMS log:', existingLog.id);
+      const { error: updateError } = await supabase
+        .from('sms_logs')
+        .update({
+          status,
+          sent_at: new Date().toISOString(),
+        })
+        .eq('id', existingLog.id);
+
+      if (updateError) {
+        console.error('Error updating SMS log:', updateError);
+      } else {
+        console.log('✅ SMS log updated to:', status);
+      }
+    } else {
+      // 기존 로그가 없으면 INSERT (직접 발송 등)
+      console.log('📝 Inserting new SMS log for task:', task.id);
+      const { error: insertError } = await supabase.from('sms_logs').insert({
+        user_id: task.user_id,
+        task_id: task.id,
+        phone_number: phoneNumber,
+        message: task.message_content,
+        status,
+        sent_at: new Date().toISOString(),
+      });
+
+      if (insertError) {
+        console.error('Error inserting SMS log:', insertError);
+      } else {
+        console.log('✅ SMS log inserted');
+      }
     }
   } catch (error) {
     console.error('Error in saveSmsLog:', error);
@@ -348,28 +407,30 @@ export async function sendMmsDirectly(
       throw new Error('유효하지 않은 전화번호입니다.');
     }
 
-    // Open Graph URL로 변환 또는 사용
+    // 이미 Open Graph URL인지 확인 (callbackManager에서 이미 변환된 경우)
+    // 파라미터 이름이 imageUrl이지만 실제로는 previewUrl일 수 있음
     let previewUrl: string | null = null;
     
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      // HTTP URL인 경우
-      if (imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
-        // 이미 Open Graph URL인 경우
+      // 이미 Open Graph URL인 경우 (callbackManager에서 변환된 경우)
+      // /p/, /preview/, /api/preview/ 패턴 모두 허용
+      if (imageUrl.includes('/p/') || imageUrl.includes('/preview/') || imageUrl.includes('/api/preview/')) {
         previewUrl = imageUrl;
         console.log('✅ Already Open Graph URL:', previewUrl);
       } else {
-        // 일반 이미지 URL인 경우 Open Graph URL로 변환 시도
+        // 일반 이미지 URL인 경우에만 Open Graph URL로 변환 시도
+        console.log('⚠️ Not an Open Graph URL, attempting conversion...');
         try {
           const { data: image, error } = await supabase
             .from('user_images')
             .select('id')
             .eq('image_url', imageUrl)
             .single();
-          
+
           if (!error && image) {
-            const baseUrl = 'https://bizconnect-ten.vercel.app';
-            previewUrl = `${baseUrl}/api/preview/${image.id}`;
-            console.log('✅ Converted to Open Graph URL:', previewUrl);
+            // Base62 인코딩으로 URL 단축 (73자 → 52자)
+            previewUrl = createShortPreviewUrl(image.id);
+            console.log('✅ Converted to Base62 short URL:', previewUrl);
           } else {
             // 변환 실패 시 원본 URL 사용
             previewUrl = imageUrl;
@@ -389,31 +450,81 @@ export async function sendMmsDirectly(
     // Open Graph URL이 있으면 메시지에 포함하여 SMS 발송
     if (previewUrl) {
       console.log('📷 Sending SMS with Open Graph preview URL:', previewUrl);
-      
-      // Open Graph URL을 메시지 마지막에 배치
-      // 일반 문자 발송과 동일한 방식으로 처리 (Android가 자동으로 multipart SMS 처리)
+
+      // 메시지 + URL 합쳐서 길이 확인
       const messageWithPreview = `${message}\n\n${previewUrl}`;
       console.log('📤 Final message length:', messageWithPreview.length);
-      
-      // sendSmsDirectly와 동일한 방식으로 NativeModules.Sms 사용
+      console.log('📤 Message:', message);
+      console.log('📤 URL:', previewUrl);
+      console.log('📤 SMS max bytes:', SMS_MAX_BYTES);
+
+      // NativeModules에서 직접 Sms 모듈 가져오기
+      const { NativeModules } = require('react-native');
+      const SmsModule = NativeModules.Sms;
+
+      if (!SmsModule || typeof SmsModule.autoSend !== 'function') {
+        console.error('❌ SmsModule.autoSend is not a function!');
+        throw new Error('SMS 모듈이 로드되지 않았습니다.');
+      }
+
+      // 90바이트 초과 시 분리 발송
+      if (messageWithPreview.length > SMS_MAX_BYTES) {
+        console.log('⚠️ Message exceeds 90 bytes, sending as 2 separate SMS');
+        console.log('📤 SMS 1: Message only (' + message.length + ' chars)');
+        console.log('📤 SMS 2: URL only (' + previewUrl.length + ' chars)');
+
+        // SMS 1: 메시지만 발송
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('SMS 1 발송 타임아웃'));
+          }, 30000);
+
+          SmsModule.autoSend(
+            normalizedPhone,
+            message,
+            (fail: any) => {
+              clearTimeout(timeoutId);
+              console.error('=== SMS 1 (message) FAILED ===', fail);
+              reject(new Error(fail?.message || 'SMS 1 발송 실패'));
+            },
+            (success: any) => {
+              clearTimeout(timeoutId);
+              console.log('=== SMS 1 (message) SUCCESS ===');
+              resolve();
+            }
+          );
+        });
+
+        // 잠시 대기 (연속 발송 방지)
+        await new Promise(r => setTimeout(r, 500));
+
+        // SMS 2: URL만 발송
+        return new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('SMS 2 발송 타임아웃'));
+          }, 30000);
+
+          SmsModule.autoSend(
+            normalizedPhone,
+            previewUrl,
+            (fail: any) => {
+              clearTimeout(timeoutId);
+              console.error('=== SMS 2 (URL) FAILED ===', fail);
+              reject(new Error(fail?.message || 'SMS 2 발송 실패'));
+            },
+            (success: any) => {
+              clearTimeout(timeoutId);
+              console.log('=== SMS 2 (URL) SUCCESS ===');
+              console.log('✅ Both SMS sent successfully (separated)');
+              resolve(true);
+            }
+          );
+        });
+      }
+
+      // 90바이트 이하면 합쳐서 1건으로 발송
+      console.log('✅ Message within 90 bytes, sending as 1 SMS');
       return new Promise((resolve, reject) => {
-        console.log('Calling NativeModules.Sms.autoSend...');
-        console.log('Phone:', normalizedPhone);
-        console.log('Message length:', messageWithPreview.length);
-
-        // NativeModules에서 직접 Sms 모듈 가져오기
-        const { NativeModules } = require('react-native');
-        const SmsModule = NativeModules.Sms;
-        console.log('SmsModule:', SmsModule);
-        console.log('SmsModule.autoSend:', typeof SmsModule?.autoSend);
-
-        if (!SmsModule || typeof SmsModule.autoSend !== 'function') {
-          console.error('❌ SmsModule.autoSend is not a function!');
-          reject(new Error('SMS 모듈이 로드되지 않았습니다.'));
-          return;
-        }
-
-        // 타임아웃 설정 (30초)
         const timeoutId = setTimeout(() => {
           console.error('=== SMS TIMEOUT (30s) ===');
           reject(new Error('SMS 발송 타임아웃 (30초 초과)'));

@@ -90,14 +90,16 @@ class TaskService {
         this.notifiedTaskIds.delete(taskId);
 
         let task = this.pendingApprovalTasks.get(taskId);
-        
+        let skipDbCheck = false; // ⚡ 메모리에 있으면 DB 재확인 스킵
+
         if (task) {
-          // 맵에 있으면 바로 사용
+          // 맵에 있으면 바로 사용 (이미 검증됨, DB 재확인 불필요)
           this.pendingApprovalTasks.delete(taskId);
-          console.log('✅ [TaskService] Task found in pendingApprovalTasks, processing:', task.id);
+          skipDbCheck = true;
+          console.log('⚡ [TaskService] Task found in memory, skipping DB check:', task.id);
         } else {
           // 맵에 없으면 DB에서 조회 (백그라운드 승인 시나 앱 재시작 등의 경우)
-          console.log('⚠️ [TaskService] Task not in pendingApprovalTasks, querying DB:', taskId);
+          console.log('⚠️ [TaskService] Task not in memory, querying DB:', taskId);
           const { data: dbTask, error } = await supabase
             .from('tasks')
             .select('*')
@@ -106,37 +108,27 @@ class TaskService {
 
           if (error || !dbTask) {
             console.error('❌ [TaskService] Task not found in DB:', taskId, error?.message);
+            this.autoApprovedTaskIds.delete(taskId);
             return;
           }
 
           // pending, queued, 또는 processing 상태인 경우 처리
-          // (queued = 승인 대기 중, processing = 이미 큐에 추가되었지만 아직 발송 전)
           if (dbTask.status === 'pending' || dbTask.status === 'queued' || dbTask.status === 'processing') {
-            console.log('✅ [TaskService] Found task from DB, processing:', dbTask.id, 'status:', dbTask.status);
+            console.log('✅ [TaskService] Found task from DB:', dbTask.id, 'status:', dbTask.status);
             task = dbTask;
+          } else if (dbTask.status === 'completed' || dbTask.status === 'failed') {
+            console.log('⏭️ [TaskService] Task already processed:', taskId, 'status:', dbTask.status);
+            this.autoApprovedTaskIds.delete(taskId);
+            return;
           } else {
-            console.warn('⚠️ [TaskService] Task status is not processable:', taskId, dbTask.status);
+            console.warn('⚠️ [TaskService] Task status unknown:', taskId, dbTask.status);
+            this.autoApprovedTaskIds.delete(taskId);
             return;
           }
         }
 
-        // DB 상태 재확인 (중복 발송 방지)
-        const { data: currentTask, error: checkError } = await supabase
-          .from('tasks')
-          .select('status')
-          .eq('id', task.id)
-          .single();
-
-        if (checkError || !currentTask) {
-          console.error('❌ [TaskService] Cannot verify task status:', taskId);
-          return;
-        }
-
-        // 이미 완료되었거나 실패한 작업은 무시
-        if (currentTask.status === 'completed' || currentTask.status === 'failed') {
-          console.log('⏭️ [TaskService] Task already processed, skipping:', taskId, 'status:', currentTask.status);
-          return;
-        }
+        // ⚡ 메모리에서 가져온 task는 DB 재확인 스킵 (속도 향상)
+        // DB에서 가져온 task는 이미 위에서 상태 확인됨
 
         // 배치 승인인지 확인 (batchApprovalInProgress에 있으면 배치)
         const isBatch = this.batchApprovalInProgress.has(taskId);
@@ -202,13 +194,15 @@ class TaskService {
               }
             }
 
-            // 상태를 'processing'으로 업데이트
-            await supabase
+            // ⚡ 상태를 'processing'으로 업데이트 (비동기 - await 없이 즉시 발송)
+            supabase
               .from('tasks')
               .update({ status: 'processing', updated_at: new Date().toISOString() })
-              .eq('id', task.id);
+              .eq('id', task.id)
+              .then(() => console.log('✅ Status updated to processing'))
+              .catch((err: any) => console.warn('⚠️ Status update failed (non-critical):', err.message));
 
-              // 즉시 SMS 발송 (큐 우회)
+            // ⚡ 즉시 SMS 발송 (상태 업데이트 기다리지 않음)
               const result = await sendSms(
                 task,
                 async () => {
@@ -471,19 +465,11 @@ class TaskService {
 
           if (newTask.status === 'pending' && createdAt > thresholdTime) {
             // 이미 알림을 보낸 작업은 스킵 (FCM으로 이미 처리됨)
+            // ⚠️ 마킹은 requestApproval 내부에서 함 (여기서 마킹하면 requestApproval에서 스킵됨)
             if (this.notifiedTaskIds.has(newTask.id)) {
-              console.log('⏭️ [Realtime] Task already notified (FCM), skipping:', newTask.id);
+              console.log('⏭️ [Realtime] Task already notified, skipping:', newTask.id);
               return;
             }
-
-            // 중복 방지: 표시 직전에 마킹 (FCM과의 경쟁 조건 방지)
-            if (this.notifiedTaskIds.has(newTask.id)) {
-              console.log('⏭️ [Realtime] Task already notified (race condition), skipping:', newTask.id);
-              return;
-            }
-
-            // 먼저 마킹하여 중복 방지
-            this.notifiedTaskIds.add(newTask.id);
 
             const scheduledAt = newTask.scheduled_at
               ? new Date(newTask.scheduled_at)
@@ -497,8 +483,6 @@ class TaskService {
               await this.requestApproval(newTask);
             } else {
               console.log('⏰ Task scheduled for later:', newTask.id, scheduledAt);
-              // 예약된 작업은 마킹 해제 (나중에 처리해야 함)
-              this.notifiedTaskIds.delete(newTask.id);
             }
           } else {
             console.log('⏭️ Task not pending, skipping:', newTask.id, newTask.status);
