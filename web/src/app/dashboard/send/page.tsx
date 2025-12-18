@@ -1592,6 +1592,43 @@ export default function SendSMSPage() {
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white text-slate-900 placeholder:text-slate-400 resize-none text-sm"
                   placeholder="메시지를 입력하세요. 변수를 사용할 수 있습니다."
                 />
+                {/* 바이트 수 표시 */}
+                {(() => {
+                  // 바이트 계산: 한글 2바이트, 영문/숫자/특수문자 1바이트
+                  const getByteLength = (str: string) => {
+                    let bytes = 0;
+                    for (let i = 0; i < str.length; i++) {
+                      const charCode = str.charCodeAt(i);
+                      bytes += charCode > 127 ? 2 : 1;
+                    }
+                    return bytes;
+                  };
+                  const messageBytes = getByteLength(message);
+                  // 명함 URL이 있으면 URL 바이트도 계산 (52바이트 + 줄바꿈 2개 = 약 56바이트)
+                  const hasImage = selectedImages.length > 0;
+                  const urlBytes = hasImage ? 56 : 0;
+                  const totalBytes = messageBytes + urlBytes;
+                  const isOverLimit = totalBytes > 90;
+                  const willSplit = isOverLimit && hasImage;
+
+                  return (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`font-medium ${isOverLimit ? 'text-orange-600' : 'text-slate-500'}`}>
+                        {messageBytes}바이트 {hasImage && `(+URL ${urlBytes}) = ${totalBytes}바이트`}
+                      </span>
+                      {isOverLimit && (
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                          90바이트 초과 → 2건 발송
+                        </span>
+                      )}
+                      {willSplit && (
+                        <span className="text-slate-400">
+                          (메시지 1건 + URL 1건)
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* AI 버튼과 전송 버튼을 함께 배치 */}
